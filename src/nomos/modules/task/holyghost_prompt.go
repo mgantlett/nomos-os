@@ -10,13 +10,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
 )
 
@@ -74,8 +74,29 @@ func writeSemanticMemoryAndCodebase(f *strings.Builder, keywords string, repoRoo
 	// We pass the cleaned keywords extracted from the task description into the
 	// GitBrain CLI tool, which returns a structured JSON payload of relevant snippets.
 	// If the module is missing or the search fails, we gracefully degrade.
-	gbCmd := exec.Command("nomos-gitbrain", "search", keywords)
-	out, err := gbCmd.Output()
+	plugins, err := plugin.DiscoverPlugins(repoRoot)
+	var gitbrainPlugin string
+	if err == nil {
+		for _, p := range plugins {
+			if filepath.Base(p) == "nomos-plugin-gitbrain" {
+				gitbrainPlugin = p
+				break
+			}
+		}
+	}
+
+	if gitbrainPlugin == "" {
+		fmt.Fprintln(f, "_Semantic matches require the GitBrain enterprise module._")
+		fmt.Fprintln(f, "")
+		fmt.Fprintln(f, "## Relevant Codebase Snippets")
+		fmt.Fprintln(f, "_Semantic matches require the GitBrain enterprise module._")
+		return
+	}
+
+	out, err := plugin.CallPlugin(gitbrainPlugin, "search", map[string]string{
+		"keywords": keywords,
+		"repoRoot": repoRoot,
+	})
 
 	if err != nil {
 		fmt.Fprintln(f, "_Semantic matches require the GitBrain enterprise module._")

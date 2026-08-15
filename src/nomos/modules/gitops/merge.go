@@ -257,6 +257,9 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 			cleanTitle := re.ReplaceAllString(title, "")
 			cleanTitle = strings.TrimSpace(cleanTitle)
 			newTitle := fmt.Sprintf("[Task %s] %s", taskID, cleanTitle)
+			if strings.HasPrefix(cleanTitle, "**Impact") || strings.HasPrefix(cleanTitle, "**Resolution") {
+				newTitle = fmt.Sprintf("[Task %s]\n\n%s", taskID, cleanTitle)
+			}
 
 			if title != newTitle {
 				commitMsg = strings.Replace(commitMsg, title, newTitle, 1)

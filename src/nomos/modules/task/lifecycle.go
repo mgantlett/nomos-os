@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 )
@@ -232,11 +232,19 @@ func SyncWorkspaceArtifacts(repoRoot string, taskID string) {
 
 // IndexArtifactsToGitBrain executes the enterprise GitBrain module via IPC to index notes/code.
 func IndexArtifactsToGitBrain(repoRoot string, taskID string) {
-	_, err := exec.LookPath("nomos-gitbrain")
-	if err == nil {
-		gbCmd := exec.Command("nomos-gitbrain", "index")
-		gbCmd.Dir = repoRoot
-		_ = gbCmd.Run()
+	plugins, err := plugin.DiscoverPlugins(repoRoot)
+	if err != nil {
+		return
+	}
+
+	for _, p := range plugins {
+		if filepath.Base(p) == "nomos-plugin-gitbrain" {
+			_, _ = plugin.CallPlugin(p, "index", map[string]string{
+				"repoRoot": repoRoot,
+				"taskID":   taskID,
+			})
+			return
+		}
 	}
 }
 

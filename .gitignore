@@ -18,7 +18,7 @@
 !.nomos/state/quality_debt.json
 !.nomos/resident_guidelines/
 
-bin/nomos
+bin/
 
 # Go Exclusions
 *.o

@@ -328,6 +328,10 @@ func validateCommitMessage(root, msgContent string, state *task.PhaseState) (str
 
 	// Format standardized title string containing active task ID
 	newTitle := fmt.Sprintf("[Task %s] %s", state.TaskId, cleanTitle)
+	if strings.HasPrefix(cleanTitle, "**Impact") || strings.HasPrefix(cleanTitle, "**Resolution") {
+		newTitle = fmt.Sprintf("[Task %s]\n\n%s", state.TaskId, cleanTitle)
+	}
+
 	if title != newTitle {
 		msgContent = strings.Replace(msgContent, title, newTitle, 1)
 	}

@@ -156,7 +156,6 @@ func (s *Server) registerStaticRoutes(mux *http.ServeMux) error {
 		// Check disk candidates for dev hot-reloading and live updates
 		candidates := []string{
 			filepath.Join(s.repoRoot, "src", "nomos", "modules", "cockpit", "ui"),
-			"/home/markg/Projects/sophialabs/private/nomos-sovereign/src/nomos-cockpit/src/control-plane-ui",
 		}
 		for _, cand := range candidates {
 			// Formulate absolute target filepath on host disk

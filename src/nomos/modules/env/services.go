@@ -101,30 +101,17 @@ func ResolveService(repoRoot, service string) (*ServiceConfig, error) {
 		}, nil
 
 	case "cockpit":
-		// Check for private monorepo path first, then fallback to open-commons
-		// This ensures cockpit service dynamically targets the active workspace layout
-		cockpitDir := filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "private", "nomos-sovereign", "src", "nomos-cockpit")
-		if _, err := os.Stat(cockpitDir); os.IsNotExist(err) {
-			// Fallback to open-commons repoRoot if monorepo directory is not present
-			cockpitDir = repoRoot
-		}
-		// Configure daemon launch command string for background process runner
-		cmdStr := "bin/cockpitd"
-		// Configure build step to compile cockpitd binary and control plane UI for sovereign workspace
-		buildCmd := fmt.Sprintf("cd %s && (cd src/control-plane-ui && npx --package=typescript tsc) && go build -o bin/cockpitd ./src/cmd/cockpitd/main.go", cockpitDir)
-		if cockpitDir == repoRoot {
-			// Use embedded nomos cockpit command for open core community edition
-			cmdStr = "bin/nomos cockpit"
-			buildCmd = "go build -o bin/nomos ./src/nomos/main.go"
-		}
+		cmdStr := "bin/nomos cockpit"
+		buildCmd := "go build -o bin/nomos ./src/nomos/main.go"
+
 		// Return resolved ServiceConfig instance for environment substrate
 		return &ServiceConfig{
 			Name:         "cockpit",
 			Command:      cmdStr,
 			BuildCommand: buildCmd,
-			DevCommand:   `npx -y concurrently -k "cd src/control-plane-ui && tsc -w" "bin/cockpitd"`,
+			DevCommand:   `npx -y concurrently -k "cd src/nomos/modules/cockpit/ui && tsc -w" "bin/nomos cockpit"`,
 			LogFile:      logFile,
-			Cwd:          cockpitDir,
+			Cwd:          repoRoot,
 			Port:         8089,
 		}, nil
 

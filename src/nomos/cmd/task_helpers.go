@@ -313,8 +313,17 @@ func isOrchestratorRoot(repoRoot string) bool {
 // deterministic identities and configuration to the new worktree.
 // It returns an error if the worktree fails to create or validate.
 func doGitWorktreeSetup(repoRoot, worktreeDir, branchName, taskKey string) error {
-	// git worktree add
-	cmd := exec.Command("git", "worktree", "add", "-b", branchName, worktreeDir, "develop")
+	// Check if branch already exists
+	checkCmd := exec.Command("git", "show-ref", "--verify", "--quiet", "refs/heads/"+branchName)
+	checkCmd.Dir = repoRoot
+	branchExists := checkCmd.Run() == nil
+
+	var cmd *exec.Cmd
+	if branchExists {
+		cmd = exec.Command("git", "worktree", "add", worktreeDir, branchName)
+	} else {
+		cmd = exec.Command("git", "worktree", "add", "-b", branchName, worktreeDir, "develop")
+	}
 	cmd.Dir = repoRoot
 	if err := cmd.Run(); err != nil {
 		if _, statErr := os.Stat(filepath.Join(worktreeDir, ".git")); os.IsNotExist(statErr) {
@@ -322,15 +331,22 @@ func doGitWorktreeSetup(repoRoot, worktreeDir, branchName, taskKey string) error
 		}
 	}
 
+	// Enable worktree-specific config in the bare repo before disabling sparse checkout
+	configExt := exec.Command("git", "config", "extensions.worktreeConfig", "true")
+	configExt.Dir = repoRoot
+	configExt.Run()
+
+	// Disable sparse-checkout in the transient worktree so that developers have access to the full source tree
+	sparseCmd := exec.Command("git", "sparse-checkout", "disable")
+	sparseCmd.Dir = worktreeDir
+	sparseCmd.Run()
+
 	// Write .nomos_parent_task
 	os.MkdirAll(worktreeDir, 0755)
 	os.WriteFile(filepath.Join(worktreeDir, ".nomos_parent_task"), []byte(taskKey), 0644)
 
 	// Configure deterministic Git Identities for Pristine Audit Logs
-	// 1. Enable worktree-specific config in the bare repo
-	configExt := exec.Command("git", "config", "extensions.worktreeConfig", "true")
-	configExt.Dir = repoRoot
-	configExt.Run()
+	// 1. Enable worktree-specific config in the bare repo (Moved up)
 
 	// 2. Set the deterministic Agent Tier 1 identity in the transient worktree
 	// ALSO: Inheriting from a bare repo sets core.bare=true, breaking the worktree. Override it.
