@@ -217,28 +217,20 @@ func teardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 }
 
 // syncLocalTarget synchronizes the target environment branch (e.g. develop)
-// in the given repository root if it is currently checked out, or updates the pointer.
+// in the given repository root using a headless fast-forward fetch.
 func syncLocalTarget(repoRoot, targetEnv string) {
 	synapse.Info("🔄 Synchronizing local '%s' with origin in %s...\n", targetEnv, repoRoot)
 
-	// Fetch latest targetEnv
-	fetchCmd := exec.Command("git", "fetch", "origin", targetEnv)
+	// Fetch and natively update the local tracking branch reference directly from origin.
+	// This works flawlessly regardless of sparse-checkouts, hollow shells, or whether the branch is currently checked out,
+	// as long as the fetch can fast-forward natively.
+	fetchCmd := exec.Command("git", "fetch", "origin", fmt.Sprintf("%s:%s", targetEnv, targetEnv))
 	fetchCmd.Dir = repoRoot
-	fetchCmd.Run()
-
-	// Check if the current branch in repoRoot is targetEnv
-	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	branchCmd.Dir = repoRoot
-	out, err := branchCmd.Output()
-	if err == nil && strings.TrimSpace(string(out)) == targetEnv {
-		pullCmd := exec.Command("git", "pull", "--rebase", "origin", targetEnv)
-		pullCmd.Dir = repoRoot
-		pullCmd.Run()
+	if out, err := fetchCmd.CombinedOutput(); err != nil {
+		// Log but do not crash. If it's not a fast-forward, we leave it alone.
+		synapse.Info("    ⚠️  Background sync of '%s' skipped or failed (might require manual merge): %v\n%s", targetEnv, err, string(out))
 	} else {
-		// Just update the local ref to match origin
-		updateCmd := exec.Command("git", "branch", "-f", targetEnv, "origin/"+targetEnv)
-		updateCmd.Dir = repoRoot
-		updateCmd.Run()
+		synapse.Info("    ✅ Branch '%s' natively synchronized with origin.", targetEnv)
 	}
 }
 

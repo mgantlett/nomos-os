@@ -68,7 +68,7 @@ func verifyAgentDeepReview(root string, state task.PhaseState) error {
 		return nil
 	}
 	if strings.Contains(string(content), schema.DeepReviewChecklistItem) {
-		return fmt.Errorf("definition of Ready (DoR) check failed: the deep-review checklist step has not been completed. Please run /deep-review on the active story and check it off")
+		return fmt.Errorf("definition of Ready (DoR) check failed: the deep-review checklist step has not been completed. Please run /deep-review on the active task and check it off")
 	}
 	return nil
 }

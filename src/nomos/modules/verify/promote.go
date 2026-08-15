@@ -51,13 +51,13 @@ func StageAutoDebtTask(repoRoot string, file string, gate DebtGate, reason strin
 	storiesDir := filepath.Join(config.TmpDir(repoRoot), "refactor_stories")
 	_ = os.MkdirAll(storiesDir, 0755)
 
-	storyHash := md5.Sum([]byte(relFile + "_" + string(gate)))
-	storyID := hex.EncodeToString(storyHash[:])[:8]
+	taskHash := md5.Sum([]byte(relFile + "_" + string(gate)))
+	taskID := hex.EncodeToString(taskHash[:])[:8]
 
-	storyFile := filepath.Join(storiesDir, fmt.Sprintf("refactor_%s.md", storyID))
+	taskFile := filepath.Join(storiesDir, fmt.Sprintf("refactor_%s.md", taskID))
 
 	s := &schema.TaskSchema{
-		Description: fmt.Sprintf("Refactor Debt Story: Resolve %s in `%s`.", gate, relFile),
+		Description: fmt.Sprintf("Refactor Debt Task: Resolve %s in `%s`.", gate, relFile),
 		AcceptanceCriteria: []string{
 			fmt.Sprintf("- [ ] Resolve technical debt in `%s`.", relFile),
 		},
@@ -65,9 +65,9 @@ func StageAutoDebtTask(repoRoot string, file string, gate DebtGate, reason strin
 			"- Custom acceptance criteria resolved technical debt.",
 		},
 	}
-	storyContent := s.GenerateMarkdown("code")
+	taskContent := s.GenerateMarkdown("code")
 
-	_ = os.WriteFile(storyFile, []byte(storyContent), 0644)
+	_ = os.WriteFile(taskFile, []byte(taskContent), 0644)
 
 	// Deduplicate: If an active debt for this file and gate already exists, skip registering.
 	for _, item := range manifest.ActiveDebt {
@@ -111,7 +111,7 @@ func promoteAutoDebtTasks(ctx *workspace.WorkspaceContext, autoByFile map[string
 			title := fmt.Sprintf("Resolve Quality Debt: %s", file)
 
 			s := &schema.TaskSchema{
-				Description:    fmt.Sprintf("As a developer, I want to resolve the following quality debt items in `%s`.", file),
+				Description:    fmt.Sprintf("Resolve the following quality debt items in `%s`.", file),
 				TechnicalNotes: []string{"- Automatically promoted from AUTO quality debt bypasses."},
 				QualityDebt:    []string{"Ensure all corresponding DoD gates pass without bypasses."},
 			}
@@ -226,8 +226,8 @@ func PruneQualityDebtForTask(repoRoot string, taskId string) {
 }
 
 // SyncQualityDebtStories groups active quality debt items by their linked_task
-// (if it is not "AUTO") and writes/updates a unified markdown story file
-// under .agent/tmp/story_<taskId>.md listing all the active debt items.
+// (if it is not "AUTO") and writes/updates a unified markdown task file
+// under .agent/tmp/task_<taskId>.md listing all the active debt items.
 func SyncQualityDebtStories(repoRoot string) {
 	manifest, err := readQualityDebtManifest(repoRoot)
 	if err != nil || len(manifest.ActiveDebt) == 0 {
@@ -254,28 +254,28 @@ func SyncQualityDebtStories(repoRoot string) {
 	}
 
 	for taskID, items := range grouped {
-		content := generateTaskStoryMarkdown(ctx, taskID, items)
+		content := generateTaskMarkdown(ctx, taskID, items)
 
 		if tracker != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-			// Preserve existing bundled tasks tracking if this task was an Epic
+			// Preserve existing bundled tasks tracking if this task was a Cycle
 			appendBundledTasks(ctx, tracker, taskID, &content)
 
 			_ = tracker.Edit(ctx, taskID, nil, &content, nil, nil, nil, nil, nil, nil)
 			cancel()
 		}
 
-		storyPath := filepath.Join(tmpDir, fmt.Sprintf("story_%s.md", taskID))
-		_ = os.WriteFile(storyPath, []byte(content), 0644)
+		taskPath := filepath.Join(tmpDir, fmt.Sprintf("task_%s.md", taskID))
+		_ = os.WriteFile(taskPath, []byte(content), 0644)
 	}
 }
 
-// generateTaskStoryMarkdown builds the structured markdown content for a backlog story.
-func generateTaskStoryMarkdown(ctx *workspace.WorkspaceContext, taskID string, items []QualityDebtItem) string {
+// generateTaskMarkdown builds the structured markdown content for a backlog task.
+func generateTaskMarkdown(ctx *workspace.WorkspaceContext, taskID string, items []QualityDebtItem) string {
 
 	s := &schema.TaskSchema{
-		Description:    fmt.Sprintf("As a developer, I want to resolve the following quality debt items associated with Task %s to keep the codebase maintainable.", taskID),
+		Description:    fmt.Sprintf("Resolve the following quality debt items associated with Task %s to maintain codebase integrity.", taskID),
 		TechnicalNotes: []string{"- Automatically tracked and synchronized by Nomos Quality Debt Manager."},
 		QualityDebt:    []string{"dry_candidate: true"},
 	}
@@ -314,8 +314,8 @@ func isTaskTerminal(ctx *workspace.WorkspaceContext, tID string) bool {
 }
 
 // appendBundledTasks dynamically injects the existing bundled task relationships
-// into the quality debt generated story body.
-// This preserves the hierarchical Epic -> Story relationship when auto-syncing
+// into the quality debt generated task body.
+// This preserves the hierarchical Cycle -> Task relationship when auto-syncing
 // markdown descriptions for heavily bundled quality debt tracking tasks.
 func appendBundledTasks(ctx context.Context, tracker task.Tracker, taskID string, content *string) {
 	if t, err := tracker.View(ctx, taskID); err == nil {

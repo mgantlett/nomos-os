@@ -250,7 +250,7 @@ func isGitTreeClean(ctx *workspace.WorkspaceContext) bool {
 	out, err := cmd.Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 128 {
-			return true // Ignore dirty check on bare repositories
+			return true // Ignore dirty check on hollow shell roots
 		}
 		return false
 	}
@@ -309,10 +309,10 @@ func DetectStashForTask(ctx *workspace.WorkspaceContext, taskKey string) (string
 	return "", false
 }
 
-// isOrchestratorRoot checks if the git repo is bare or a hollow shell root (not a worktree).
+// isOrchestratorRoot checks if the git repo is a hollow shell root (not a worktree).
 func isOrchestratorRoot(ctx *workspace.WorkspaceContext) bool {
 	repoRoot := ctx.RepoRoot
-	// If .git is a directory, it's the root repository (hollow or bare). If it's a file, it's a worktree.
+	// If .git is a directory, it's the root repository (hollow shell). If it's a file, it's a worktree.
 	info, err := os.Stat(filepath.Join(repoRoot, ".git"))
 	if err == nil && info.IsDir() {
 		return true
@@ -349,7 +349,7 @@ func doGitWorktreeSetup(repoRoot, worktreeDir, branchName, taskKey string) error
 		}
 	}
 
-	// Enable worktree-specific config in the bare repo before disabling sparse checkout
+	// Enable worktree-specific config in the hollow shell repo before disabling sparse checkout
 	configExt := exec.Command("git", "config", "extensions.worktreeConfig", "true")
 	configExt.Dir = repoRoot
 	configExt.Run()
@@ -364,10 +364,10 @@ func doGitWorktreeSetup(repoRoot, worktreeDir, branchName, taskKey string) error
 	os.WriteFile(filepath.Join(worktreeDir, ".nomos_parent_task"), []byte(taskKey), 0644)
 
 	// Configure deterministic Git Identities for Pristine Audit Logs
-	// 1. Enable worktree-specific config in the bare repo (Moved up)
+	// 1. Enable worktree-specific config in the hollow shell repo (Moved up)
 
 	// 2. Set the deterministic Agent Tier 1 identity in the transient worktree
-	// ALSO: Inheriting from a bare repo sets core.bare=true, breaking the worktree. Override it.
+	// ALSO: Inheriting from a poorly configured hollow shell might set core.bare=true, breaking the worktree. Override it.
 	bareCmd := exec.Command("git", "config", "--worktree", "core.bare", "false")
 	bareCmd.Dir = worktreeDir
 	bareCmd.Run()

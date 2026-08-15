@@ -133,7 +133,7 @@ func TestCheckSpecParity(t *testing.T) {
 	runGit(tempDir, "add", "base.txt")
 	runGit(tempDir, "commit", "-m", "initial commit")
 	runGit(tempDir, "branch", "develop")
-	runGit(tempDir, "checkout", "-b", "task/347-story-nomos-verify")
+	runGit(tempDir, "checkout", "-b", "task/347-task-nomos-verify")
 
 	fooPath := filepath.Join(tempDir, "src", "nomos", "verify")
 	os.MkdirAll(fooPath, 0755)

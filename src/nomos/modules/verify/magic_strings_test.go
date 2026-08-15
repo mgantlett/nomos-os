@@ -13,13 +13,13 @@ func TestCheckMagicStrings(t *testing.T) {
 import "github.com/mgantlett/nomos-os/src/nomos/modules/task"
 func testValid() {
 	tracker.Create(task.TypeBug)
-	tracker.Edit(task.TypeStory)
+	tracker.Edit(task.TypeTask)
 }`
 
 	invalidCode := `package main
 func testInvalid() {
 	tracker.Create("Bug")
-	task.Edit("Story")
+	task.Edit("Task")
 }`
 
 	validFile := filepath.Join(tmpDir, "valid.go")

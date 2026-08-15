@@ -19,12 +19,12 @@ func TestAuditWorkflows(t *testing.T) {
 		t.Fatalf("failed to create workflows dir: %v", err)
 	}
 
-	validMd := "```bash\nbin/nomos task create \"Story\" --burden 2 --depth 2\n```"
+	validMd := "```bash\nbin/nomos task create \"Task\" --burden 2 --depth 2\n```"
 	if err := os.WriteFile(filepath.Join(workflowsDir, "valid.md"), []byte(validMd), 0644); err != nil {
 		t.Fatalf("failed to write valid.md: %v", err)
 	}
 
-	invalidFlagMd := "```bash\nbin/nomos task create \"Story\" --imaginary-flag 2\n```"
+	invalidFlagMd := "```bash\nbin/nomos task create \"Task\" --imaginary-flag 2\n```"
 	if err := os.WriteFile(filepath.Join(workflowsDir, "invalid_flag.md"), []byte(invalidFlagMd), 0644); err != nil {
 		t.Fatalf("failed to write invalid_flag.md: %v", err)
 	}
@@ -54,18 +54,18 @@ func TestAuditWorkflows(t *testing.T) {
 	}
 
 	t.Run("Valid Command", func(t *testing.T) {
-		discrepancies := checkNomosCommand(schema, realRoot, "test.md", 1, "bin/nomos task create \"Story\" --burden 2 --depth 2", "task create \"Story\" --burden 2 --depth 2")
+		discrepancies := checkNomosCommand(schema, realRoot, "test.md", 1, "bin/nomos task create \"Task\" --burden 2 --depth 2", "task create \"Task\" --burden 2 --depth 2")
 		if len(discrepancies) > 0 {
 			t.Errorf("expected 0 discrepancies for valid command, got %d: %v", len(discrepancies), discrepancies)
 		}
 	})
 
 	t.Run("Invalid Flag", func(t *testing.T) {
-		discrepancies := checkNomosCommand(schema, realRoot, "test.md", 2, "bin/nomos task create \"Story\" --imaginary-flag 2", "task create \"Story\" --imaginary-flag 2")
+		discrepancies := checkNomosCommand(schema, realRoot, "test.md", 2, "bin/nomos task create \"Task\" --imaginary-flag 2", "task create \"Task\" --imaginary-flag 2")
 		if len(discrepancies) == 0 {
 			t.Errorf("expected discrepancy for invalid flag, got 0")
 		} else {
-			if discrepancies[0].Message != "Flag '--imaginary-flag' is not supported by command 'bin/nomos task create \"Story\"'" && discrepancies[0].Message != "Flag '--imaginary-flag' is not supported by command 'bin/nomos task create Story'" {
+			if discrepancies[0].Message != "Flag '--imaginary-flag' is not supported by command 'bin/nomos task create \"Task\"'" && discrepancies[0].Message != "Flag '--imaginary-flag' is not supported by command 'bin/nomos task create Task'" {
 				t.Errorf("unexpected message: %s", discrepancies[0].Message)
 			}
 		}
