@@ -21,7 +21,6 @@ var taskKeyRegex = regexp.MustCompile(`(?i)(?:\[(?:Task\s+)?|#)?([A-Z0-9]{2,6}-\
 func runTaskIDValidationCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
 	root := ctx.RepoRoot
 	repoRoot := root
-	wCtx, _ := workspace.NewContext(root)
 	res := StageResult{Name: "Task ID Validation Gate", Passed: true}
 
 	// Exclude synthetic unit test fixture environments
@@ -35,7 +34,7 @@ func runTaskIDValidationCheck(ctx *workspace.WorkspaceContext) (StageResult, err
 	tracker := resolvePrimaryTracker(root, ctx)
 
 	// 1 & 2. Resolve target task ID from multiple sources
-	targetTaskID := resolveTargetTaskID(wCtx)
+	targetTaskID := resolveTargetTaskID(ctx)
 
 	// Temporary bypass for COM-1039 during database path migration
 	if strings.Contains(targetTaskID, "COM-1039") {
@@ -87,16 +86,16 @@ func resolveTargetTaskID(ctx *workspace.WorkspaceContext) string {
 	}
 
 	// Check for cross-repo worktree parent task ID
-	parentTaskPath := filepath.Join(repoRoot, ".nomos_parent_task")
+	parentTaskPath := filepath.Join(ctx.PrimaryWorktree, ".nomos_parent_task")
 	if data, err := os.ReadFile(parentTaskPath); err == nil {
 		boundTaskID = strings.TrimSpace(string(data))
 	}
 
 	var commitTaskID string
 	commitMsgPaths := []string{
-		filepath.Join(repoRoot, ".git", "COMMIT_EDITMSG"),
-		filepath.Join(config.TmpDir(repoRoot), "commit_msg.txt"),
-		filepath.Join(config.TmpDir(repoRoot), "nomos_commit_in_flight.md"),
+		filepath.Join(ctx.PrimaryWorktree, ".git", "COMMIT_EDITMSG"),
+		filepath.Join(config.TmpDir(ctx.PrimaryWorktree), "commit_msg.txt"),
+		filepath.Join(config.TmpDir(ctx.PrimaryWorktree), "nomos_commit_in_flight.md"),
 	}
 	for _, p := range commitMsgPaths {
 		if content, err := os.ReadFile(p); err == nil {

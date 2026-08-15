@@ -16,10 +16,10 @@ import (
 // 3. The current git branch name, parsing conventional branching patterns.
 // 4. Finally, the phase state json file acting as the single source of truth.
 func GetActiveTaskId(root string) string {
-	if id := getTaskIdFromState(root); id != "" {
+	if id := getTaskIdFromParentTask(root); id != "" {
 		return id
 	}
-	if id := getTaskIdFromParentTask(root); id != "" {
+	if id := getTaskIdFromState(root); id != "" {
 		return id
 	}
 	if id := getTaskIdFromTaskMd(root); id != "" {

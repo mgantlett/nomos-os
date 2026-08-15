@@ -221,24 +221,31 @@ func teardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 func syncLocalTarget(repoRoot, targetEnv string) {
 	synapse.Info("🔄 Synchronizing local '%s' with origin in %s...\n", targetEnv, repoRoot)
 
-	// Fetch latest targetEnv
-	fetchCmd := exec.Command("git", "fetch", "origin", targetEnv)
-	fetchCmd.Dir = repoRoot
-	fetchCmd.Run()
-
-	// Check if the current branch in repoRoot is targetEnv
-	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	// Check if the target branch is currently checked out in the root repository.
+	// Using --show-current is more explicit.
+	branchCmd := exec.Command("git", "branch", "--show-current")
 	branchCmd.Dir = repoRoot
 	out, err := branchCmd.Output()
-	if err == nil && strings.TrimSpace(string(out)) == targetEnv {
-		pullCmd := exec.Command("git", "pull", "--rebase", "origin", targetEnv)
-		pullCmd.Dir = repoRoot
-		pullCmd.Run()
+	isCheckedOut := (err == nil && strings.TrimSpace(string(out)) == targetEnv)
+
+	if isCheckedOut {
+		// Native FF-only merge safely fast-forwards the checked out index
+		// without throwing the 'sparse checkout leaves no room for directory' error
+		// or modifying a branch that is actively in use via fetch :<target>.
+		synapse.Info("   ↳ Branch is actively checked out. Performing fast-forward merge...\n")
+		fetchCmd := exec.Command("git", "fetch", "origin", targetEnv)
+		fetchCmd.Dir = repoRoot
+		fetchCmd.Run()
+
+		ffCmd := exec.Command("git", "merge", "--ff-only", "FETCH_HEAD")
+		ffCmd.Dir = repoRoot
+		ffCmd.Run()
 	} else {
-		// Just update the local ref to match origin
-		updateCmd := exec.Command("git", "branch", "-f", targetEnv, "origin/"+targetEnv)
-		updateCmd.Dir = repoRoot
-		updateCmd.Run()
+		// If not checked out, safely update the local branch ref to match origin directly.
+		synapse.Info("   ↳ Branch is not checked out. Updating branch ref directly...\n")
+		fetchCmd := exec.Command("git", "fetch", "origin", targetEnv+":"+targetEnv)
+		fetchCmd.Dir = repoRoot
+		fetchCmd.Run()
 	}
 }
 
@@ -249,7 +256,7 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 			tmpFile := filepath.Join(config.TmpDir(wt), "nomos_commit_in_flight.md")
 			synapse.Info("Writing mergeFile to %s\n", tmpFile)
 			os.WriteFile(tmpFile, data, 0644)
-			// DON'T defer os.Remove so we can inspect it!
+			defer os.Remove(tmpFile)
 		} else {
 			synapse.Info("Failed to read mergeFile: %v\n", err)
 		}
@@ -298,6 +305,7 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 				commitMsg = strings.Replace(commitMsg, title, newTitle, 1)
 				tmpCommitFile := filepath.Join(config.TmpDir(wt), "nomos_commit_in_flight.md")
 				os.WriteFile(tmpCommitFile, []byte(commitMsg), 0644)
+				defer os.Remove(tmpCommitFile)
 				commitCmd = exec.Command("git", "commit", "-F", tmpCommitFile)
 			} else {
 				commitCmd = exec.Command("git", "commit", "-F", mergeFile)
