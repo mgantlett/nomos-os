@@ -217,7 +217,7 @@ func teardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 }
 
 // syncLocalTarget synchronizes the target environment branch (e.g. develop)
-// in the given repository root if it is currently checked out, or updates the pointer.
+// in the given repository root using a headless fast-forward fetch.
 func syncLocalTarget(repoRoot, targetEnv string) {
 	synapse.Info("🔄 Synchronizing local '%s' with origin in %s...\n", targetEnv, repoRoot)
 
@@ -245,7 +245,11 @@ func syncLocalTarget(repoRoot, targetEnv string) {
 		synapse.Info("   ↳ Branch is not checked out. Updating branch ref directly...\n")
 		fetchCmd := exec.Command("git", "fetch", "origin", targetEnv+":"+targetEnv)
 		fetchCmd.Dir = repoRoot
-		fetchCmd.Run()
+		if out, err := fetchCmd.CombinedOutput(); err != nil {
+			synapse.Info("    ⚠️  Background sync of '%s' skipped or failed (might require manual merge): %v\n%s", targetEnv, err, string(out))
+		} else {
+			synapse.Info("    ✅ Branch '%s' natively synchronized with origin.", targetEnv)
+		}
 	}
 }
 

@@ -69,7 +69,7 @@ func getTaskIdFromTaskMd(root string) string {
 func getTaskIdFromGitBranch(root string) string {
 	if out, err := runGit(root, "branch", "--show-current"); err == nil {
 		branch := strings.TrimSpace(out)
-		rxBranch := regexp.MustCompile(`(?:task|story|bug|issue)/([a-zA-Z0-9]+-\d+|\d+)`)
+		rxBranch := regexp.MustCompile(`(?:task|bug|issue)/([a-zA-Z0-9]+-\d+|\d+)`)
 		if match := rxBranch.FindStringSubmatch(branch); len(match) > 1 {
 			return strings.ToUpper(match[1])
 		}

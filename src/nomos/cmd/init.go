@@ -266,14 +266,14 @@ pkgs.mkShell {
 // autoConfigureHollowShell converts the root repository into a sparse checkout hollow shell
 // to support the DDP Swarm worktree architecture while preserving root worktree behavior.
 func autoConfigureHollowShell(repoRoot string) {
-	// 1. Ensure the repo is NOT bare
+	// 1. Ensure the repo is NOT core.bare=true (Hollow Shells shouldn't be bare)
 	cmd := exec.Command("git", "config", "--get", "core.bare")
 	cmd.Dir = repoRoot
 	out, err := cmd.Output()
 	isBare := err == nil && strings.TrimSpace(string(out)) == "true"
 
 	if isBare {
-		synapse.Info(" 🐚 Restoring root repository from bare to normal (core.bare=false)...")
+		synapse.Info(" 🐚 Restoring root repository from core.bare=true to normal (core.bare=false) for hollow shell...")
 		setBareCmd := exec.Command("git", "config", "core.bare", "false")
 		setBareCmd.Dir = repoRoot
 		if err := setBareCmd.Run(); err != nil {

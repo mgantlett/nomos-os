@@ -190,7 +190,7 @@ func parseGitStatusFiles(runGitHelper func(...string) []string, modified map[str
 }
 
 // isAgentStateFile detects if the given relative file path belongs to the
-// internal agent specifications, story cards, quality debt files, or state caches.
+// internal agent specifications, task specs, quality debt files, or state caches.
 func isAgentStateFile(f string) bool {
 	return config.IsAgentStateFile(f)
 }

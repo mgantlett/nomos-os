@@ -110,7 +110,7 @@ func writeQualityDebtManifest(repoRoot string, activeDebt []QualityDebtItem) {
 		// Update the deterministic workspace hash to prevent Data Integrity Gate failures
 		_ = task.UpdateWorkspaceStateHash(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
-		// Dynamically sync and update unified backlog story files for all linked task IDs
+		// Dynamically sync and update unified backlog task files for all linked task IDs
 		SyncQualityDebtStories(repoRoot)
 	}
 }
