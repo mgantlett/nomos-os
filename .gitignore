@@ -1,2 +1,70 @@
-bin/
-.direnv/
+# Agent OS System Config
+.agent/tmp/
+.agent/state/
+.agent/locks/
+.agent/logs/
+.agent/.*
+.agent/*.db
+.agent/*.pid
+.gitbrain*.db
+.agent/specs/*/parity_report.md
+.phase_state.json
+
+# Nomos Exclusions
+
+.nomos/*
+.nomos_backup/*
+.nomos/state/*
+!.nomos/state/quality_debt.json
+!.nomos/resident_guidelines/
+
+bin/nomos
+
+# Go Exclusions
+*.o
+*.a
+*.so
+*.exe
+*.test
+*.prof
+*.out
+cover.out
+cpu.prof
+mem.prof
+
+# OS & IDE
+.DS_Store
+.idea/
+.vscode/
+*.sw?
+.direnv
+
+# UI build artifacts
+# UI build artifacts
+src/control-plane-ui/dist/
+src/nomos/modules/cockpit/ui/dist/
+src/nomos/modules/cockpit/ui/*.js
+node_modules/
+.aider*
+*.db
+**/.nomos/state/*
+!**/.nomos/state/quality_debt.json
+.nomos/logs/
+.nomos/tasks/
+.nomos/walkthroughs/
+src/nomos/modules/task/.nomos/
+
+# Local Env
+.envrc
+pm2_list.json
+start-coder.json
+
+# Go Workspaces
+go.work
+go.work.sum
+.opencode/
+
+# Temporary workspace items
+tmp/
+/nomos
+.nomos_parent_task
