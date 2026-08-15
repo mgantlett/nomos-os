@@ -1,0 +1,363 @@
+=== RUN   TestCheckQualityDebtBypass
+{"type":"Log","payload":{"level":"info","message":"\u001b[31m❌ [Quality Debt Expired] Bypass for 'src/expired.go' (gate: go_vet) expired on 2026-07-29T14:34:37-04:00\u001b[0m\n"}}
+--- PASS: TestCheckQualityDebtBypass (0.00s)
+=== RUN   TestStageAutoDebtTask
+--- PASS: TestStageAutoDebtTask (0.01s)
+=== RUN   TestStageAutoDebtTask_AgentTierHigh
+--- PASS: TestStageAutoDebtTask_AgentTierHigh (0.01s)
+=== RUN   TestStageAutoDebtTask_AgentTierLow
+--- PASS: TestStageAutoDebtTask_AgentTierLow (0.00s)
+=== RUN   TestSyncQualityDebtManifest
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m✅ [Quality Debt Resolved] Automatically removed bypass for 'clean.go' (gate: go_format)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m✅ [Quality Debt Resolved] Automatically removed bypass for deleted file 'deleted.go' (gate: go_format)\u001b[0m\n"}}
+--- PASS: TestSyncQualityDebtManifest (0.01s)
+=== RUN   TestPruneQualityDebtForTask
+{"type":"Log","payload":{"level":"info","message":"   \u001b[33m⚠️  [Quality Debt Pruned] Removed bypass for 'file1.go' (gate: go_format) because linked task 61 is closed\u001b[0m\n"}}
+--- PASS: TestPruneQualityDebtForTask (0.01s)
+=== RUN   TestSyncQualityDebtManifest_AutoClear
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m✅ [Quality Debt Resolved] Automatically removed bypass for 'lib.go' (gate: tdd_coverage)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m✅ [Quality Debt Resolved] Automatically removed bypass for 'lib.go' (gate: doc_drift)\u001b[0m\n"}}
+--- PASS: TestSyncQualityDebtManifest_AutoClear (0.01s)
+=== RUN   TestAnalyzeComplexityGo
+--- PASS: TestAnalyzeComplexityGo (0.00s)
+=== RUN   TestAnalyzeComplexityNesting
+--- PASS: TestAnalyzeComplexityNesting (0.01s)
+=== RUN   TestScopeAwareComplexity
+--- PASS: TestScopeAwareComplexity (0.02s)
+=== RUN   TestVerifyGoContract
+=== RUN   TestVerifyGoContract/Success_-_Interface_matches_exactly
+=== RUN   TestVerifyGoContract/Success_-_Function_signature_matches_exactly
+=== RUN   TestVerifyGoContract/Failure_-_Interface_missing_method
+=== RUN   TestVerifyGoContract/Failure_-_Method_parameter_mismatch
+=== RUN   TestVerifyGoContract/Failure_-_Function_parameter_mismatch
+=== RUN   TestVerifyGoContract/Failure_-_Symbol_missing_entirely
+--- PASS: TestVerifyGoContract (0.00s)
+    --- PASS: TestVerifyGoContract/Success_-_Interface_matches_exactly (0.00s)
+    --- PASS: TestVerifyGoContract/Success_-_Function_signature_matches_exactly (0.00s)
+    --- PASS: TestVerifyGoContract/Failure_-_Interface_missing_method (0.00s)
+    --- PASS: TestVerifyGoContract/Failure_-_Method_parameter_mismatch (0.00s)
+    --- PASS: TestVerifyGoContract/Failure_-_Function_parameter_mismatch (0.00s)
+    --- PASS: TestVerifyGoContract/Failure_-_Symbol_missing_entirely (0.00s)
+=== RUN   TestVerifyPolyglotContract
+=== RUN   TestVerifyPolyglotContract/Success_-_Patterns_match
+=== RUN   TestVerifyPolyglotContract/Failure_-_Pattern_missing
+--- PASS: TestVerifyPolyglotContract (0.00s)
+    --- PASS: TestVerifyPolyglotContract/Success_-_Patterns_match (0.00s)
+    --- PASS: TestVerifyPolyglotContract/Failure_-_Pattern_missing (0.00s)
+=== RUN   TestContractsYamlValidation
+=== RUN   TestContractsYamlValidation/Success_-_Valid_contracts_spec
+=== RUN   TestContractsYamlValidation/Failure_-_Missing_file_field
+=== RUN   TestContractsYamlValidation/Failure_-_Missing_language_field
+=== RUN   TestContractsYamlValidation/Failure_-_Go_symbol_missing_kind
+=== RUN   TestContractsYamlValidation/Failure_-_Go_symbol_invalid_kind
+=== RUN   TestContractsYamlValidation/Failure_-_Polyglot_symbol_missing_patterns
+--- PASS: TestContractsYamlValidation (0.00s)
+    --- PASS: TestContractsYamlValidation/Success_-_Valid_contracts_spec (0.00s)
+    --- PASS: TestContractsYamlValidation/Failure_-_Missing_file_field (0.00s)
+    --- PASS: TestContractsYamlValidation/Failure_-_Missing_language_field (0.00s)
+    --- PASS: TestContractsYamlValidation/Failure_-_Go_symbol_missing_kind (0.00s)
+    --- PASS: TestContractsYamlValidation/Failure_-_Go_symbol_invalid_kind (0.00s)
+    --- PASS: TestContractsYamlValidation/Failure_-_Polyglot_symbol_missing_patterns (0.00s)
+=== RUN   TestExtractTaskID
+--- PASS: TestExtractTaskID (0.00s)
+=== RUN   TestEvaluateFailures
+--- PASS: TestEvaluateFailures (0.00s)
+=== RUN   TestVerifyDoDCommitApproval
+=== RUN   TestVerifyDoDCommitApproval/Success_-_REVIEW_phase_and_commit_approved_true
+=== RUN   TestVerifyDoDCommitApproval/Success_-_Human_check_(empty_agent)
+=== RUN   TestVerifyDoDCommitApproval/Success_-_Human_check_(os-automaton)
+=== RUN   TestVerifyDoDCommitApproval/Success_-_agent_active_and_phase_EDIT_(relies_on_PhaseToken)
+=== RUN   TestVerifyDoDCommitApproval/Failure_-_agent_active,_phase_REVIEW,_commit_approved_false
+=== RUN   TestVerifyDoDCommitApproval/Failure_-_agent_active,_phase_REVIEW,_commit_approved_missing
+--- PASS: TestVerifyDoDCommitApproval (0.00s)
+    --- PASS: TestVerifyDoDCommitApproval/Success_-_REVIEW_phase_and_commit_approved_true (0.00s)
+    --- PASS: TestVerifyDoDCommitApproval/Success_-_Human_check_(empty_agent) (0.00s)
+    --- PASS: TestVerifyDoDCommitApproval/Success_-_Human_check_(os-automaton) (0.00s)
+    --- PASS: TestVerifyDoDCommitApproval/Success_-_agent_active_and_phase_EDIT_(relies_on_PhaseToken) (0.00s)
+    --- PASS: TestVerifyDoDCommitApproval/Failure_-_agent_active,_phase_REVIEW,_commit_approved_false (0.00s)
+    --- PASS: TestVerifyDoDCommitApproval/Failure_-_agent_active,_phase_REVIEW,_commit_approved_missing (0.00s)
+=== RUN   TestVerifyDoDWalkthroughGate
+--- PASS: TestVerifyDoDWalkthroughGate (0.00s)
+=== RUN   TestMatchWildcardExclude
+--- PASS: TestMatchWildcardExclude (0.00s)
+=== RUN   TestRunPhaseDisciplineCheck
+--- PASS: TestRunPhaseDisciplineCheck (0.03s)
+=== RUN   TestIsMetadataOnly
+--- PASS: TestIsMetadataOnly (0.01s)
+=== RUN   TestCheckPOCommitApprovalIdle
+--- PASS: TestCheckPOCommitApprovalIdle (0.01s)
+=== RUN   TestDoDStagesGuidance
+--- PASS: TestDoDStagesGuidance (0.00s)
+=== RUN   TestVerifyDoDTDDCheck
+DEBUG REJECT: package main
+
+    dod_stages_test.go:49: expected TDD check to succeed when test file is paired, got: TDD check failed: logic files modified/added without accompanying test files staged:
+         - hello.go
+        (If this is a false positive, append '**TDD-Skip:** <Reason>' to your commit message)
+--- FAIL: TestVerifyDoDTDDCheck (0.01s)
+=== RUN   TestVerifyDoDBoyScoutCheck
+--- PASS: TestVerifyDoDBoyScoutCheck (0.02s)
+=== RUN   TestVerifyDoDDocDriftCheck
+--- PASS: TestVerifyDoDDocDriftCheck (0.01s)
+=== RUN   TestVerifyDoD
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m\u001b[36m▶ 🔍 Nomos Code Duplication \u0026 File Length Auditor\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ No staged logic files to audit. Skipping.\u001b[0m"}}
+
+[1m[36m  🛡️  Nomos Definition of Done (DoD) Gatekeeper[0m
+────────────────────────────────────────────────────────────
+  System Health Doctor      : [1;32mPASSED[0m (System health is fully healthy)
+  Phase Discipline Check    : [1;32mPASSED[0m ()
+  Data Integrity Gate       : [1;32mPASSED[0m (Workspace state signature initialized.)
+  Go Format & Vet           : [1;32mPASSED[0m (Skipped (No .go files modified))
+  Security Audit            : [1;32mPASSED[0m (Passed with 0 low/medium finding(s))
+  Open Core Architecture Check : [1;32mPASSED[0m (Open Core boundaries preserved.)
+  Path Hardcoding Blocker   : [1;32mPASSED[0m (No hardcoded internal paths detected.)
+  Walkthrough Parity Check  : [1;32mPASSED[0m (Skipped: no active task ID detected)
+  Contract-First Gate       : [1;32mPASSED[0m (Skipped (No .go files modified))
+  Legacy Code Blocker       : [1;32mPASSED[0m (No banned imports or phrases detected in modified files.)
+  Go Tests                  : [1;32mPASSED[0m (Skipped (No .go files modified))
+  TDD Coverage Check        : [1;32mPASSED[0m (Skipped (No .go files modified))
+  Boy Scout Docstring Check : [1;32mPASSED[0m (Skipped (No .go files modified))
+  Doc Drift Check           : [1;32mPASSED[0m (Skipped (No .go files modified))
+  Refactor Checks           : [1;32mPASSED[0m ()
+  Complexity Audit          : [1;32mPASSED[0m (All modified files pass complexity constraints.)
+  Goroutine Lifecycle Check : [1;32mPASSED[0m (Skipped (No .go files modified))
+  Comment Density Check     : [1;32mPASSED[0m (All staged source files pass comment density constraints (>= 10%).)
+  Coupling Analysis Check   : [1;32mPASSED[0m (Skipped (No .go files modified))
+  Churn-vs-Complexity Audit : [1;32mPASSED[0m (All modified files pass hotspot complexity constraints (Score <= 500).
+)
+  Duplicate Struct Check    : [1;32mPASSED[0m (Skipped (No .go files modified))
+  DRY Candidate Audit       : [1;32mPASSED[0m (No staged logic files to audit for DRY candidates.)
+  Workflow Determinism Audit : [1;32mPASSED[0m (All workflows are strictly deterministic)
+  Dead Code Detector        : [1;32mPASSED[0m (No dead code detected.)
+  Config Drift Detector     : [1;32mPASSED[0m (No .env.example found, skipping drift check.)
+  Broken Wire & Zombie Agent Detector : [1;32mPASSED[0m (No broken wires detected)
+────────────────────────────────────────────────────────────
+
+  [1;32m✅ DoD verification succeeded![0m
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m\u001b[36m▶ 🔍 Nomos Code Duplication \u0026 File Length Auditor\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m1. Evaluating Monolithic File Length Constraints...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ src/bad.go: 11 lines (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m2. Evaluating Structural Code Duplication (Sliding Window: 10 lines)...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ src/bad.go: 0% duplication density (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m✅ Specification Check Passed. 100% compliant duplication and size boundaries!\u001b[0m"}}
+
+[1m[36m  🛡️  Nomos Definition of Done (DoD) Gatekeeper[0m
+────────────────────────────────────────────────────────────
+  System Health Doctor      : [1;32mPASSED[0m (System health is fully healthy)
+  Phase Discipline Check    : [1;32mPASSED[0m ()
+  Data Integrity Gate       : [1;32mPASSED[0m (Workspace data signature is pristine.)
+  Go Format & Vet           : [1;32mPASSED[0m (All files formatted and vetted successfully)
+  Security Audit            : [1;32mPASSED[0m (Passed with 0 low/medium finding(s))
+  Open Core Architecture Check : [1;32mPASSED[0m (Open Core boundaries preserved.)
+  Path Hardcoding Blocker   : [1;32mPASSED[0m (No hardcoded internal paths detected.)
+  Walkthrough Parity Check  : [1;32mPASSED[0m (Skipped: no active task ID detected)
+  Contract-First Gate       : [1;32mPASSED[0m (Skipped: no global contracts.yaml spec found)
+  Legacy Code Blocker       : [1;32mPASSED[0m (No banned imports or phrases detected in modified files.)
+  Go Tests                  : [1;32mPASSED[0m (All unit tests passed successfully)
+  TDD Coverage Check        : [1;32mPASSED[0m ()
+  Boy Scout Docstring Check : [1;32mPASSED[0m ()
+  Doc Drift Check           : [1;32mPASSED[0m ()
+  Refactor Checks           : [1;32mPASSED[0m ()
+  Complexity Audit          : [1;32mPASSED[0m (All modified files pass complexity constraints.)
+  Goroutine Lifecycle Check : [1;32mPASSED[0m (Passed goroutine lifecycle checks)
+  Comment Density Check     : [1;32mPASSED[0m (All staged source files pass comment density constraints (>= 10%).)
+  Coupling Analysis Check   : [1;32mPASSED[0m (All package coupling checks passed (No cycles detected).
+   ↳ src: Afferent Coupling (Ca) = 0, Efferent Coupling (Ce) = 0)
+  Churn-vs-Complexity Audit : [1;32mPASSED[0m (All modified files pass hotspot complexity constraints (Score <= 500).
+)
+  Duplicate Struct Check    : [1;32mPASSED[0m ()
+  DRY Candidate Audit       : [1;32mPASSED[0m (Codebase is clean. No cross-file code duplication candidates found.)
+  Workflow Determinism Audit : [1;32mPASSED[0m (All workflows are strictly deterministic)
+  Dead Code Detector        : [1;32mPASSED[0m (Registered 1 dead code bypasses in quality debt.)
+  Config Drift Detector     : [1;32mPASSED[0m (No .env.example found, skipping drift check.)
+  Broken Wire & Zombie Agent Detector : [1;32mPASSED[0m (No broken wires detected)
+────────────────────────────────────────────────────────────
+
+  [1;32m✅ DoD verification succeeded![0m
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m\u001b[36m▶ 🔍 Nomos Code Duplication \u0026 File Length Auditor\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m1. Evaluating Monolithic File Length Constraints...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ src/bad.go: 12 lines (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m2. Evaluating Structural Code Duplication (Sliding Window: 10 lines)...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ src/bad.go: 0% duplication density (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m✅ Specification Check Passed. 100% compliant duplication and size boundaries!\u001b[0m"}}
+
+[1m[36m  🛡️  Nomos Definition of Done (DoD) Gatekeeper[0m
+────────────────────────────────────────────────────────────
+  System Health Doctor      : [1;32mPASSED[0m (System health is fully healthy)
+  Phase Discipline Check    : [1;32mPASSED[0m ()
+  Data Integrity Gate       : [1;32mPASSED[0m (Workspace data signature is pristine.)
+  Go Format & Vet           : [1;32mPASSED[0m (All files formatted and vetted successfully)
+  Security Audit            : [1;32mPASSED[0m (Passed with 0 low/medium finding(s))
+  Open Core Architecture Check : [1;32mPASSED[0m (Open Core boundaries preserved.)
+  Path Hardcoding Blocker   : [1;32mPASSED[0m (No hardcoded internal paths detected.)
+  Walkthrough Parity Check  : [1;32mPASSED[0m (Skipped: no active task ID detected)
+  Contract-First Gate       : [1;32mPASSED[0m (Skipped: no global contracts.yaml spec found)
+  Legacy Code Blocker       : [1;32mPASSED[0m (No banned imports or phrases detected in modified files.)
+  Go Tests                  : [1;32mPASSED[0m (All unit tests passed successfully)
+  TDD Coverage Check        : [1;32mPASSED[0m ()
+  Boy Scout Docstring Check : [1;32mPASSED[0m ()
+  Doc Drift Check           : [1;32mPASSED[0m ()
+  Refactor Checks           : [1;32mPASSED[0m ()
+  Complexity Audit          : [1;32mPASSED[0m (All modified files pass complexity constraints.)
+  Goroutine Lifecycle Check : [1;32mPASSED[0m (Passed goroutine lifecycle checks)
+  Comment Density Check     : [1;32mPASSED[0m (All staged source files pass comment density constraints (>= 10%).)
+  Coupling Analysis Check   : [1;32mPASSED[0m (All package coupling checks passed (No cycles detected).
+   ↳ src: Afferent Coupling (Ca) = 0, Efferent Coupling (Ce) = 0)
+  Churn-vs-Complexity Audit : [1;32mPASSED[0m (All modified files pass hotspot complexity constraints (Score <= 500).
+)
+  Duplicate Struct Check    : [1;32mPASSED[0m ()
+  DRY Candidate Audit       : [1;32mPASSED[0m (Codebase is clean. No cross-file code duplication candidates found.)
+  Workflow Determinism Audit : [1;32mPASSED[0m (All workflows are strictly deterministic)
+  Dead Code Detector        : [1;32mPASSED[0m (Registered 1 dead code bypasses in quality debt.)
+  Config Drift Detector     : [1;32mPASSED[0m (No .env.example found, skipping drift check.)
+  Broken Wire & Zombie Agent Detector : [1;32mPASSED[0m (No broken wires detected)
+────────────────────────────────────────────────────────────
+
+  [1;32m✅ DoD verification succeeded![0m
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m\u001b[36m▶ 🔍 Nomos Code Duplication \u0026 File Length Auditor\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m1. Evaluating Monolithic File Length Constraints...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m2. Evaluating Structural Code Duplication (Sliding Window: 10 lines)...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m✅ Specification Check Passed. 100% compliant duplication and size boundaries!\u001b[0m"}}
+
+[1m[36m  🛡️  Nomos Definition of Done (DoD) Gatekeeper[0m
+────────────────────────────────────────────────────────────
+  System Health Doctor      : [1;32mPASSED[0m (System health is fully healthy)
+  Phase Discipline Check    : [1;32mPASSED[0m ()
+  Data Integrity Gate       : [1;32mPASSED[0m (Workspace data signature is pristine.)
+  Go Format & Vet           : [1;32mPASSED[0m (All files formatted and vetted successfully)
+  Security Audit            : [1;32mPASSED[0m (Passed with 0 low/medium finding(s))
+  Open Core Architecture Check : [1;32mPASSED[0m (Open Core boundaries preserved.)
+  Path Hardcoding Blocker   : [1;32mPASSED[0m (No hardcoded internal paths detected.)
+  Walkthrough Parity Check  : [1;32mPASSED[0m (Skipped: no active task ID detected)
+  Contract-First Gate       : [1;32mPASSED[0m (Skipped: no global contracts.yaml spec found)
+  Legacy Code Blocker       : [1;32mPASSED[0m (No banned imports or phrases detected in modified files.)
+  Go Tests                  : [1;31mFAILED[0m (go test failed: exit status 1
+--- FAIL: TestFail (0.00s)
+    fail_test.go:6: forced failure
+FAIL
+FAIL	testrepo/src	0.001s
+FAIL)
+  TDD Coverage Check        : [1;32mPASSED[0m ()
+  Boy Scout Docstring Check : [1;32mPASSED[0m ()
+  Doc Drift Check           : [1;32mPASSED[0m ()
+  Refactor Checks           : [1;32mPASSED[0m ()
+  Complexity Audit          : [1;32mPASSED[0m (All modified files pass complexity constraints.)
+  Goroutine Lifecycle Check : [1;32mPASSED[0m (Passed goroutine lifecycle checks)
+  Comment Density Check     : [1;32mPASSED[0m (All staged source files pass comment density constraints (>= 10%).)
+  Coupling Analysis Check   : [1;32mPASSED[0m (All package coupling checks passed (No cycles detected).
+   ↳ src: Afferent Coupling (Ca) = 0, Efferent Coupling (Ce) = 0)
+  Churn-vs-Complexity Audit : [1;32mPASSED[0m (All modified files pass hotspot complexity constraints (Score <= 500).
+)
+  Duplicate Struct Check    : [1;32mPASSED[0m ()
+  DRY Candidate Audit       : [1;32mPASSED[0m (Codebase is clean. No cross-file code duplication candidates found.)
+  Workflow Determinism Audit : [1;32mPASSED[0m (All workflows are strictly deterministic)
+  Dead Code Detector        : [1;32mPASSED[0m (No dead code detected.)
+  Config Drift Detector     : [1;32mPASSED[0m (No .env.example found, skipping drift check.)
+  Broken Wire & Zombie Agent Detector : [1;32mPASSED[0m (No broken wires detected)
+────────────────────────────────────────────────────────────
+--- PASS: TestVerifyDoD (0.33s)
+=== RUN   TestVerifyDoR
+=== RUN   TestVerifyDoR/Success_-_EDIT_phase_and_approved
+=== RUN   TestVerifyDoR/Success_-_REVIEW_phase_and_approved
+=== RUN   TestVerifyDoR/Failure_-_missing_task_id
+=== RUN   TestVerifyDoR/Failure_-_plan_not_approved
+=== RUN   TestVerifyDoR/Failure_-_bad_phase_PLAN
+=== RUN   TestVerifyDoR/Failure_-_bad_phase_IDLE
+--- PASS: TestVerifyDoR (0.00s)
+    --- PASS: TestVerifyDoR/Success_-_EDIT_phase_and_approved (0.00s)
+    --- PASS: TestVerifyDoR/Success_-_REVIEW_phase_and_approved (0.00s)
+    --- PASS: TestVerifyDoR/Failure_-_missing_task_id (0.00s)
+    --- PASS: TestVerifyDoR/Failure_-_plan_not_approved (0.00s)
+    --- PASS: TestVerifyDoR/Failure_-_bad_phase_PLAN (0.00s)
+    --- PASS: TestVerifyDoR/Failure_-_bad_phase_IDLE (0.00s)
+=== RUN   TestCheckGoroutineLifecycle
+--- PASS: TestCheckGoroutineLifecycle (0.01s)
+=== RUN   TestHealthCache
+--- PASS: TestHealthCache (0.00s)
+=== RUN   TestAuditImports
+--- PASS: TestAuditImports (0.00s)
+=== RUN   TestOrchestrateSwarm
+{"type":"Log","payload":{"level":"info","message":"🚀 Starting Go-native Swarm Orchestrator\n"}}
+{"type":"Log","payload":{"level":"info","message":"   ↳ Target Repo: /tmp/orchestrate_test3235609240\n"}}
+{"type":"Log","payload":{"level":"info","message":"   ↳ Base Branch: develop\n"}}
+{"type":"Log","payload":{"level":"info","message":"   ↳ Subtasks:    2\n\n"}}
+{"type":"Log","payload":{"level":"info","message":"\n🔄 [Orchestrator] Phase 2: Synchronizing and Merging Swarm...\n"}}
+{"type":"Log","payload":{"level":"info","message":"🔨 [Orchestrator] Scaffolding Worktree: Task test2 -\u003e /tmp/nomos-swarm/orchestrate_test3235609240/test2\n"}}
+{"type":"Log","payload":{"level":"info","message":"🔨 [Orchestrator] Scaffolding Worktree: Task test1 -\u003e /tmp/nomos-swarm/orchestrate_test3235609240/test1\n"}}
+{"type":"Log","payload":{"level":"info","message":"🚀 [Orchestrator] Dispatching Task test1 in worktree...\n"}}
+{"type":"Log","payload":{"level":"info","message":"🚀 [Orchestrator] Dispatching Task test2 in worktree...\n"}}
+{"type":"Log","payload":{"level":"info","message":"✅ Task test1 completed successfully. Merging branch swarm-task-test1...\n"}}
+{"type":"Log","payload":{"level":"info","message":"✅ Task test2 completed successfully. Merging branch swarm-task-test2...\n"}}
+{"type":"Log","payload":{"level":"info","message":"\n🎉 Merged completed tasks: test1, test2\n"}}
+--- PASS: TestOrchestrateSwarm (0.06s)
+=== RUN   TestNormalizeLine
+--- PASS: TestNormalizeLine (0.00s)
+=== RUN   TestRunRefactorChecks_LengthAndDuplication
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m\u001b[36m▶ 🔍 Nomos Code Duplication \u0026 File Length Auditor\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m1. Evaluating Monolithic File Length Constraints...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ file1.go: 13 lines (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ file2.go: 15 lines (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ long_file.go: 505 lines (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m2. Evaluating Structural Code Duplication (Sliding Window: 10 lines)...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[31m❌ Code Duplication Violation: Staged file 'file1.go' has 10 duplicated lines (76.92% duplication density). Max allowed is 5%.\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"      \u001b[33m📋 Duplicated Blocks Breakdown:\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"        \u001b[36m• Matches lines 3-12\u001b[0m with \u001b[90mfile2.go:5-14\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"        \u001b[90m--------------------------------------------\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"               func executeStep(action string) {\n"}}
+{"type":"Log","payload":{"level":"info","message":"               \tsynapse.Info(\"Starting step: %s\\n\", action)\n"}}
+{"type":"Log","payload":{"level":"info","message":"               \ttime.Sleep(100 * time.Millisecond)\n"}}
+{"type":"Log","payload":{"level":"info","message":"               ..."}}
+{"type":"Log","payload":{"level":"info","message":"        \u001b[90m--------------------------------------------\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[31m❌ Code Duplication Violation: Staged file 'file2.go' has 10 duplicated lines (66.67% duplication density). Max allowed is 5%.\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"      \u001b[33m📋 Duplicated Blocks Breakdown:\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"        \u001b[36m• Matches lines 5-14\u001b[0m with \u001b[90mfile1.go:3-12\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"        \u001b[90m--------------------------------------------\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"               func executeStep(action string) {\n"}}
+{"type":"Log","payload":{"level":"info","message":"               \tsynapse.Info(\"Starting step: %s\\n\", action)\n"}}
+{"type":"Log","payload":{"level":"info","message":"               \ttime.Sleep(100 * time.Millisecond)\n"}}
+{"type":"Log","payload":{"level":"info","message":"               ..."}}
+{"type":"Log","payload":{"level":"info","message":"        \u001b[90m--------------------------------------------\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ long_file.go: 0% duplication density (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m\u001b[36m▶ 🔍 Nomos Code Duplication \u0026 File Length Auditor\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m1. Evaluating Monolithic File Length Constraints...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ file1.go: 13 lines (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ file2.go: 15 lines (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ long_file.go: 505 lines (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"\n\u001b[1m2. Evaluating Structural Code Duplication (Sliding Window: 10 lines)...\u001b[0m"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m⏭️  [Quality Debt] Bypassed 'duplication_limit' for 'file1.go' (Linked to active task #123)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m⏭️  [Quality Debt] Bypassed 'duplication_limit' for 'file2.go' (Linked to active task #123)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m↳ long_file.go: 0% duplication density (Passed)\u001b[0m\n"}}
+{"type":"Log","payload":{"level":"info","message":"   \u001b[32m✅ Specification Check Passed. 100% compliant duplication and size boundaries!\u001b[0m"}}
+--- PASS: TestRunRefactorChecks_LengthAndDuplication (0.02s)
+=== RUN   TestCheckDuplicateStructs
+--- PASS: TestCheckDuplicateStructs (0.00s)
+=== RUN   TestDensityOutput
+walkthrough_parity.go: 13.87% (comments: 24, code: 173)
+dod.go: 18.71% (comments: 32, code: 171)
+dod_helpers.go: 11.52% (comments: 66, code: 573)
+--- PASS: TestDensityOutput (0.02s)
+=== RUN   TestScanSecurity
+--- PASS: TestScanSecurity (0.01s)
+=== RUN   TestParseSpecFiles
+--- PASS: TestParseSpecFiles (0.00s)
+=== RUN   TestGetActiveTaskId
+--- PASS: TestGetActiveTaskId (0.00s)
+=== RUN   TestCheckSpecParity
+{"type":"SpecParityResult","payload":{"actually_modified_count":2,"drift_score":66.66666666666666,"matching_intent_count":1,"missing_tests":["src/nomos/verify/extra.go","src/nomos/verify/foo.go"],"parity_score":33.33333333333334,"planned_files_count":2,"report_path":"/tmp/nomos_parity_test3014840480/.nomos/specs/347/parity_report.md","task_id":"347","total_undeclared_symbols":0,"undeclared_symbols":{},"undocumented_mutations_count":1,"unfulfilled_intent_count":1}}
+--- PASS: TestCheckSpecParity (0.02s)
+=== RUN   TestParseSpecFilesProposedChanges
+--- PASS: TestParseSpecFilesProposedChanges (0.00s)
+=== RUN   TestASTSymbolParityVerification
+--- PASS: TestASTSymbolParityVerification (0.00s)
+=== RUN   TestIsAgentStateFile
+--- PASS: TestIsAgentStateFile (0.00s)
+=== RUN   TestAuditWorkflows
+=== RUN   TestAuditWorkflows/Valid_Command
+=== RUN   TestAuditWorkflows/Invalid_Flag
+--- PASS: TestAuditWorkflows (0.01s)
+    --- PASS: TestAuditWorkflows/Valid_Command (0.00s)
+    --- PASS: TestAuditWorkflows/Invalid_Flag (0.00s)
+FAIL
+exit status 1
+FAIL	github.com/mgantlett/nomos-commons/src/nomos/modules/verify	0.647s
