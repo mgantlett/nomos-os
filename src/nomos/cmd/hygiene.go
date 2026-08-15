@@ -7,13 +7,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
@@ -28,7 +30,8 @@ import (
 // are gracefully pruned along with their associated data folders, active processes
 // are monitored, and transient tracking states are cleaned up.
 // It is critical to run this daily to prevent the <repoRoot>/.nomos/data/ folder from becoming bloated.
-func RunHygieneCleanups(repoRoot string) error {
+func RunHygieneCleanups(ctx *workspace.WorkspaceContext) error {
+	repoRoot := ctx.RepoRoot
 	synapse.Info("%s", fmt.Sprint("🧹 Starting Nomos workspace hygiene cleanup..."))
 
 	// Resolve the list of standard databases.
@@ -41,7 +44,7 @@ func RunHygieneCleanups(repoRoot string) error {
 	vacuumDatabases(dbFiles)
 
 	// Resolve active task tracker config.
-	cfg, err := task.LoadConfig(repoRoot)
+	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(repoRoot); return task.LoadConfig(c) }()
 	var tracker task.Tracker
 	if err == nil {
 		tracker, _ = task.NewTracker(cfg)
@@ -338,7 +341,7 @@ func ensureWritableAndRemove(path string) error {
 
 // pruneRefactorStories deletes draft story files under tmp/refactor_stories/ that are no longer active in quality debt.
 func pruneRefactorStories(repoRoot string) {
-	activeIDs := loadActiveStoryIDs(repoRoot)
+	activeIDs := loadActiveStoryIDs(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 	storiesDir := filepath.Join(config.GlobalDataDir(repoRoot), "tmp", "refactor_stories")
 	entries, err := os.ReadDir(storiesDir)
 	if err != nil {
@@ -356,7 +359,8 @@ func pruneRefactorStories(repoRoot string) {
 }
 
 // loadActiveStoryIDs parses quality_debt.json and extracts active story IDs.
-func loadActiveStoryIDs(repoRoot string) map[string]bool {
+func loadActiveStoryIDs(ctx *workspace.WorkspaceContext) map[string]bool {
+	repoRoot := ctx.RepoRoot
 	manifestPath := filepath.Join(config.GlobalDataDir(repoRoot), "state", "quality_debt.json")
 	var manifest struct {
 		ActiveDebt []struct {

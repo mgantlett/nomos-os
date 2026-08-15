@@ -8,8 +8,11 @@ import (
 	"os"            // File system operations and current working directory
 	"os/exec"       // Subprocess execution for git checks
 	"path/filepath" // Platform-agnostic file path manipulation
-	"strings"       // String manipulation for diagnostic reports
-	"time"          // Connectivity check timeouts
+	"strings"
+
+	"time" // Connectivity check timeouts
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace" // String manipulation for diagnostic reports
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
@@ -30,7 +33,7 @@ var doctorCmd = &cobra.Command{
 			return err
 		}
 		repoRoot := findRepoRoot(root)
-		if err := enforceRootZone(repoRoot, "doctor"); err != nil {
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "doctor"); err != nil {
 			return err
 		}
 
@@ -228,7 +231,7 @@ func checkGitHook(root string, hook string) bool {
 
 // checkTaskTracker checks the credentials and connectivity of the tracker API.
 func checkTaskTracker(root string) bool {
-	cfg, err := task.LoadConfig(root)
+	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(root); return task.LoadConfig(c) }()
 	if err != nil {
 		return false
 	}

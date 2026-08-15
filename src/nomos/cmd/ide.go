@@ -5,11 +5,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
@@ -56,7 +59,7 @@ var idePhaseCmd = &cobra.Command{
 			return err
 		}
 		repoRoot := findRepoRoot(wd)
-		return handlePhaseTransition(repoRoot, targetPhase)
+		return handlePhaseTransition(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetPhase)
 	},
 }
 

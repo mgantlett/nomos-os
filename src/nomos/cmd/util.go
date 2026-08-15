@@ -3,6 +3,8 @@ package cmd
 // Package cmd provides the root commands for the Nomos CLI.
 // It includes utilities for path resolution and command handling.
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"os"
 
@@ -17,9 +19,9 @@ func findRepoRoot(start string) string {
 
 // enforceRootZone strictly checks that the active directory is the global Hollow Shell.
 // If it is a transient worktree, it panics with deterministic CLI directions.
-func enforceRootZone(repoRoot, cmdName string) error {
+func enforceRootZone(ctx *workspace.WorkspaceContext, cmdName string) error {
 	wd, _ := os.Getwd()
-	if !isOrchestratorRoot(wd) {
+	if !isOrchestratorRoot(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(wd); return c }()) {
 		return fmt.Errorf("Execution out of bounds: 'nomos %s' must be executed from the Root Hollow Shell. Please cd back to the repository root.", cmdName)
 	}
 	return nil
@@ -27,9 +29,9 @@ func enforceRootZone(repoRoot, cmdName string) error {
 
 // enforceWorktreeZone strictly checks that the active directory is an isolated transient worktree.
 // If it is the global Hollow Shell (where src/ is hidden), it panics with deterministic CLI directions.
-func enforceWorktreeZone(repoRoot, cmdName string) error {
+func enforceWorktreeZone(ctx *workspace.WorkspaceContext, cmdName string) error {
 	wd, _ := os.Getwd()
-	if isOrchestratorRoot(wd) {
+	if isOrchestratorRoot(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(wd); return c }()) {
 		return fmt.Errorf("Execution out of bounds: 'nomos %s' must be executed inside an isolated transient worktree. Please run 'cd worktrees/<task>' before executing.", cmdName)
 	}
 	return nil

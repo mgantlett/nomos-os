@@ -7,6 +7,7 @@ import (
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/gitops"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
@@ -32,14 +33,14 @@ var taskMergeCmd = &cobra.Command{
 
 		repoRoot := findRepoRoot(wd)
 
-		if err := enforceWorktreeZone(repoRoot, "task merge"); err != nil {
+		if err := enforceWorktreeZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task merge"); err != nil {
 			return err
 		}
 
 		taskID := verify.GetActiveTaskId(repoRoot)
 
 		fmt.Printf("🚀 Natively executing direct merge into %s...\n", targetEnv)
-		if err := gitops.DirectMerge(wd, repoRoot, targetEnv, mergeFile); err != nil {
+		if err := gitops.DirectMerge(wd, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv, mergeFile); err != nil {
 			return fmt.Errorf("direct merge failed: %w", err)
 		}
 
@@ -57,8 +58,8 @@ var taskMergeCmd = &cobra.Command{
 					_ = telemetry.EmitEvent(repoRoot, "task_close", fmt.Sprintf("Task ID: %s | Reason: %s", taskID, comment))
 					verify.PruneQualityDebtForTask(repoRoot, taskID)
 
-					if state, _ := task.GetPhaseState(repoRoot); state != nil && state.TaskId == taskID {
-						_ = task.TransitionPhase(repoRoot, statepkg.PhaseIdle)
+					if state, _ := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); state != nil && state.TaskId == taskID {
+						_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), statepkg.PhaseIdle)
 						fmt.Printf("✅ Active task %s closed. Workspace reset to %s phase.\n", taskID, statepkg.PhaseIdle)
 					}
 				}

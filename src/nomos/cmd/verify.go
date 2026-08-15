@@ -3,9 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +24,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(root)
-			if err := enforceWorktreeZone(repoRoot, "verify"); err != nil {
+			if err := enforceWorktreeZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "verify"); err != nil {
 				return err
 			}
 
@@ -79,7 +80,7 @@ var (
 			}
 
 			if verifyType == "drift" {
-				if err := verify.CheckSSOTDrift(root); err != nil {
+				if err := verify.CheckSSOTDrift(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }()); err != nil {
 					return err
 				}
 				synapse.Info("%s", fmt.Sprint("SSOT Drift check passed successfully."))

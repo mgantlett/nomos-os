@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
@@ -58,7 +59,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 		}
 		// Persist signature to mock sqlite db in tempDir
 		hash := task.CalculatePhaseStateHash(data)
-		if err := task.PersistPhaseStateHash(tempDir, hash); err != nil {
+		if err := task.PersistPhaseStateHash(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), hash); err != nil {
 			t.Fatalf("failed to persist phase state signature: %v", err)
 		}
 	}

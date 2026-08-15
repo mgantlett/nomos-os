@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 type mockTracker struct {
@@ -57,7 +58,7 @@ func TestGenerateHolyGhostContext(t *testing.T) {
 	tracker := &mockTracker{task: mockTask}
 
 	// Run GenerateHolyGhostContext
-	err = GenerateHolyGhostContext(context.Background(), tempDir, tracker, "JAZZ-123")
+	err = GenerateHolyGhostContext(context.Background(), func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), tracker, "JAZZ-123")
 	if err != nil {
 		t.Fatalf("GenerateHolyGhostContext failed: %v", err)
 	}
@@ -115,7 +116,7 @@ func TestGenerateHolyGhostContextTemplates(t *testing.T) {
 	tracker := &mockTracker{task: mockTask}
 
 	// 3. Run context generator
-	err = GenerateHolyGhostContext(context.Background(), tempDir, tracker, "JAZZ-123")
+	err = GenerateHolyGhostContext(context.Background(), func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), tracker, "JAZZ-123")
 	if err != nil {
 		t.Fatalf("GenerateHolyGhostContext failed: %v", err)
 	}
@@ -221,7 +222,7 @@ func PerformOption(o Option) error {
 	tracker := &mockTracker{task: mockTask}
 
 	// Run GenerateHolyGhostContext
-	err = GenerateHolyGhostContext(context.Background(), tempDir, tracker, "125")
+	err = GenerateHolyGhostContext(context.Background(), func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), tracker, "125")
 	if err != nil {
 		t.Fatalf("GenerateHolyGhostContext failed: %v", err)
 	}

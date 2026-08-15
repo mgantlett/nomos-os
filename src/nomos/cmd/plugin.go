@@ -3,10 +3,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/spf13/cobra"

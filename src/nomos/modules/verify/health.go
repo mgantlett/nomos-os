@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"net"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
@@ -231,7 +233,7 @@ func isActive(status task.TaskStatus) bool {
 // logTriageIssue creates a triage issue in the backlog after persistent health check failures.
 // It leverages standard ticketing tracker interfaces to auto-file issues.
 func logTriageIssue(root string, activeFailures []string, history []string) error {
-	cfg, err := task.LoadConfig(root)
+	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(root); return task.LoadConfig(c) }()
 	if err != nil {
 		return err
 	}

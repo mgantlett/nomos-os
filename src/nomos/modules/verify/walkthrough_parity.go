@@ -1,12 +1,15 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"context"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
@@ -261,7 +264,7 @@ func isCriterionCovered(criterion, text string) bool {
 // fetchTaskDetails queries the active tracker
 func fetchTaskDetails(root string, id string) (*task.Task, error) {
 	// Load configuration settings for workspace
-	cfg, err := task.LoadConfig(root)
+	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(root); return task.LoadConfig(c) }()
 	if err != nil {
 		// Return error if loading config failed
 		return nil, err

@@ -9,10 +9,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
 	"github.com/spf13/cobra"
@@ -115,7 +118,7 @@ var (
 				}
 			}
 
-			violations, err := verify.AuditImports(root, files)
+			violations, err := verify.AuditImports(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }(), files)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "import audit failed: %v\n", err)
 				os.Exit(1)

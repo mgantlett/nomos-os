@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	plugin "github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -162,16 +163,12 @@ var updateCmd = &cobra.Command{
 		if wd, err := os.Getwd(); err == nil {
 			repoRoot := findRepoRoot(wd)
 
-			if err := enforceRootZone(repoRoot, "update"); err != nil {
-				return err
-			}
-
-			if err := enforceRootZone(repoRoot, "update"); err != nil {
+			if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "update"); err != nil {
 				return err
 			}
 
 			// Synchronize local workspace protocols, hooks, and schemas
-			if err := runInitSync(repoRoot); err != nil {
+			if err := runInitSync(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err != nil {
 				synapse.Info("Warning: failed to synchronize workspace: %v\n", err)
 			}
 
@@ -181,7 +178,7 @@ var updateCmd = &cobra.Command{
 			}
 
 			// Run automated workspace hygiene cleanups
-			_ = RunHygieneCleanups(repoRoot)
+			_ = RunHygieneCleanups(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 		}
 
 		synapse.Info("✅ Global update complete for %v!", targets)

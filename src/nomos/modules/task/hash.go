@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
@@ -28,7 +30,8 @@ import (
 // associated with the active project namespace. The gathered string slice is strictly ordered
 // alphanumerically via sort.Strings to ensure the SHA-256 buffer consumes the bytes deterministically,
 // guaranteeing reproducible output hashes across any standard workspace configuration.
-func CalculateWorkspaceStateHash(repoRoot string) (string, error) {
+func CalculateWorkspaceStateHash(ctx *workspace.WorkspaceContext) (string, error) {
+	repoRoot := ctx.RepoRoot
 	dataDir := config.GlobalDataDir(repoRoot)
 	stateDir := filepath.Join(dataDir, "state")
 
@@ -106,7 +109,8 @@ func collectStateFiles(stateDir string) []string {
 }
 
 // PersistWorkspaceStateHash records the workspace signature hash to a flat file manifest.
-func PersistWorkspaceStateHash(repoRoot string, hash string) error {
+func PersistWorkspaceStateHash(ctx *workspace.WorkspaceContext, hash string) error {
+	repoRoot := ctx.RepoRoot
 	hashPath := filepath.Join(config.TmpDir(repoRoot), ".workspace_state.hash")
 	dir := filepath.Dir(hashPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -120,7 +124,8 @@ func PersistWorkspaceStateHash(repoRoot string, hash string) error {
 }
 
 // GetPersistedWorkspaceStateHash reads the registered workspace signature hash.
-func GetPersistedWorkspaceStateHash(repoRoot string) (string, error) {
+func GetPersistedWorkspaceStateHash(ctx *workspace.WorkspaceContext) (string, error) {
+	repoRoot := ctx.RepoRoot
 	hashPath := filepath.Join(config.TmpDir(repoRoot), ".workspace_state.hash")
 	if _, err := os.Stat(hashPath); os.IsNotExist(err) {
 		return "", nil
@@ -134,12 +139,12 @@ func GetPersistedWorkspaceStateHash(repoRoot string) (string, error) {
 
 // UpdateWorkspaceStateHash is a convenience wrapper to recalculate and save the hash.
 // This function should be called after any deterministic CLI mutation to the workspace.
-func UpdateWorkspaceStateHash(repoRoot string) error {
-	hash, err := CalculateWorkspaceStateHash(repoRoot)
+func UpdateWorkspaceStateHash(ctx *workspace.WorkspaceContext) error {
+	hash, err := CalculateWorkspaceStateHash(ctx)
 	if err != nil {
 		return err
 	}
-	return PersistWorkspaceStateHash(repoRoot, hash)
+	return PersistWorkspaceStateHash(ctx, hash)
 }
 
 var asyncCommitsWg sync.WaitGroup
@@ -153,18 +158,18 @@ func WaitAsyncCommits() {
 // StateHashTracker wraps a Tracker to automatically update the Workspace State Hash upon mutations.
 type StateHashTracker struct {
 	Tracker
-	repoRoot string
+	ctx *workspace.WorkspaceContext
 }
 
-func WrapWithStateHash(t Tracker, repoRoot string) Tracker {
-	return &StateHashTracker{Tracker: t, repoRoot: repoRoot}
+func WrapWithStateHash(t Tracker, ctx *workspace.WorkspaceContext) Tracker {
+	return &StateHashTracker{Tracker: t, ctx: ctx}
 }
 
 func (w *StateHashTracker) updateHash() {
 	asyncCommitsWg.Add(1)
 	go func() {
 		defer asyncCommitsWg.Done()
-		_ = UpdateWorkspaceStateHash(w.repoRoot)
+		_ = UpdateWorkspaceStateHash(w.ctx)
 	}()
 }
 

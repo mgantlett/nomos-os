@@ -26,15 +26,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 // GenerateHolyGhostContext fetches task details and builds .agent/tmp/.context-prompt.md
-func GenerateHolyGhostContext(ctx context.Context, repoRoot string, tracker Tracker, taskKey string) error {
+func GenerateHolyGhostContext(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, taskKey string) error {
+	repoRoot := wCtx.RepoRoot
 	fmt.Printf("👻 Holy Ghost: Generating context for Task %s...\n", taskKey)
 
 	// 1. Fetch Task details and keywords
-	keywords := fetchTaskKeywords(ctx, repoRoot, tracker, taskKey)
+	keywords := fetchTaskKeywords(ctx, wCtx, tracker, taskKey)
 	if keywords == "" {
 		fmt.Println("⚠️  Holy Ghost: Empty task description keywords. Skipping context generation.")
 		return nil
@@ -60,10 +63,10 @@ func GenerateHolyGhostContext(ctx context.Context, repoRoot string, tracker Trac
 	writeTaskPlanAndWorkflows(&rawContext, repoRoot, taskKey)
 
 	// 7. Write dependency signatures if compact_context is enabled
-	writeDependencySignaturesIfCompactEnabled(&rawContext, repoRoot, taskKey)
+	writeDependencySignaturesIfCompactEnabled(&rawContext, wCtx, taskKey)
 
 	// 8. Compress the raw context
-	compressedContext, err := CompressContext(ctx, &rawContext, repoRoot)
+	compressedContext, err := CompressContext(ctx, &rawContext, wCtx)
 	if err != nil {
 		fmt.Printf("⚠️  Holy Ghost: Context compression failed: %v. Using raw context.\n", err)
 		compressedContext = rawContext.String()
@@ -89,7 +92,8 @@ func GenerateHolyGhostContext(ctx context.Context, repoRoot string, tracker Trac
 
 // CompressContext evaluates the size of the raw context. If it exceeds the deterministic threshold,
 // it emits a machine-readable JSON directive to standard-out for the active AI agent to execute.
-func CompressContext(ctx context.Context, rawContext *strings.Builder, repoRoot string) (string, error) {
+func CompressContext(ctx context.Context, rawContext *strings.Builder, wCtx *workspace.WorkspaceContext) (string, error) {
+	repoRoot := wCtx.RepoRoot
 	rawString := rawContext.String()
 	// Heuristic approximation of token count (4 chars per token)
 	tokenCount := len(rawString) / 4

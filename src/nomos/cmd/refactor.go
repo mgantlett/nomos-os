@@ -3,6 +3,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +21,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(root)
-			if err := enforceWorktreeZone(repoRoot, "refactor"); err != nil {
+			if err := enforceWorktreeZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "refactor"); err != nil {
 				return err
 			}
 			err = verify.RunRefactorChecks(root, refactorAll)

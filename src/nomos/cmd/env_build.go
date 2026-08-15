@@ -4,6 +4,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +29,7 @@ var envBuildCmd = &cobra.Command{
 		fmt.Printf("Building %s...\n", svc.Name)
 
 		// Run the synchronous build command.
-		if err := env.Build(repoRoot, svc); err != nil {
+		if err := env.Build(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), svc); err != nil {
 			return err
 		}
 

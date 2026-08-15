@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 	"os/exec"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-os/src/nomos/modules/provider"
 	"github.com/spf13/cobra"
@@ -168,7 +170,7 @@ var providerLocalStartCmd = &cobra.Command{
 		wd, _ := os.Getwd()
 		repoRoot := findRepoRoot(wd)
 		synapse.Info("🚀 Starting local daemon: %s...\n", daemon)
-		if err := provider.StartLocalDaemon(repoRoot, daemon); err != nil {
+		if err := provider.StartLocalDaemon(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), daemon); err != nil {
 			return err
 		}
 		synapse.Info("%s", fmt.Sprint("✅ Local daemon started successfully."))
@@ -183,7 +185,9 @@ var providerLocalStopCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		daemon := args[0]
 		synapse.Info("💤 Stopping local daemon: %s...\n", daemon)
-		if err := provider.StopLocalDaemon(daemon); err != nil {
+		wd, _ := os.Getwd()
+		repoRoot := findRepoRoot(wd)
+		if err := provider.StopLocalDaemon(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), daemon); err != nil {
 			return err
 		}
 		synapse.Info("%s", fmt.Sprint("✅ Local daemon stopped successfully."))
@@ -217,11 +221,12 @@ func resolveProviderConfig(name string) (provider.ProviderConfig, error) {
 	repoRoot := findRepoRoot(wd)
 
 	// Load provider details from models.yaml
-	return LoadProviderConfig(repoRoot, name)
+	return LoadProviderConfig(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), name)
 }
 
 // LoadProviderConfig parses models.yaml configuration and retrieves a provider by name.
-func LoadProviderConfig(repoRoot string, providerName string) (provider.ProviderConfig, error) {
+func LoadProviderConfig(ctx *workspace.WorkspaceContext, providerName string) (provider.ProviderConfig, error) {
+	repoRoot := ctx.RepoRoot
 	// Initialize custom viper configuration parser
 	v := viper.New()
 	v.SetConfigFile(config.ModelsPath(repoRoot))

@@ -5,13 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
@@ -68,7 +70,7 @@ var (
 			repoRoot := findRepoRoot(wd)
 
 			since := "30 days ago"
-			totalCommitsStr, err := runGitCommand(repoRoot, "rev-list", "--count", "--since="+since, "HEAD")
+			totalCommitsStr, err := runGitCommand(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "rev-list", "--count", "--since="+since, "HEAD")
 			if err != nil {
 				if analyticsJSONFlag {
 					return fmt.Errorf("no git history found or not a git repository")
@@ -83,22 +85,22 @@ var (
 				return nil
 			}
 
-			weeklyVelocity, maxWeeklyVal, err := collectWeeklyVelocity(repoRoot)
+			weeklyVelocity, maxWeeklyVal, err := collectWeeklyVelocity(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 			if err != nil {
 				return err
 			}
 
-			commitTypes, maxTypeVal, err := collectCommitTypes(repoRoot, since)
+			commitTypes, maxTypeVal, err := collectCommitTypes(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), since)
 			if err != nil {
 				return err
 			}
 
-			telemetryData, err := collectTelemetry(repoRoot, totalCommits)
+			telemetryData, err := collectTelemetry(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), totalCommits)
 			if err != nil {
 				return err
 			}
 
-			moduleRatings, err := collectModuleRatings(repoRoot)
+			moduleRatings, err := collectModuleRatings(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 			if err != nil {
 				return err
 			}
@@ -106,8 +108,8 @@ var (
 			tracker, _, _ := loadTrackerAndRoot()
 			ctx := context.Background()
 			tasks, _ := tracker.List(ctx)
-			_ = task.SyncAgentVelocities(ctx, repoRoot, tasks)
-			averages, _ := task.GetRollingAverages(repoRoot)
+			_ = task.SyncAgentVelocities(ctx, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), tasks)
+			averages, _ := task.GetRollingAverages(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 			epicProjections := make(map[string]float64)
 			for _, t := range tasks {
@@ -154,20 +156,22 @@ var (
 	}
 )
 
-func runGitCommand(repoRoot string, args ...string) (string, error) {
+func runGitCommand(ctx *workspace.WorkspaceContext, args ...string) (string, error) {
+	repoRoot := ctx.RepoRoot
 	gitCmd := exec.Command("git", args...)
 	gitCmd.Dir = repoRoot
 	out, err := gitCmd.CombinedOutput()
 	return strings.TrimSpace(string(out)), err
 }
 
-func collectWeeklyVelocity(repoRoot string) ([]WeeklyVelocityEntry, int, error) {
+func collectWeeklyVelocity(ctx *workspace.WorkspaceContext) ([]WeeklyVelocityEntry, int, error) {
+	repoRoot := ctx.RepoRoot
 	weeklyVelocity := make([]WeeklyVelocityEntry, 0, 4)
 	maxVal := 1
 	for i := 4; i >= 1; i-- {
 		wStart := fmt.Sprintf("%d days ago", i*7)
 		wEnd := fmt.Sprintf("%d days ago", (i-1)*7)
-		cStr, _ := runGitCommand(repoRoot, "rev-list", "--count", "--since="+wStart, "--until="+wEnd, "HEAD")
+		cStr, _ := runGitCommand(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "rev-list", "--count", "--since="+wStart, "--until="+wEnd, "HEAD")
 		c, _ := strconv.Atoi(cStr)
 		weeklyVelocity = append(weeklyVelocity, WeeklyVelocityEntry{
 			Week:    5 - i,
@@ -180,12 +184,13 @@ func collectWeeklyVelocity(repoRoot string) ([]WeeklyVelocityEntry, int, error) 
 	return weeklyVelocity, maxVal, nil
 }
 
-func collectCommitTypes(repoRoot string, since string) (CommitTypes, int, error) {
+func collectCommitTypes(ctx *workspace.WorkspaceContext, since string) (CommitTypes, int, error) {
+	repoRoot := ctx.RepoRoot
 	types := []string{"feat", "fix", "docs", "refactor", "chore"}
 	commitTypes := make(CommitTypes)
 	maxTypeVal := 1
 	for _, t := range types {
-		cStr, _ := runGitCommand(repoRoot, "log", "--since="+since, "--oneline", "--grep=^[^ ]* "+t)
+		cStr, _ := runGitCommand(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "log", "--since="+since, "--oneline", "--grep=^[^ ]* "+t)
 		lines := strings.Split(cStr, "\n")
 		count := 0
 		for _, line := range lines {
@@ -201,7 +206,8 @@ func collectCommitTypes(repoRoot string, since string) (CommitTypes, int, error)
 	return commitTypes, maxTypeVal, nil
 }
 
-func collectTelemetry(repoRoot string, totalCommits int) (TelemetryData, error) {
+func collectTelemetry(ctx *workspace.WorkspaceContext, totalCommits int) (TelemetryData, error) {
+	repoRoot := ctx.RepoRoot
 	telemetryPath := filepath.Join(config.NomosStatePath(repoRoot, "logs", "telemetry.jsonl"))
 	if fi, err := os.Stat(telemetryPath); err != nil || fi.IsDir() {
 		return TelemetryData{
@@ -279,7 +285,8 @@ func processTelemetryEvent(event map[string]interface{}, transitions, failures, 
 	}
 }
 
-func collectModuleRatings(repoRoot string) ([]ModuleRating, error) {
+func collectModuleRatings(ctx *workspace.WorkspaceContext) ([]ModuleRating, error) {
+	repoRoot := ctx.RepoRoot
 	moduleRatings := []ModuleRating{}
 	phaseStatePath := config.PhaseStatePath(repoRoot)
 	data, err := os.ReadFile(phaseStatePath)

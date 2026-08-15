@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
@@ -57,7 +59,8 @@ type PhaseState struct {
 // The file is parsed from `.phase_state.json` inside the `.nomos/data/<project>/state` directory.
 // This forms the core source of truth for the autonomous state machine and controls
 // the security boundaries for write-access across the entire workspace via the phase_token.
-func GetPhaseState(repoRoot string) (*PhaseState, error) {
+func GetPhaseState(ctx *workspace.WorkspaceContext) (*PhaseState, error) {
+	repoRoot := ctx.RepoRoot
 	phaseStatePath := config.PhaseStatePath(repoRoot)
 	data, err := os.ReadFile(phaseStatePath)
 	if err != nil {
@@ -80,7 +83,8 @@ func GetPhaseState(repoRoot string) (*PhaseState, error) {
 }
 
 // TransitionPhase changes the workspace phase and executes phase change hooks
-func TransitionPhase(repoRoot string, nextPhase state.WorkspacePhase) error {
+func TransitionPhase(ctx *workspace.WorkspaceContext, nextPhase state.WorkspacePhase) error {
+	repoRoot := ctx.RepoRoot
 	phaseStatePath := config.PhaseStatePath(repoRoot)
 
 	var state PhaseState
@@ -88,19 +92,20 @@ func TransitionPhase(repoRoot string, nextPhase state.WorkspacePhase) error {
 		_ = json.Unmarshal(data, &state)
 	}
 
-	taskIdToPost := updateStateForPhase(repoRoot, &state, nextPhase)
+	taskIdToPost := updateStateForPhase(ctx, &state, nextPhase)
 
-	if err := persistPhaseState(repoRoot, phaseStatePath, &state); err != nil {
+	if err := persistPhaseState(ctx, phaseStatePath, &state); err != nil {
 		return err
 	}
 
 	enforceSubstrateLock(repoRoot, nextPhase)
 
-	runPhaseTransitionSideEffects(repoRoot, state, taskIdToPost, nextPhase)
+	runPhaseTransitionSideEffects(ctx, state, taskIdToPost, nextPhase)
 	return nil
 }
 
-func persistPhaseState(repoRoot, phaseStatePath string, state *PhaseState) error {
+func persistPhaseState(ctx *workspace.WorkspaceContext, phaseStatePath string, state *PhaseState) error {
+	repoRoot := ctx.RepoRoot
 	phaseBytes, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal phase state: %w", err)
@@ -115,10 +120,10 @@ func persistPhaseState(repoRoot, phaseStatePath string, state *PhaseState) error
 	}
 
 	hash := CalculatePhaseStateHash(phaseBytes)
-	if err := PersistPhaseStateHash(repoRoot, hash); err != nil {
+	if err := PersistPhaseStateHash(ctx, hash); err != nil {
 		return fmt.Errorf("failed to persist phase state signature: %w", err)
 	}
-	_ = UpdateWorkspaceStateHash(repoRoot)
+	_ = UpdateWorkspaceStateHash(ctx)
 	return nil
 }
 
@@ -152,7 +157,8 @@ func savePhaseStateJSON(phaseStatePath string, phaseBytes []byte) error {
 
 // runPhaseTransitionSideEffects emits lifecycle events, triggers script hooks, and posts comment notifications.
 // This centralizes post-transition activities without bloating the main transition logic.
-func runPhaseTransitionSideEffects(repoRoot string, state PhaseState, taskIdToPost string, nextPhase state.WorkspacePhase) {
+func runPhaseTransitionSideEffects(ctx *workspace.WorkspaceContext, state PhaseState, taskIdToPost string, nextPhase state.WorkspacePhase) {
+	repoRoot := ctx.RepoRoot
 	// Telemetry: record event tracking the workspace transition phase swap
 	_ = telemetry.EmitEvent(repoRoot, "phase_transition", string(nextPhase))
 	// Execute hooks from templates directory
@@ -161,7 +167,7 @@ func runPhaseTransitionSideEffects(repoRoot string, state PhaseState, taskIdToPo
 	TriggerPhaseHooks(filepath.Join(repoRoot, ".agent", "hooks", "phase"), state.TaskId, nextPhase)
 	// Post lifecycle update messages to comments if configured
 	if taskIdToPost != "" {
-		PostPhaseComment(repoRoot, taskIdToPost, nextPhase)
+		PostPhaseComment(ctx, taskIdToPost, nextPhase)
 	}
 }
 
@@ -232,7 +238,8 @@ var phaseHandlers = map[state.WorkspacePhase]phaseTransitionFn{
 
 // updateStateForPhase uses a registry pattern to apply phase transitions
 // dynamically, eliminating cyclomatic complexity from nested control flows.
-func updateStateForPhase(repoRoot string, state *PhaseState, nextPhase state.WorkspacePhase) string {
+func updateStateForPhase(ctx *workspace.WorkspaceContext, state *PhaseState, nextPhase state.WorkspacePhase) string {
+	repoRoot := ctx.RepoRoot
 	state.PrevPhase = state.CurrentPhase
 	state.CurrentPhase = nextPhase
 	state.PhaseEnteredAt = time.Now().Format(time.RFC3339)
@@ -296,7 +303,8 @@ func CalculatePhaseStateHash(data []byte) string {
 
 // PersistPhaseStateHash records the phase signature hash to a flat file.
 // This registry allows pre-commit gates to verify the integrity of the active state file.
-func PersistPhaseStateHash(repoRoot string, hash string) error {
+func PersistPhaseStateHash(ctx *workspace.WorkspaceContext, hash string) error {
+	repoRoot := ctx.RepoRoot
 	hashPath := filepath.Join(config.TmpDir(repoRoot), ".phase_hash.txt")
 	dir := filepath.Dir(hashPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -311,7 +319,8 @@ func PersistPhaseStateHash(repoRoot string, hash string) error {
 
 // GetPersistedPhaseStateHash reads the registered phase signature hash from a flat file.
 // It retrieves the hash for verification against the current filesystem state.
-func GetPersistedPhaseStateHash(repoRoot string) (string, error) {
+func GetPersistedPhaseStateHash(ctx *workspace.WorkspaceContext) (string, error) {
+	repoRoot := ctx.RepoRoot
 	hashPath := filepath.Join(config.TmpDir(repoRoot), ".phase_hash.txt")
 	if _, err := os.Stat(hashPath); os.IsNotExist(err) {
 		return "", nil
@@ -324,7 +333,7 @@ func GetPersistedPhaseStateHash(repoRoot string) (string, error) {
 }
 
 // ValidatePhaseToken parses and verifies the cryptographic signature of the PhaseToken.
-func ValidatePhaseToken(repoRoot string, pState *PhaseState) error {
+func ValidatePhaseToken(ctx *workspace.WorkspaceContext, pState *PhaseState) error {
 	if pState.CurrentPhase != state.PhaseEdit {
 		return fmt.Errorf("workspace is not in EDIT phase (current: %s)", pState.CurrentPhase)
 	}
@@ -337,10 +346,11 @@ func ValidatePhaseToken(repoRoot string, pState *PhaseState) error {
 		return fmt.Errorf("malformed phase token format")
 	}
 
-	return verifyTokenSignature(repoRoot, parts[0], parts[1], pState.TaskId)
+	return verifyTokenSignature(ctx, parts[0], parts[1], pState.TaskId)
 }
 
-func verifyTokenSignature(repoRoot string, b64Payload, sig, expectedTaskId string) error {
+func verifyTokenSignature(ctx *workspace.WorkspaceContext, b64Payload, sig, expectedTaskId string) error {
+	repoRoot := ctx.RepoRoot
 	b, err := base64.StdEncoding.DecodeString(b64Payload)
 	if err != nil {
 		return fmt.Errorf("failed to decode phase token payload: %w", err)
@@ -393,7 +403,8 @@ func FindActivePhaseStateAcrossProjects() *PhaseState {
 
 		if name == ".nomos" {
 			repoRoot := filepath.Dir(path)
-			if st := checkActivePhaseStateInRepo(repoRoot); st != nil {
+			ctx, _ := workspace.NewContext(repoRoot)
+			if st := checkActivePhaseStateInRepo(ctx); st != nil {
 				activeState = st
 				return filepath.SkipAll
 			}
@@ -405,8 +416,8 @@ func FindActivePhaseStateAcrossProjects() *PhaseState {
 }
 
 // checkActivePhaseStateInRepo checks a single repo for an active phase state.
-func checkActivePhaseStateInRepo(repoRoot string) *PhaseState {
-	if st, err := GetPhaseState(repoRoot); err == nil {
+func checkActivePhaseStateInRepo(ctx *workspace.WorkspaceContext) *PhaseState {
+	if st, err := GetPhaseState(ctx); err == nil {
 		if st.TaskId != "" && st.CurrentPhase != state.PhaseIdle {
 			return st
 		}

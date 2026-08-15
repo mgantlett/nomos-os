@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
@@ -23,7 +25,8 @@ type BannedImportsConfig struct {
 
 // loadBannedImportsConfig loads configuration rules from .agent/rules/banned_imports.json or falls back to defaults.
 // It parses banned import package paths and banned phrase rules used to audit code files.
-func loadBannedImportsConfig(repoRoot string) (BannedImportsConfig, error) {
+func loadBannedImportsConfig(ctx *workspace.WorkspaceContext) (BannedImportsConfig, error) {
+	repoRoot := ctx.RepoRoot
 	configPath := config.AgentPath(repoRoot, "rules", "banned_imports.json")
 
 	var config BannedImportsConfig
@@ -150,7 +153,8 @@ func parseShellImports(content string) []string {
 // a file set, and delegates auditing tasks to language-specific parser checks.
 // It detects the current workspace module, and bypasses the entire import validation check
 // if it contains the Sovereign Monorepo (github.com/mgantlett/nomos-sovereign).
-func AuditImports(repoRoot string, files []string) ([]string, error) {
+func AuditImports(ctx *workspace.WorkspaceContext, files []string) ([]string, error) {
+	repoRoot := ctx.RepoRoot
 	// Query current module name from go environment.
 	modCmd := exec.Command("go", "list", "-m")
 	modCmd.Dir = repoRoot
@@ -165,7 +169,7 @@ func AuditImports(repoRoot string, files []string) ([]string, error) {
 	var violations []string
 
 	// Load configuration containing banned import targets and banned phrases
-	config, err := loadBannedImportsConfig(repoRoot)
+	config, err := loadBannedImportsConfig(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +177,7 @@ func AuditImports(repoRoot string, files []string) ([]string, error) {
 	// Initialize the token file set for AST compilation and parsing
 	fset := token.NewFileSet()
 	for _, relPath := range files {
-		v := auditSingleFile(repoRoot, relPath, config, fset)
+		v := auditSingleFile(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), relPath, config, fset)
 		violations = append(violations, v...)
 	}
 
@@ -183,8 +187,8 @@ func AuditImports(repoRoot string, files []string) ([]string, error) {
 // auditSingleFile selects the language-specific audit parser for a given file.
 // It routes Go files (.go), Nix files (.nix), and Shell scripts (.sh, .bash)
 // to their corresponding verification checker logic.
-func auditSingleFile(repoRoot, relPath string, config BannedImportsConfig, fset *token.FileSet) []string {
-	absPath := filepath.Join(repoRoot, relPath)
+func auditSingleFile(ctx *workspace.WorkspaceContext, relPath string, config BannedImportsConfig, fset *token.FileSet) []string {
+	absPath := filepath.Join(ctx.RepoRoot, relPath)
 
 	if strings.HasSuffix(relPath, ".go") {
 		return auditGoFile(relPath, absPath, config, fset)

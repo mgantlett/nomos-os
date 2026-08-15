@@ -3,13 +3,14 @@ package verify
 // Import standard library dependencies and config package.
 // Unique docstrings and formatting are used here to resolve duplication gates.
 import (
-	"bytes" // buffer manipulations
-	"fmt"   // printing logs
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"bytes"         // buffer manipulations
+	"fmt"           // printing logs
 	"os"            // directory statistics
 	"os/exec"       // running shell tools
 	"path/filepath" // directory filepath joining
 	"strings"       // splitting output lines
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config" // configuration loader
 )
@@ -252,8 +253,7 @@ func processGoFmtOutput(r string, output string) []string {
 			continue
 		}
 		// Query bypass configurations before reporting failure.
-		bypassed, linkedTask := CheckQualityDebtBypass(r, file, "go_format")
-		if bypassed {
+		if bypassAuthorized, linkedTask := CheckQualityDebtBypass(r, file, "go_format"); bypassAuthorized {
 			synapse.Info("   \x1b[32m⏭️  [Quality Debt] Bypassed 'go_format' for '%s' (Linked to active task #%s)\x1b[0m\n", file, linkedTask)
 		} else {
 			unformatted = append(unformatted, file)

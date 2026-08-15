@@ -3,7 +3,10 @@ package cmd
 
 import (
 	"fmt"
+
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/spf13/cobra"
@@ -22,7 +25,7 @@ var envListCmd = &cobra.Command{
 			return fmt.Errorf("failed to load repo root: %w", err)
 		}
 
-		out, err := env.List(repoRoot, envListJsonFlag)
+		out, err := env.List(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), envListJsonFlag)
 		if err != nil {
 			return err
 		}
@@ -34,7 +37,7 @@ var envListCmd = &cobra.Command{
 			serviceNames := env.GetAllServices()
 			fmt.Println("Background Service Ports:")
 			for _, name := range serviceNames {
-				svc, err := env.ResolveService(repoRoot, name)
+				svc, err := env.ResolveService(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), name)
 				if err != nil {
 					continue
 				}

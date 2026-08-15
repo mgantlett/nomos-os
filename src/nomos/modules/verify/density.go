@@ -3,10 +3,11 @@ package verify
 import (
 	"bufio"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 )
 
 // runCommentDensityCheck performs a check on staged source files to verify comment-to-code density.

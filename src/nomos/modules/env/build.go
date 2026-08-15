@@ -4,13 +4,16 @@ package env
 import (
 	"fmt"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	nexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 )
 
 // Build triggers the build sequence for a resolved service configuration.
 // It executes the associated BuildCommand synchronously in the workspace root.
-func Build(repoRoot string, svc *ServiceConfig) error {
+func Build(ctx *workspace.WorkspaceContext, svc *ServiceConfig) error {
+	repoRoot := ctx.RepoRoot
 	if svc.BuildCommand == "" {
 		return fmt.Errorf("service '%s' does not have a build command configured", svc.Name)
 	}

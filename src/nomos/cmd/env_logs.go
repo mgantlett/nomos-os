@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"fmt"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +29,7 @@ var envLogsCmd = &cobra.Command{
 		}
 
 		// Stream the logs from the PM2 daemon to the local CLI stdout.
-		out, err := env.Logs(repoRoot, svc.Name)
+		out, err := env.Logs(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), svc.Name)
 		if err != nil {
 			// Fast fail on PM2 streaming error.
 			return err

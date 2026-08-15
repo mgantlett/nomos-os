@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
@@ -185,8 +187,9 @@ func InitCacheDB(dbPath string) error {
 }
 
 // getCallerType determines if the CLI was invoked by an agent or human.
-func getCallerType(repoRoot string) string {
-	if state, stateErr := task.GetPhaseState(repoRoot); stateErr == nil {
+func getCallerType(ctx *workspace.WorkspaceContext) string {
+	repoRoot := ctx.RepoRoot
+	if state, stateErr := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); stateErr == nil {
 		if state.Agent != "" && state.Agent != "null" && state.Agent != "os-automaton" {
 			return "agent"
 		}
@@ -205,7 +208,7 @@ func trackCLIInvocation(start time.Time, err error) {
 		return
 	}
 	repoRoot := findRepoRoot(wd)
-	callerType := getCallerType(repoRoot)
+	callerType := getCallerType(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 	cmdStr := ""
 	argsStr := ""

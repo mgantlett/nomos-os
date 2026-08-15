@@ -7,13 +7,16 @@ import (
 	"context"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 )
 
 // SyncAgentVelocities syncs all closed tasks to a SQLite table and computes rolling averages
 // of execution duration (AgentCycles) grouped by Layer Tag, excluding extreme outliers.
-func SyncAgentVelocities(ctx context.Context, repoRoot string, tasks []Task) error {
+func SyncAgentVelocities(ctx context.Context, wCtx *workspace.WorkspaceContext, tasks []Task) error {
+	repoRoot := wCtx.RepoRoot
 	dbPath := config.ResolveStateDbPath(repoRoot)
 	conn, err := db.Open(dbPath)
 	if err != nil {
@@ -62,7 +65,8 @@ func SyncAgentVelocities(ctx context.Context, repoRoot string, tasks []Task) err
 }
 
 // GetRollingAverages retrieves the average AgentCycles per Layer, excluding outliers (e.g. > 100 cycles).
-func GetRollingAverages(repoRoot string) (map[string]float64, error) {
+func GetRollingAverages(ctx *workspace.WorkspaceContext) (map[string]float64, error) {
+	repoRoot := ctx.RepoRoot
 	dbPath := config.ResolveStateDbPath(repoRoot)
 	conn, err := db.Open(dbPath)
 	if err != nil {

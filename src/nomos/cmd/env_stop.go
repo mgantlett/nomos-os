@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"fmt"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +30,7 @@ var envStopCmd = &cobra.Command{
 		if args[0] == "all" {
 			fmt.Println("Stopping all services...")
 			// PM2 natively handles "all" for stop.
-			if err := env.Stop(repoRoot, "all"); err != nil {
+			if err := env.Stop(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "all"); err != nil {
 				return err
 			}
 			fmt.Println("Successfully stopped all services")
@@ -41,7 +43,7 @@ var envStopCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Stopping %s...\n", svc.Name)
-		if err := env.Stop(repoRoot, svc.Name); err != nil {
+		if err := env.Stop(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), svc.Name); err != nil {
 			return err
 		}
 

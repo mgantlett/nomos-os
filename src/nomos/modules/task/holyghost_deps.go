@@ -9,20 +9,22 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 // writeDependencySignaturesIfCompactEnabled writes structural signatures for dependency packages
 // if context compaction is enabled in phase state.
-func writeDependencySignaturesIfCompactEnabled(f *strings.Builder, repoRoot string, taskKey string) {
+func writeDependencySignaturesIfCompactEnabled(f *strings.Builder, ctx *workspace.WorkspaceContext, taskKey string) {
 	// 1. Check if compact context is enabled in phase state
-	if !isCompactEnabled(repoRoot) {
+	if !isCompactEnabled(ctx) {
 		return
 	}
 
 	// 2. Identify dependency package directories
-	depDirs := getDependencyDirs(repoRoot, taskKey)
+	depDirs := getDependencyDirs(ctx, taskKey)
 	if len(depDirs) == 0 {
 		return
 	}
@@ -34,12 +36,13 @@ func writeDependencySignaturesIfCompactEnabled(f *strings.Builder, repoRoot stri
 
 	// 4. Iterate over dependency packages and extract AST declarations
 	for depDir := range depDirs {
-		writePkgSigs(f, repoRoot, depDir)
+		writePkgSigs(f, ctx, depDir)
 	}
 }
 
 // isCompactEnabled reads phase state to check if compact_context is set.
-func isCompactEnabled(repoRoot string) bool {
+func isCompactEnabled(ctx *workspace.WorkspaceContext) bool {
+	repoRoot := ctx.RepoRoot
 	phaseStatePath := config.PhaseStatePath(repoRoot)
 	if data, err := os.ReadFile(phaseStatePath); err == nil {
 		var state struct {
@@ -53,9 +56,10 @@ func isCompactEnabled(repoRoot string) bool {
 }
 
 // getDependencyDirs parses implementation plan files and extracts local dependency package directories.
-func getDependencyDirs(repoRoot string, taskKey string) map[string]bool {
+func getDependencyDirs(ctx *workspace.WorkspaceContext, taskKey string) map[string]bool {
+	repoRoot := ctx.RepoRoot
 	planPath := filepath.Join(repoRoot, ".agent", "specs", taskKey, "implementation_plan.md")
-	plannedFiles := parseSpecFilesLocal(planPath, repoRoot)
+	plannedFiles := parseSpecFilesLocal(planPath, ctx)
 	if len(plannedFiles) == 0 {
 		return nil
 	}
@@ -97,8 +101,8 @@ func extractFileDeps(absFile string, activeDirs map[string]bool, dependencyDirs 
 }
 
 // writePkgSigs parses package files and writes signature declarations to output buffer.
-func writePkgSigs(f *strings.Builder, repoRoot string, depDir string) {
-	absDepDir := filepath.Join(repoRoot, depDir)
+func writePkgSigs(f *strings.Builder, ctx *workspace.WorkspaceContext, depDir string) {
+	absDepDir := filepath.Join(ctx.RepoRoot, depDir)
 	entries, err := os.ReadDir(absDepDir)
 	if err != nil {
 		return
@@ -122,7 +126,7 @@ func writePkgSigs(f *strings.Builder, repoRoot string, depDir string) {
 }
 
 // parseSpecFilesLocal scans the spec implementation plan for active task changes.
-func parseSpecFilesLocal(planPath string, repoRoot string) []string {
+func parseSpecFilesLocal(planPath string, ctx *workspace.WorkspaceContext) []string {
 	file, err := os.Open(planPath)
 	if err != nil {
 		return nil
@@ -145,7 +149,7 @@ func parseSpecFilesLocal(planPath string, repoRoot string) []string {
 			continue
 		}
 
-		if p := extractSpecPathFromLine(line, repoRoot); p != "" {
+		if p := extractSpecPathFromLine(line, ctx); p != "" {
 			files = append(files, p)
 		}
 	}
@@ -168,7 +172,8 @@ func updateProposedSectionFlag(line string, current bool) bool {
 }
 
 // extractSpecPathFromLine parses file paths out of markdown proposed changes list items.
-func extractSpecPathFromLine(line string, repoRoot string) string {
+func extractSpecPathFromLine(line string, ctx *workspace.WorkspaceContext) string {
+	repoRoot := ctx.RepoRoot
 	rxActionLink := regexp.MustCompile(`(?i)(?:-|\*|####)\s*\[(?:NEW|MODIFY|DELETE)\]\s*\[[^\]]+\]\(([^)]+)\)`)
 	rxActionPlain := regexp.MustCompile(`(?i)(?:-|\*|####)\s*\[(?:NEW|MODIFY|DELETE)\]\s*(.+)`)
 

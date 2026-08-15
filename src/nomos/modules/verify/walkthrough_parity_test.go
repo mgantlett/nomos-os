@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +18,7 @@ func TestVerifyWalkthroughParityExtended(t *testing.T) {
 	root := t.TempDir()
 
 	// Mock task data in backend
-	lt := task.NewLocalTracker(root)
+	lt := task.NewLocalTracker(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())
 	taskId, err := lt.Create(context.Background(), "Mock Task", "## ✅ Acceptance Criteria\n- [ ] Base requirement 1\n", []string{}, "", "", "Task", false, task.StatusBacklog)
 	require.NoError(t, err)
 

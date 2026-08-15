@@ -7,6 +7,8 @@ import (
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
 	"github.com/spf13/cobra"
@@ -33,7 +35,7 @@ var taskCloseCmd = &cobra.Command{
 			return err
 		}
 
-		if stashID, found := DetectStashForTask(repoRoot, key); found {
+		if stashID, found := DetectStashForTask(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key); found {
 			fmt.Printf("🧹 Auto-pruning orphaned stash %s for closed task %s...\n", stashID, key)
 			dropCmd := exec.Command("git", "stash", "drop", stashID)
 			dropCmd.Dir = repoRoot
@@ -44,8 +46,8 @@ var taskCloseCmd = &cobra.Command{
 		verify.PruneQualityDebtForTask(repoRoot, key)
 
 		// Transition back to IDLE if the active task was closed
-		if state, _ := task.GetPhaseState(repoRoot); state != nil && state.TaskId == key {
-			_ = task.TransitionPhase(repoRoot, statepkg.PhaseIdle)
+		if state, _ := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); state != nil && state.TaskId == key {
+			_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), statepkg.PhaseIdle)
 			fmt.Printf("✅ Active task %s closed. Workspace reset to %s phase.\n", key, statepkg.PhaseIdle)
 		}
 

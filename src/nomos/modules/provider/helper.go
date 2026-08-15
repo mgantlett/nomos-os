@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
@@ -75,7 +77,8 @@ func ParseEnvFileToMap(path string) map[string]string {
 // for the given phase. It returns the resolved modelName, llmURL, a cleanup function to close the tunnel, and any error.
 // loadModelsConfig reads and unmarshals the models.yaml config file from the project.
 // If the configuration file is missing or unparseable, it returns an error.
-func loadModelsConfig(repoRoot string) (*ModelsYAML, error) {
+func loadModelsConfig(ctx *workspace.WorkspaceContext) (*ModelsYAML, error) {
+	repoRoot := ctx.RepoRoot
 	v := viper.New()
 	v.SetConfigFile(config.ModelsPath(repoRoot))
 	if err := v.ReadInConfig(); err != nil {
@@ -129,7 +132,8 @@ func resolveFromModelsYAML(myaml *ModelsYAML, phase string, modelName *string, l
 // resolveProviderAndModel resolves LLM provider configuration and model name.
 // It extracts environmental values from config.env in the global data directory, falls back to models.yaml default
 // configurations, applies task phase overrides, and handles openai model prefixes.
-func resolveProviderAndModel(repoRoot string, phase string) (string, string, string, ProviderConfig, bool) {
+func resolveProviderAndModel(ctx *workspace.WorkspaceContext, phase string) (string, string, string, ProviderConfig, bool) {
+	repoRoot := ctx.RepoRoot
 	llmURL := "http://localhost:8082/v1"
 	modelName := "model"
 
@@ -145,7 +149,7 @@ func resolveProviderAndModel(repoRoot string, phase string) (string, string, str
 	var selectedProvider ProviderConfig
 	var providerFound bool
 
-	if myaml, err := loadModelsConfig(repoRoot); err == nil {
+	if myaml, err := loadModelsConfig(ctx); err == nil {
 		providerName, selectedProvider, providerFound = resolveFromModelsYAML(myaml, phase, &modelName, &llmURL)
 	}
 
@@ -218,8 +222,8 @@ func establishSshTunnel(dbPath string, providerName string, selectedProvider Pro
 
 // SetupModelProviderTunnel starts the VM and SSH tunnel if the models.yaml config resolves to a provider
 // for the given phase. It returns the resolved modelName, llmURL, a cleanup function to close the tunnel, and any error.
-func SetupModelProviderTunnel(repoRoot string, dbPath string, phase string) (string, string, func(), error) {
-	modelName, llmURL, providerName, selectedProvider, providerFound := resolveProviderAndModel(repoRoot, phase)
+func SetupModelProviderTunnel(ctx *workspace.WorkspaceContext, dbPath string, phase string) (string, string, func(), error) {
+	modelName, llmURL, providerName, selectedProvider, providerFound := resolveProviderAndModel(ctx, phase)
 
 	var cleanup func() = func() {}
 	if providerFound {
@@ -256,7 +260,8 @@ func checkAndAddPlanFile(repoRoot string, w string, seen map[string]bool, files 
 }
 
 // resolveAiderPlanFiles extracts target source code files mentioned in implementation plans.
-func resolveAiderPlanFiles(repoRoot string, planPath string) []string {
+func resolveAiderPlanFiles(ctx *workspace.WorkspaceContext, planPath string) []string {
+	repoRoot := ctx.RepoRoot
 	var files []string
 	data, err := os.ReadFile(planPath)
 	if err != nil {
@@ -274,7 +279,8 @@ func resolveAiderPlanFiles(repoRoot string, planPath string) []string {
 // resolveAiderArgs constructs the exact CLI arguments to pass to the Aider agent process.
 // It checks if a spec plan exists, appends model and api-url parameters, and sets up
 // auto-commit parameters for automated workspace tasks.
-func resolveAiderArgs(repoRoot, planPath, modelName, llmURL string) []string {
+func resolveAiderArgs(ctx *workspace.WorkspaceContext, planPath, modelName, llmURL string) []string {
+	repoRoot := ctx.RepoRoot
 	chatHistory := filepath.Join(config.GlobalDataDir(repoRoot), "tmp", "aider.chat.history.md")
 	args := []string{
 		"--model", "openai/" + modelName,
@@ -291,7 +297,7 @@ func resolveAiderArgs(repoRoot, planPath, modelName, llmURL string) []string {
 		"--edit-format", "diff",
 	}
 
-	files := resolveAiderPlanFiles(repoRoot, planPath)
+	files := resolveAiderPlanFiles(ctx, planPath)
 	if len(files) > 0 {
 		args = append(args, files...)
 	}
@@ -301,7 +307,8 @@ func resolveAiderArgs(repoRoot, planPath, modelName, llmURL string) []string {
 // resolveAiderExecCommand configures the shell command wrapper array to execute Aider.
 // If a shell.nix file exists in the repository root, it wraps the command in nix-shell
 // so that dependencies are correctly resolved; otherwise it invokes aider directly.
-func resolveAiderExecCommand(repoRoot string, args []string) []string {
+func resolveAiderExecCommand(ctx *workspace.WorkspaceContext, args []string) []string {
+	repoRoot := ctx.RepoRoot
 	var argv []string
 	shellNixPath := filepath.Join(repoRoot, "shell.nix")
 	hasShellNix := false
@@ -329,10 +336,10 @@ func logAiderFailure(initialRoot, key string, state *os.ProcessState, waitErr er
 	_ = telemetry.LogTelemetryEvent(initialRoot, "aider_error", detail, key, "aider", nil)
 }
 
-func logAiderSuccess(repoRoot, initialRoot, dbPath, key string) {
+func logAiderSuccess(ctx *workspace.WorkspaceContext, initialRoot, dbPath, key string) {
 	detail := fmt.Sprintf("Aider task %s finished", key)
 	_ = telemetry.LogTelemetryEvent(initialRoot, "aider_complete", detail, key, "aider", nil)
-	_ = task.TransitionPhase(repoRoot, "REVIEW")
+	_ = task.TransitionPhase(ctx, "REVIEW")
 	verifyOut, verifyErr := nomosexec.RunCommand(dbPath, "bin/nomos", "verify")
 	if verifyErr != nil {
 		_ = telemetry.LogTelemetryEvent(initialRoot, "verify_fail", fmt.Sprintf("DoD failed: %v", verifyErr), key, "aider", map[string]interface{}{"output": verifyOut})
@@ -368,7 +375,7 @@ func pipeStreamLogs(initialRoot, key string, logFile *os.File) (*os.File, *os.Fi
 	return r, r, func() { w.Close() }
 }
 
-func executeAiderLifecycle(repoRoot, initialRoot, dbPath, key string, proc *os.Process, cleanup func(), pid int, pipeCleanup func()) {
+func executeAiderLifecycle(ctx *workspace.WorkspaceContext, initialRoot, dbPath, key string, proc *os.Process, cleanup func(), pid int, pipeCleanup func()) {
 	if cleanup != nil {
 		defer cleanup()
 	}
@@ -382,16 +389,16 @@ func executeAiderLifecycle(repoRoot, initialRoot, dbPath, key string, proc *os.P
 	if waitErr != nil || (state != nil && !state.Success()) {
 		logAiderFailure(initialRoot, key, state, waitErr)
 	} else {
-		logAiderSuccess(repoRoot, initialRoot, dbPath, key)
+		logAiderSuccess(ctx, initialRoot, dbPath, key)
 	}
 }
 
 // handleAiderLifecycle initiates an asynchronous goroutine to monitor the background Aider process.
 // It waits for process termination, de-registers its PID from the active SQLite registry,
 // logs telemetry events, transitions the task phase to REVIEW, and runs DoD verification.
-func handleAiderLifecycle(repoRoot, initialRoot, dbPath, key string, proc *os.Process, logFile *os.File, cleanup func(), pid int, pipeCleanup func()) {
+func handleAiderLifecycle(ctx *workspace.WorkspaceContext, initialRoot, dbPath, key string, proc *os.Process, logFile *os.File, cleanup func(), pid int, pipeCleanup func()) {
 	go func() {
 		defer logFile.Close()
-		executeAiderLifecycle(repoRoot, initialRoot, dbPath, key, proc, cleanup, pid, pipeCleanup)
+		executeAiderLifecycle(ctx, initialRoot, dbPath, key, proc, cleanup, pid, pipeCleanup)
 	}()
 }

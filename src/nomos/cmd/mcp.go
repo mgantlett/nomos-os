@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
 	"github.com/spf13/cobra"
@@ -26,7 +28,7 @@ var mcpCmd = &cobra.Command{
 		// Disable printing log messages to stdout to prevent corrupting JSON-RPC stream
 		os.Stdout = os.NewFile(1, "/dev/stdout")
 
-		return runMcpServer(repoRoot, os.Stdin, os.Stdout)
+		return runMcpServer(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), os.Stdin, os.Stdout)
 	},
 }
 
@@ -69,7 +71,8 @@ type mcpCallResult struct {
 	IsError bool                   `json:"isError,omitempty"`
 }
 
-func runMcpServer(repoRoot string, r io.Reader, w io.Writer) error {
+func runMcpServer(ctx *workspace.WorkspaceContext, r io.Reader, w io.Writer) error {
+	repoRoot := ctx.RepoRoot
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := scanner.Bytes()

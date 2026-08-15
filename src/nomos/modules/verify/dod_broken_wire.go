@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"bufio"
 	"context"
 	"encoding/json"
@@ -17,7 +19,7 @@ import (
 
 // runBrokenWireDetector sweeps for Zombie tasks and trips the Hallucination Circuit Breaker
 func runBrokenWireDetector(root string) (StageResult, error) {
-	cfg, err := task.LoadConfig(root)
+	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(root); return task.LoadConfig(c) }()
 	if err != nil {
 		return StageResult{Passed: false, Message: "failed to load tracker config"}, err
 	}

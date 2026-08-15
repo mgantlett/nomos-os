@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +56,7 @@ var phaseCmd = &cobra.Command{
 				return err
 			}
 			repoRoot := findRepoRoot(wd)
-			return task.TransitionPhase(repoRoot, phase)
+			return task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), phase)
 		}
 		defer resp.Body.Close()
 

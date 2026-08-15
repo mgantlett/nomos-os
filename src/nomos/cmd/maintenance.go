@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +26,7 @@ var maintenanceCmd = &cobra.Command{
 		}
 		repoRoot := findRepoRoot(wd)
 
-		if err := enforceRootZone(repoRoot, "maintenance"); err != nil {
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "maintenance"); err != nil {
 			return err
 		}
 

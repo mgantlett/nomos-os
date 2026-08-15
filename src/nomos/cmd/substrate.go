@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"

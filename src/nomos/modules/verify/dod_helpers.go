@@ -7,17 +7,17 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"go/ast"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
-	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
-	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+
 	"go/parser"
 	"go/token"
 	"os"
@@ -25,6 +25,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
 // LocalPhaseState represents the local workspace agent phase state.
@@ -191,7 +195,7 @@ func checkSingleDebtLink(tracker task.Tracker, item QualityDebtItem) error {
 
 // loadTracker loads config and returns the task tracker client.
 func loadTracker(root string) (task.Tracker, bool) {
-	tCfg, err := task.LoadConfig(root)
+	tCfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(root); return task.LoadConfig(c) }()
 	if err != nil {
 		return nil, true
 	}
@@ -720,7 +724,7 @@ func RunCustomVerifyCmd(root string, cmdStr string) ([]string, error) {
 func runWalkthroughParityCheck(r string) (StageResult, error) {
 	res := StageResult{Name: "Walkthrough Parity Check", Passed: true}
 
-	phaseState, err := task.GetPhaseState(r)
+	phaseState, err := func() (*task.PhaseState, error) { c, _ := workspace.NewContext(r); return task.GetPhaseState(c) }()
 	if err == nil {
 		if phaseState.TaskId == "" || phaseState.CurrentPhase == statepkg.PhasePlan || phaseState.CurrentPhase == statepkg.PhaseIdle {
 			res.Message = fmt.Sprintf("Skipped: Walkthrough Parity Check is skipped (phase: %s, task: %s)", phaseState.CurrentPhase, phaseState.TaskId)

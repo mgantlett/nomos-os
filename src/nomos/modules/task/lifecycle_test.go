@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 type mockLifecycleTracker struct {
@@ -45,9 +46,9 @@ func TestPostPhaseComment(t *testing.T) {
 	defer func() { NewTrackerOverride = nil }()
 
 	// Trigger PostPhaseComment
-	PostPhaseComment(tempDir, "JAZZ-123", statepkg.PhasePlan)
-	PostPhaseComment(tempDir, "JAZZ-123", statepkg.PhaseEdit)
-	PostPhaseComment(tempDir, "JAZZ-123", statepkg.PhaseReview)
+	PostPhaseComment(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), "JAZZ-123", statepkg.PhasePlan)
+	PostPhaseComment(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), "JAZZ-123", statepkg.PhaseEdit)
+	PostPhaseComment(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), "JAZZ-123", statepkg.PhaseReview)
 
 	if len(mock.comments) != 3 {
 		t.Fatalf("expected 3 comments to be posted, got: %d", len(mock.comments))
@@ -89,7 +90,7 @@ func TestPostDoDFailure(t *testing.T) {
 	defer func() { NewTrackerOverride = nil }()
 
 	// Trigger PostDoDFailure
-	PostDoDFailure(tempDir, "JAZZ-123", []string{"Go Tests: test failed", "TDD Coverage: missing hello_test.go"})
+	PostDoDFailure(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), "JAZZ-123", []string{"Go Tests: test failed", "TDD Coverage: missing hello_test.go"})
 
 	if len(mock.comments) != 1 {
 		t.Fatalf("expected 1 comment to be posted, got: %d", len(mock.comments))

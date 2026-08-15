@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
@@ -22,7 +24,8 @@ import (
 // It acts as a safety mechanism to ensure the user's workspace protocol remains synchronized
 // with the latest execution capabilities of the Tier 1 operating system.
 // By strictly analyzing the markdown content, it preempts behavioral drift and AI hallucinations.
-func CheckSSOTDrift(repoRoot string) error {
+func CheckSSOTDrift(ctx *workspace.WorkspaceContext) error {
+	repoRoot := ctx.RepoRoot
 	var driftErrors []string
 
 	// Check workspace-level AGENTS.md
@@ -45,7 +48,7 @@ func CheckSSOTDrift(repoRoot string) error {
 		return fmt.Errorf("SSOT Drift Detected in AGENTS.md/GEMINI.md:\n- %s", strings.Join(driftErrors, "\n- "))
 	}
 
-	return checkWorkflowsDrift(repoRoot)
+	return checkWorkflowsDrift(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 }
 
 func checkSSOTFile(agentsPath string) ([]string, error) {
@@ -77,7 +80,8 @@ func checkSSOTFile(agentsPath string) ([]string, error) {
 
 // checkWorkflowsDrift audits the workflows directory for unapproved structural drifts.
 // It checks whether dynamically generated steps deviate from the strictly deterministic protocol.
-func checkWorkflowsDrift(repoRoot string) error {
+func checkWorkflowsDrift(ctx *workspace.WorkspaceContext) error {
+	repoRoot := ctx.RepoRoot
 	discs, err := AuditWorkflows(repoRoot)
 	if err != nil {
 		return fmt.Errorf("failed to audit workflows: %v", err)

@@ -1,6 +1,8 @@
 package harness
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"context"
 	"fmt"
 	"os"
@@ -55,7 +57,7 @@ func (d *Driver) RunNomosLoop(initialPrompt string) error {
 			// Natively invoke AI-AI DDP Direct Merge
 			fmt.Println("🚀 Triggering autonomous GitOps sync...")
 			repoRoot := d.WorktreeDir // Normally we would traverse up to find the root, but passing it down is fine for now
-			if err := gitops.DirectMerge(d.WorktreeDir, repoRoot, "develop", ""); err != nil {
+			if err := gitops.DirectMerge(d.WorktreeDir, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "develop", ""); err != nil {
 				return fmt.Errorf("autonomous merge failed: %w", err)
 			}
 			return nil

@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
@@ -17,7 +19,9 @@ import (
 // Product Owner by checking the modification time of the implementation plan artifact.
 // It fails if the implementation_plan.md was updated less than 10 seconds ago, forcing
 // a mandatory human review window before allowing the EDIT phase.
-func checkPlanApproval(repoRoot string, phase statepkg.WorkspacePhase, state *task.PhaseState, err error) error {
+func checkPlanApproval(ctx *workspace.WorkspaceContext, phase statepkg.WorkspacePhase, state *task.PhaseState, err error) error {
+	repoRoot := ctx.RepoRoot
+	_ = repoRoot
 	if err != nil || state.Agent == "" || state.Agent == "null" || state.Agent == "os-automaton" {
 		return nil
 	}
@@ -34,24 +38,25 @@ func generateHolyGhostContextIfEdit(repoRoot string, phase statepkg.WorkspacePha
 	if phase == statepkg.PhaseEdit && err == nil && state.TaskId != "" {
 		tracker, _, errTracker := loadTrackerAndRoot()
 		if errTracker == nil {
-			_ = task.GenerateHolyGhostContext(context.Background(), repoRoot, tracker, state.TaskId)
+			_ = task.GenerateHolyGhostContext(context.Background(), func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), tracker, state.TaskId)
 		}
 	}
 }
 
 // handlePhaseTransition executes the complex state machine transition logic for the workspace.
 // It orchestrates plan approval gating, phase state persistence, and subsequent automated
-func handlePhaseTransition(repoRoot string, phase statepkg.WorkspacePhase) error {
+func handlePhaseTransition(ctx *workspace.WorkspaceContext, phase statepkg.WorkspacePhase) error {
+	repoRoot := ctx.RepoRoot
 	// Attempt to get current phase state for context.
-	state, err := task.GetPhaseState(repoRoot)
+	state, err := task.GetPhaseState(ctx)
 
 	if phase == statepkg.PhaseEdit {
-		if checkErr := checkPlanApproval(repoRoot, phase, state, err); checkErr != nil {
+		if checkErr := checkPlanApproval(ctx, phase, state, err); checkErr != nil {
 			return checkErr
 		}
 	}
 
-	errTransition := task.TransitionPhase(repoRoot, phase)
+	errTransition := task.TransitionPhase(ctx, phase)
 	if errTransition != nil {
 		return errTransition
 	}
@@ -62,7 +67,7 @@ func handlePhaseTransition(repoRoot string, phase statepkg.WorkspacePhase) error
 
 // loadTrackerForRoot instantiates the tracking backend using an explicit repository root path.
 func loadTrackerForRoot(root string) (task.Tracker, error) {
-	cfg, err := task.LoadConfig(root)
+	cfg, err := task.LoadConfig(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load task tracker config: %w", err)
 	}
@@ -72,7 +77,7 @@ func loadTrackerForRoot(root string) (task.Tracker, error) {
 		return nil, fmt.Errorf("failed to initialize task tracker: %w", err)
 	}
 
-	tracker = task.WrapWithStateHash(tracker, root)
+	tracker = task.WrapWithStateHash(tracker, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())
 	return tracker, nil
 }
 
@@ -229,7 +234,8 @@ func selectNextPriorityTask(tasks []task.Task) (string, error) {
 // It executes git status --porcelain and evaluates untracked or modified files.
 // Files residing under .nomos/ (such as local task tracker state or phase state metadata)
 // are explicitly exempted to prevent background state file updates from blocking task initialization.
-func isGitTreeClean(repoRoot string) bool {
+func isGitTreeClean(ctx *workspace.WorkspaceContext) bool {
+	repoRoot := ctx.RepoRoot
 	cmd := exec.Command("git", "status", "--porcelain")
 	cmd.Dir = repoRoot
 	out, err := cmd.Output()
@@ -259,7 +265,8 @@ func isGitTreeClean(repoRoot string) bool {
 }
 
 // FilterTasksByProject filters a slice of tasks based on the current repository context.
-func FilterTasksByProject(tasks []task.Task, repoRoot string) []task.Task {
+func FilterTasksByProject(tasks []task.Task, ctx *workspace.WorkspaceContext) []task.Task {
+	repoRoot := ctx.RepoRoot
 	currentProject := filepath.Base(repoRoot)
 	var projectFiltered []task.Task
 	isLocalMode := os.Getenv("NOMOS_TASKS_DIR") == ""
@@ -273,7 +280,8 @@ func FilterTasksByProject(tasks []task.Task, repoRoot string) []task.Task {
 
 // DetectStashForTask executes git stash list and searches for stashes associated with the given task ID.
 // It returns the stash ID (e.g., "stash@{0}") and true if found, otherwise an empty string and false.
-func DetectStashForTask(repoRoot, taskKey string) (string, bool) {
+func DetectStashForTask(ctx *workspace.WorkspaceContext, taskKey string) (string, bool) {
+	repoRoot := ctx.RepoRoot
 	cmd := exec.Command("git", "stash", "list")
 	cmd.Dir = repoRoot
 	out, err := cmd.Output()
@@ -293,7 +301,8 @@ func DetectStashForTask(repoRoot, taskKey string) (string, bool) {
 }
 
 // isOrchestratorRoot checks if the git repo is bare or a hollow shell root (not a worktree).
-func isOrchestratorRoot(repoRoot string) bool {
+func isOrchestratorRoot(ctx *workspace.WorkspaceContext) bool {
+	repoRoot := ctx.RepoRoot
 	// If .git is a directory, it's the root repository (hollow or bare). If it's a file, it's a worktree.
 	info, err := os.Stat(filepath.Join(repoRoot, ".git"))
 	if err == nil && info.IsDir() {
@@ -377,7 +386,8 @@ func doGitWorktreeSetup(repoRoot, worktreeDir, branchName, taskKey string) error
 }
 
 // scaffoldTaskWorktree creates a git worktree and initializes go.work
-func scaffoldTaskWorktree(repoRoot, taskKey string) error {
+func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error {
+	repoRoot := ctx.RepoRoot
 	repoName := filepath.Base(repoRoot)
 	branchName := fmt.Sprintf("feature/%s", taskKey)
 	worktreeDir := filepath.Join(config.WorktreesDir(repoRoot), fmt.Sprintf("%s-%s", repoName, taskKey))

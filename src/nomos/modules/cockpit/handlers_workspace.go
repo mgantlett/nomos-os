@@ -1,15 +1,18 @@
 package cockpit
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 
 	"github.com/go-playground/form/v4"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
@@ -225,7 +228,7 @@ func HandleApiTaskTransition(w http.ResponseWriter, r *http.Request, repoRoot st
 	}
 
 	if column == "EDIT" {
-		if err := task.TransitionPhase(repoRoot, "EDIT"); err != nil {
+		if err := task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "EDIT"); err != nil {
 			http.Error(w, fmt.Sprintf(`{"success":false,"error":"%v"}`, err), http.StatusInternalServerError)
 			return
 		}
@@ -442,7 +445,7 @@ func cleanMainRepository(repoRoot, dbPath, taskID string) {
 		if strings.TrimSpace(string(bytes)) == taskID {
 			_, _ = nomosexec.RunCommand(dbPath, "git", "checkout", ".")
 			_, _ = nomosexec.RunCommand(dbPath, "git", "clean", "-fd", "-e", "*.db", "-e", ".nomos/data/*")
-			_ = task.TransitionPhase(repoRoot, "IDLE")
+			_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "IDLE")
 			_ = os.WriteFile(config.StateTaskIdPath(repoRoot), []byte(""), 0644)
 		}
 	}
@@ -501,12 +504,12 @@ func validateTransitionTask(stateFile, taskID string) error {
 // It executes the DoD verification gate, updates the phase state to DONE,
 // and closes the task record in the Kanban tracker database.
 func executeDoneTransition(repoRoot, dbPath, taskID string) error {
-	_ = task.TransitionPhase(repoRoot, "REVIEW")
+	_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "REVIEW")
 	if _, err := nomosexec.RunCommand(dbPath, "bin/nomos", "verify"); err != nil {
 		return fmt.Errorf("DoD Verification Failed: %v", err)
 	}
-	_ = task.TransitionPhase(repoRoot, "DONE")
-	if cfg, err := task.LoadConfig(repoRoot); err == nil {
+	_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "DONE")
+	if cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(repoRoot); return task.LoadConfig(c) }(); err == nil {
 		if tracker, err := task.NewTracker(cfg); err == nil {
 			_ = tracker.Close(context.Background(), taskID, "Done via Cockpit Kanban Board Release")
 		}

@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
@@ -34,7 +36,7 @@ var taskBundleCmd = &cobra.Command{
 			return err
 		}
 
-		if err := enforceRootZone(repoRoot, "task bundle"); err != nil {
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task bundle"); err != nil {
 			return err
 		}
 

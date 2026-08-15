@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"fmt"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/spf13/cobra"
 )
@@ -26,11 +28,11 @@ var envRestartCmd = &cobra.Command{
 		if args[0] == "all" {
 			fmt.Println("Restarting all services...")
 			for _, s := range env.GetAllServices() {
-				if svc, err := env.ResolveService(repoRoot, s); err == nil && svc.Port > 0 {
+				if svc, err := env.ResolveService(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), s); err == nil && svc.Port > 0 {
 					fmt.Printf(" - %s: http://localhost:%d\n", svc.Name, svc.Port)
 				}
 			}
-			if err := env.Restart(repoRoot, "all"); err != nil {
+			if err := env.Restart(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "all"); err != nil {
 				return err
 			}
 			fmt.Println("Successfully restarted all services")
@@ -47,7 +49,7 @@ var envRestartCmd = &cobra.Command{
 		} else {
 			fmt.Printf("Restarting %s...\n", svc.Name)
 		}
-		if err := env.Restart(repoRoot, svc.Name); err != nil {
+		if err := env.Restart(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), svc.Name); err != nil {
 			return err
 		}
 

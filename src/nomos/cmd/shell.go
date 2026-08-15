@@ -4,7 +4,10 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
 	"syscall"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
@@ -27,7 +30,7 @@ var shellCmd = &cobra.Command{
 		}
 		repoRoot := findRepoRoot(wd)
 
-		env := nomosexec.InjectSubstrateEnvironmentPrimary(os.Environ(), repoRoot)
+		env := nomosexec.InjectSubstrateEnvironmentPrimary(os.Environ(), func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 		var execArgs []string
 		var binPath string

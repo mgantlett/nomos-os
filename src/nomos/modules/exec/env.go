@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
@@ -54,7 +56,8 @@ func InjectSubstrateEnvironment(baseEnv []string, targetDir string) []string {
 
 // InjectSubstrateEnvironmentPrimary wraps baseEnv with runtime configuration
 // specifically for Mode 1 (Foreground primary workspace delegation).
-func InjectSubstrateEnvironmentPrimary(baseEnv []string, repoRoot string) []string {
+func InjectSubstrateEnvironmentPrimary(baseEnv []string, ctx *workspace.WorkspaceContext) []string {
+	repoRoot := ctx.RepoRoot
 	return InjectSubstrateEnvironment(baseEnv, repoRoot)
 }
 

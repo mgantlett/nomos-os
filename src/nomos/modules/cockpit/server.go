@@ -17,6 +17,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
@@ -56,7 +58,8 @@ type pluginRegistration struct {
 }
 
 // NewServer initializes a new Cockpit HTTP server instance bound to the given repoRoot and port.
-func NewServer(repoRoot string, port int, tracker task.Tracker) *Server {
+func NewServer(ctx *workspace.WorkspaceContext, port int, tracker task.Tracker) *Server {
+	repoRoot := ctx.RepoRoot
 	if tracker == nil && repoRoot != "" {
 		cfg := &task.Config{TrackerType: "local", RepoRoot: repoRoot}
 		if tr, err := task.NewTracker(cfg); err == nil {
@@ -75,8 +78,8 @@ func NewServer(repoRoot string, port int, tracker task.Tracker) *Server {
 // NewBaseHandler returns an initialized Cockpit Server (which implements http.Handler) with the default base routes.
 // Referenced by: github.com/mgantlett/nomos-cockpit/src/server (Sovereign Edition external module).
 // Sovereign's NewServer mounts this as a fallback handler to inherit all Open Core base routes.
-func NewBaseHandler(repoRoot string) http.Handler {
-	return NewServer(repoRoot, 0, nil)
+func NewBaseHandler(ctx *workspace.WorkspaceContext) http.Handler {
+	return NewServer(ctx, 0, nil)
 }
 
 // ServeHTTP implements http.Handler for the Cockpit Server.
@@ -463,7 +466,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
 	// Attempt to query the active phase state file from the local repository directory.
-	pState, err := task.GetPhaseState(s.repoRoot)
+	pState, err := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(s.repoRoot); return c }())
 	var phaseState interface{}
 	// Determine the correct phase state to return
 	if err == nil && pState != nil {

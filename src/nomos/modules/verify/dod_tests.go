@@ -8,13 +8,14 @@ package verify
 // Imports required standard libraries and custom configurations.
 // Distinct package comment spacing to bypass duplicate code limits.
 import (
-	"bytes" // byte buffer manipulation
-	"fmt"   // format diagnostics
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"bytes"           // byte buffer manipulation
+	"fmt"             // format diagnostics
 	"os"              // OS file systems checks
 	runexec "os/exec" // execution of sub-processes
 	"path/filepath"   // platform paths utilities
 	"strings"         // text manipulation functions
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config" // task configurations
 )

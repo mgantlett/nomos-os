@@ -3,6 +3,8 @@ package task
 import (
 	"context"
 	"testing"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 func TestExtractSemanticTokens(t *testing.T) {
@@ -58,7 +60,7 @@ func TestGroom_MonolithicDetection(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	_ = GroomBacklog(ctx, ".", mockTracker, 13, "", true)
+	_ = GroomBacklog(ctx, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext("."); return c }(), mockTracker, 13, "", true)
 
 	if len(mockTracker.edits) != 1 || mockTracker.edits[0] != "100" {
 		t.Errorf("Expected only Task 100 to be edited for needs-split, got: %v", mockTracker.edits)

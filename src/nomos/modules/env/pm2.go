@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	nexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 )
@@ -25,7 +27,8 @@ func ensurePM2Sync(repoRoot string) {
 // repo-independent EnvScriptsDir: PM2 stores the exec path at registration time and
 // re-executes that stored path on restart, so a cwd-derived location would silently
 // orphan regenerated configs.
-func writeScript(repoRoot, name, cmdStr string) (string, error) {
+func writeScript(ctx *workspace.WorkspaceContext, name, cmdStr string) (string, error) {
+	repoRoot := ctx.RepoRoot
 	stateDir := config.EnvScriptsDir(repoRoot)
 	if err := os.MkdirAll(stateDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create state directory %s: %w", stateDir, err)
@@ -43,7 +46,8 @@ func writeScript(repoRoot, name, cmdStr string) (string, error) {
 // Start launches a background daemon via PM2.
 // It creates necessary state and logging directories, generates an isolated shell script,
 // and invokes the underlying runner to track process execution.
-func Start(repoRoot, name, logFile, cmdStr, cwd string) error {
+func Start(ctx *workspace.WorkspaceContext, name, logFile, cmdStr, cwd string) error {
+	repoRoot := ctx.RepoRoot
 	ensurePM2Sync(repoRoot)
 
 	// Resolve logging directory path
@@ -52,7 +56,7 @@ func Start(repoRoot, name, logFile, cmdStr, cwd string) error {
 	}
 
 	dbPath := config.ResolveCacheDbPath(repoRoot)
-	if err := reconcileRegistration(dbPath, repoRoot, name, cmdStr, logFile, cwd); err != nil {
+	if err := reconcileRegistration(dbPath, ctx, name, cmdStr, logFile, cwd); err != nil {
 		return err
 	}
 
@@ -67,7 +71,8 @@ func Start(repoRoot, name, logFile, cmdStr, cwd string) error {
 }
 
 // Stop terminates a background daemon via PM2.
-func Stop(repoRoot, name string) error {
+func Stop(ctx *workspace.WorkspaceContext, name string) error {
+	repoRoot := ctx.RepoRoot
 	dbPath := config.ResolveCacheDbPath(repoRoot)
 	out, err := nexec.RunCommand(dbPath, repoRoot, "npx", "--prefer-offline", "pm2", "stop", name)
 	if err != nil {
@@ -84,12 +89,13 @@ func Stop(repoRoot, name string) error {
 // path on `pm2 restart`. If the stored path differs from the canonical global script
 // (e.g. the process was registered from a different cwd-derived repoRoot), we must
 // re-register via `pm2 delete` + `pm2 start` so the regenerated script is actually used.
-func Restart(repoRoot, name string) error {
+func Restart(ctx *workspace.WorkspaceContext, name string) error {
+	repoRoot := ctx.RepoRoot
 	dbPath := config.ResolveCacheDbPath(repoRoot)
 
 	if name == "all" {
 		for _, s := range GetAllServices() {
-			if err := ensureRegisteredScriptPath(dbPath, repoRoot, s); err != nil {
+			if err := ensureRegisteredScriptPath(dbPath, ctx, s); err != nil {
 				return err
 			}
 		}
@@ -101,15 +107,15 @@ func Restart(repoRoot, name string) error {
 	}
 
 	// Ensure PM2 stores the canonical global script path for this service.
-	if err := ensureRegisteredScriptPath(dbPath, repoRoot, name); err != nil {
+	if err := ensureRegisteredScriptPath(dbPath, ctx, name); err != nil {
 		return err
 	}
 
-	svc, err := ResolveService(repoRoot, name)
+	svc, err := ResolveService(ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to resolve service %s: %w", name, err)
 	}
-	if _, err := writeScript(repoRoot, svc.Name, svc.Command); err != nil {
+	if _, err := writeScript(ctx, svc.Name, svc.Command); err != nil {
 		return err
 	}
 
@@ -124,12 +130,12 @@ func Restart(repoRoot, name string) error {
 // the canonical global script (EnvScriptsDir). PM2 stores the exec path at start time,
 // so if the registered path differs from the canonical one we re-register via
 // `pm2 delete` + `pm2 start`, preserving the original log file and cwd.
-func ensureRegisteredScriptPath(dbPath, repoRoot, name string) error {
-	svc, err := ResolveService(repoRoot, name)
+func ensureRegisteredScriptPath(dbPath string, ctx *workspace.WorkspaceContext, name string) error {
+	svc, err := ResolveService(ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to resolve service %s: %w", name, err)
 	}
-	return reconcileRegistration(dbPath, repoRoot, svc.Name, svc.Command, svc.LogFile, svc.Cwd)
+	return reconcileRegistration(dbPath, ctx, svc.Name, svc.Command, svc.LogFile, svc.Cwd)
 }
 
 // reconcileRegistration ensures PM2 has the named daemon registered against the
@@ -137,15 +143,16 @@ func ensureRegisteredScriptPath(dbPath, repoRoot, name string) error {
 // exec path at registration time, so if the registered path differs from the canonical
 // one (e.g. registered from a different cwd-derived repoRoot) we re-register via
 // `pm2 delete` + `pm2 start`, preserving the original log file and cwd.
-func reconcileRegistration(dbPath, repoRoot, name, cmdStr, logFile, cwd string) error {
+func reconcileRegistration(dbPath string, ctx *workspace.WorkspaceContext, name, cmdStr, logFile, cwd string) error {
+	repoRoot := ctx.RepoRoot
 	canonicalPath := filepath.Join(config.EnvScriptsDir(repoRoot), name+".sh")
 
-	registeredPath, registeredLogFile, registeredCwd, err := resolveRegisteredPM2Process(repoRoot, name)
+	registeredPath, registeredLogFile, registeredCwd, err := resolveRegisteredPM2Process(ctx, name)
 	if err != nil {
 		return err
 	}
 
-	scriptPath, err := writeScript(repoRoot, name, cmdStr)
+	scriptPath, err := writeScript(ctx, name, cmdStr)
 	if err != nil {
 		return err
 	}
@@ -189,7 +196,8 @@ func reconcileRegistration(dbPath, repoRoot, name, cmdStr, logFile, cwd string) 
 
 // resolveRegisteredPM2Process returns the stored exec path, merged log path, and cwd
 // that PM2 has registered for the named daemon, or empty strings if not registered.
-func resolveRegisteredPM2Process(repoRoot, name string) (string, string, string, error) {
+func resolveRegisteredPM2Process(ctx *workspace.WorkspaceContext, name string) (string, string, string, error) {
+	repoRoot := ctx.RepoRoot
 	dbPath := config.ResolveCacheDbPath(repoRoot)
 	out, err := nexec.RunCommand(dbPath, repoRoot, "npx", "--prefer-offline", "pm2", "jlist")
 	if err != nil {
@@ -217,7 +225,8 @@ func resolveRegisteredPM2Process(repoRoot, name string) (string, string, string,
 }
 
 // List returns the telemetry of all PM2 daemons. If asJSON is true, returns raw `pm2 jlist` output.
-func List(repoRoot string, asJSON bool) (string, error) {
+func List(ctx *workspace.WorkspaceContext, asJSON bool) (string, error) {
+	repoRoot := ctx.RepoRoot
 	dbPath := config.ResolveCacheDbPath(repoRoot)
 	cmd := "list"
 	if asJSON {
@@ -232,7 +241,8 @@ func List(repoRoot string, asJSON bool) (string, error) {
 
 // Logs streams the logs of a background daemon via PM2.
 // It returns the output string containing the recent logs.
-func Logs(repoRoot, name string) (string, error) {
+func Logs(ctx *workspace.WorkspaceContext, name string) (string, error) {
+	repoRoot := ctx.RepoRoot
 	dbPath := config.ResolveCacheDbPath(repoRoot)
 	// We run `pm2 logs --nostream` to just fetch and return, rather than hang.
 	// If the user expects streaming in the CLI, we could exec differently, but this is fine for now.

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -49,7 +51,7 @@ func readQualityDebtManifest(repoRoot string) (QualityDebtManifest, error) {
 
 		// Check if the linked task file exists in .nomos/tasks and is currently closed.
 		// If the associated backlog issue has been closed, the quality debt item is pruned.
-		if isTaskTerminal(repoRoot, tID) {
+		if isTaskTerminal(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), tID) {
 			modified = true
 			continue
 		}
@@ -106,7 +108,7 @@ func writeQualityDebtManifest(repoRoot string, activeDebt []QualityDebtItem) {
 		_ = os.MkdirAll(filepath.Dir(manifestPath), 0755)
 		_ = os.WriteFile(manifestPath, manifestBytes, 0644)
 		// Update the deterministic workspace hash to prevent Data Integrity Gate failures
-		_ = task.UpdateWorkspaceStateHash(repoRoot)
+		_ = task.UpdateWorkspaceStateHash(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 		// Dynamically sync and update unified backlog story files for all linked task IDs
 		SyncQualityDebtStories(repoRoot)

@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
@@ -18,7 +20,8 @@ func init() {
 	task.EscalationEvaluatorFunc = evaluateEscalation
 }
 
-func evaluateEscalation(repoRoot string, key string, failCount int, detail string) (bool, string, error) {
+func evaluateEscalation(ctx *workspace.WorkspaceContext, key string, failCount int, detail string) (bool, string, error) {
+	repoRoot := ctx.RepoRoot
 	escalate, reason := telemetry.GlobalSwarmAggregator.ShouldEscalate(key)
 	if !escalate {
 		return false, "", nil
@@ -30,7 +33,7 @@ func evaluateEscalation(repoRoot string, key string, failCount int, detail strin
 	}
 
 	if cfg.Provider == config.ProviderLocal {
-		taskCfg, err := task.LoadConfig(repoRoot)
+		taskCfg, err := task.LoadConfig(ctx)
 		if err == nil {
 			tracker, err := task.NewTracker(taskCfg)
 			if err == nil {
@@ -74,7 +77,8 @@ func RemediateASTCycle(root string, cycleSignature string) {
 
 	// Initialize the local tracker using the active configuration.
 	// We load the configuration from the active root to ensure correct binding.
-	cfg, err := task.LoadConfig(root)
+	wCtx, _ := workspace.NewContext(root)
+	cfg, err := task.LoadConfig(wCtx)
 	if err != nil {
 		synapse.Info("Failed to load task tracker config for auto-remediation: %v\n", err)
 		return
@@ -90,7 +94,7 @@ func RemediateASTCycle(root string, cycleSignature string) {
 
 	// Wrap the tracker with the Data Integrity state hashing middleware.
 	// This ensures our autonomous actions cryptographically seal the workspace.
-	tracker = task.WrapWithStateHash(tracker, root)
+	tracker = task.WrapWithStateHash(tracker, wCtx)
 
 	// Create the remediation task in the tracking system.
 	// It is created in the Backlog status, unassigned, waiting for Swarm assignment.

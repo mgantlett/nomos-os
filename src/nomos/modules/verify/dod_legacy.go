@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"strings"
 )
@@ -21,7 +23,7 @@ func runLegacyCodeBlockerCheck(r string) (StageResult, error) {
 		files = append(files, f)
 	}
 
-	violations, err := AuditImports(r, files)
+	violations, err := AuditImports(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(r); return c }(), files)
 	if err != nil {
 		res.Passed = false
 		res.Error = fmt.Errorf("import audit failed: %w", err)

@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
@@ -11,7 +13,8 @@ import (
 // a list of absolute paths to active task worktrees (identified by .nomos_parent_task).
 // It iterates over the target user workspace configuration folder and skips any directories
 // that do not contain the explicit tracker marker file to prevent accidental teardowns.
-func GetCrossRepoWorktrees(repoRoot string) ([]string, error) {
+func GetCrossRepoWorktrees(ctx *workspace.WorkspaceContext) ([]string, error) {
+	repoRoot := ctx.RepoRoot
 	wtDir := config.WorktreesDir(repoRoot)
 	entries, err := os.ReadDir(wtDir)
 	if err != nil {

@@ -5,10 +5,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // ResolveConduitCLI searches standard paths for the conduit CLI.
-func ResolveConduitCLI(repoRoot string) (string, []string, error) {
+func ResolveConduitCLI(ctx *workspace.WorkspaceContext) (string, []string, error) {
+	repoRoot := ctx.RepoRoot
 	// Look in local node_modules
 	localPath := filepath.Join(repoRoot, "node_modules", ".bin", "conduit-cli")
 	if fi, err := os.Stat(localPath); err == nil && !fi.IsDir() {
@@ -43,8 +46,9 @@ func ResolveConduitCLI(repoRoot string) (string, []string, error) {
 }
 
 // RunConduit executes the resolved conduit-cli with the given arguments and environment.
-func RunConduit(repoRoot string, args []string) error {
-	bin, baseArgs, err := ResolveConduitCLI(repoRoot)
+func RunConduit(ctx *workspace.WorkspaceContext, args []string) error {
+	repoRoot := ctx.RepoRoot
+	bin, baseArgs, err := ResolveConduitCLI(ctx)
 	if err != nil {
 		return err
 	}

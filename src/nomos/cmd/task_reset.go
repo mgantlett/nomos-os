@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +21,7 @@ func executeLocalReset(stash bool) error {
 	// Locate repository root.
 	repoRoot := findRepoRoot(wd)
 
-	return task.ResetTask(repoRoot, wd, stash)
+	return task.ResetTask(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), wd, stash)
 }
 
 // taskResetCmd abandons active work on a task locally, cleaning local modifications and transitioning phase to IDLE.

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -113,7 +114,7 @@ var taskListCmd = &cobra.Command{
 
 		// Filter by project
 		if !listAllProjectsFlag {
-			tasks = FilterTasksByProject(tasks, repoRoot)
+			tasks = FilterTasksByProject(tasks, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 		}
 
 		// Sort by CLI if --sort-cli flag is provided

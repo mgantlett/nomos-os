@@ -20,6 +20,8 @@ package verify
 import (
 	"fmt"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // StageResult stores the outcome of a DoD verification stage.
@@ -210,7 +212,7 @@ var DoDStages = []VerificationStage{
 // and flag declared in workflow documentation exists natively in the bin/nomos engine.
 func runWorkflowDeterminismCheck(root string) (StageResult, error) {
 	// Execute workflow AST parser audit across repository template paths
-	err := CheckSSOTDrift(root)
+	err := CheckSSOTDrift(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())
 	if err != nil {
 		return StageResult{Passed: false, Message: "SSOT drift detected"}, err
 	}

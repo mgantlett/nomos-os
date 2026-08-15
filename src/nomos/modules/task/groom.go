@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // GroomBacklog orchestrates the backlog grooming process, detecting dependency cycles,
 // flagging duplicate tasks using cosine similarity, and automatically bundling them.
-func GroomBacklog(ctx context.Context, repoRoot string, tracker Tracker, capacity int, projectFilter string, autoApprove bool) error {
+func GroomBacklog(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, capacity int, projectFilter string, autoApprove bool) error {
 	allTasks, err := tracker.List(ctx)
 	if err != nil {
 		return err

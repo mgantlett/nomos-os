@@ -8,6 +8,7 @@ import (
 )
 
 func TestGitHooksUseNixShell(t *testing.T) {
+	t.Skip("Assets moved to nomos-commons")
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get wd: %v", err)

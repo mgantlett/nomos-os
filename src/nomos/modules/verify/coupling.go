@@ -2,12 +2,13 @@ package verify
 
 import (
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
-	"github.com/mgantlett/nomos-os/src/nomos/engine"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
+	"github.com/mgantlett/nomos-os/src/nomos/engine"
 )
 
 // runCouplingAnalysisCheck executes package coupling and cohesion checks.

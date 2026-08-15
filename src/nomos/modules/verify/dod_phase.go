@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,11 +16,12 @@ import (
 
 // runPhaseDisciplineCheck validates that no source code files are modified during PLAN or REVIEW phases,
 // except during git pre-commit hook executions when the human PO has approved the active commit.
-func runPhaseDisciplineCheck(r string) (StageResult, error) {
+func runPhaseDisciplineCheck(root string) (StageResult, error) {
+	ctx, _ := workspace.NewContext(root)
 	res := StageResult{Name: "Phase Discipline Check", Passed: true}
 
 	// Retrieve the active phase state file if it exists.
-	phaseStatePath := config.PhaseStatePath(r)
+	phaseStatePath := config.PhaseStatePath(root)
 	data, err := os.ReadFile(phaseStatePath)
 	if err != nil {
 		// Bypass phase validation if state file is not present.
@@ -26,7 +29,7 @@ func runPhaseDisciplineCheck(r string) (StageResult, error) {
 	}
 
 	// Verify that the current phase state hash matches the signature persisted in SQLite database.
-	if err := verifyPhaseStateHash(r, data); err != nil {
+	if err := verifyPhaseStateHash(ctx, data); err != nil {
 		res.Passed = false
 		res.Error = err
 		return res, nil
@@ -43,7 +46,7 @@ func runPhaseDisciplineCheck(r string) (StageResult, error) {
 	}
 
 	// Audit all modified and untracked repository files.
-	forbidden, err := checkForbiddenCodeModifications(r)
+	forbidden, err := checkForbiddenCodeModifications(root)
 	if err != nil {
 		return res, nil
 	}
@@ -72,9 +75,9 @@ func isModificationPermitted(state localPhaseState) bool {
 	return state.CurrentPhase == string(statepkg.PhaseReview) && state.CommitApproved == "true" && os.Getenv("NOMOS_IN_GIT_HOOK") == "1"
 }
 
-func verifyPhaseStateHash(r string, data []byte) error {
+func verifyPhaseStateHash(ctx *workspace.WorkspaceContext, data []byte) error {
 	currentHash := task.CalculatePhaseStateHash(data)
-	persistedHash, err := task.GetPersistedPhaseStateHash(r)
+	persistedHash, err := task.GetPersistedPhaseStateHash(ctx)
 	if err != nil {
 		return fmt.Errorf("Phase State Tampering Check Failed: unable to query state signature: %w", err)
 	}
@@ -111,11 +114,12 @@ func isPlanningFile(m string) bool {
 
 // runDataIntegrityCheck executes the Data Integrity Gate.
 // This gate ensures that no JSON state files in the workspace have been manually altered.
-func runDataIntegrityCheck(r string) (StageResult, error) {
+func runDataIntegrityCheck(root string) (StageResult, error) {
+	ctx, _ := workspace.NewContext(root)
 	res := StageResult{Name: "Data Integrity Gate", Passed: true}
 
 	// Calculate the live cryptographic hash of all local state files.
-	currentHash, err := task.CalculateWorkspaceStateHash(r)
+	currentHash, err := task.CalculateWorkspaceStateHash(ctx)
 	if err != nil {
 		res.Passed = false
 		res.Error = fmt.Errorf("failed to calculate workspace state hash: %w", err)
@@ -123,7 +127,7 @@ func runDataIntegrityCheck(r string) (StageResult, error) {
 	}
 
 	// Retrieve the expected signature from the tmp lockfile.
-	persistedHash, err := task.GetPersistedWorkspaceStateHash(r)
+	persistedHash, err := task.GetPersistedWorkspaceStateHash(ctx)
 	if err != nil {
 		res.Passed = false
 		res.Error = fmt.Errorf("failed to retrieve workspace state signature: %w", err)
@@ -132,7 +136,7 @@ func runDataIntegrityCheck(r string) (StageResult, error) {
 
 	// Fallback/Bootstrap logic for uninitialized projects
 	if persistedHash == "" {
-		if err := task.PersistWorkspaceStateHash(r, currentHash); err != nil {
+		if err := task.PersistWorkspaceStateHash(ctx, currentHash); err != nil {
 			res.Passed = false
 			res.Error = fmt.Errorf("failed to bootstrap workspace state signature: %w", err)
 			return res, nil

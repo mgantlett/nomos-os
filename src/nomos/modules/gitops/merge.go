@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
@@ -60,7 +62,8 @@ func PushWorktreeBranch(wt string) (string, error) {
 // It verifies the worktree, stages, commits, pushes, merges into the target branch,
 // promotes the local binary to the root hollow shell, and finally tears down the transient worktree.
 // This is the atomic entry point for merging a task branch into a stable environment like develop.
-func DirectMerge(wt string, repoRoot string, targetEnv string, mergeFile string) error {
+func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, mergeFile string) error {
+	repoRoot := ctx.RepoRoot
 	synapse.Info("🔄 AI-AI DDP Merge: Processing transient worktree %s...\n", wt)
 
 	// Identify task ID for the commit message

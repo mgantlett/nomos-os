@@ -6,10 +6,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 func TestCockpitServerEndpoints(t *testing.T) {
-	server := NewServer(t.TempDir(), 8089, nil)
+	server := NewServer(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(t.TempDir()); return c }(), 8089, nil)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/health", server.handleHealth)

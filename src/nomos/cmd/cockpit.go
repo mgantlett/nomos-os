@@ -6,6 +6,8 @@ the embedded Open Core web dashboard server.
 package cmd
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,10 +39,11 @@ func runCockpitCmd(cmd *cobra.Command, args []string) error {
 	wd, _ := os.Getwd()
 	repoRoot := nomosexec.FindRepoRoot(wd)
 	synapse.Info("🚀 Delegating to daemon supervisor: nomos env start cockpit...")
-	return executeNomosEnvStart(repoRoot, "cockpit")
+	return executeNomosEnvStart(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "cockpit")
 }
 
-func executeNomosEnvStart(repoRoot, service string) error {
+func executeNomosEnvStart(ctx *workspace.WorkspaceContext, service string) error {
+	repoRoot := ctx.RepoRoot
 	nomosBin := "bin/nomos"
 	if _, err := os.Stat(filepath.Join(repoRoot, "bin/nomos")); err != nil {
 		if exe, errExe := os.Executable(); errExe == nil {

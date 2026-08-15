@@ -10,6 +10,7 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
 	"github.com/spf13/cobra"
@@ -37,11 +38,11 @@ var taskStartCmd = &cobra.Command{
 			return err
 		}
 
-		if err := enforceRootZone(repoRoot, "task start"); err != nil {
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task start"); err != nil {
 			return err
 		}
 
-		if pState, err := task.GetPhaseState(repoRoot); err == nil {
+		if pState, err := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err == nil {
 			// Tier 2 agents (e.g. Swarm agents) run as stateless execution daemons.
 			// They are forbidden from starting tasks because they don't have interactive IDE states.
 			if pState.AgentTier == statepkg.Tier2 {
@@ -58,7 +59,7 @@ var taskStartCmd = &cobra.Command{
 			}
 		}
 
-		if !isGitTreeClean(repoRoot) && !forceStartFlag {
+		if !isGitTreeClean(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) && !forceStartFlag {
 			return fmt.Errorf("workspace contains uncommitted changes. Please stash or commit your dirty files before starting a new task, or pass --force (-f) to bind task to current uncommitted work.")
 		}
 
@@ -100,7 +101,7 @@ var taskStartCmd = &cobra.Command{
 				return fmt.Errorf("failed to list backlog tasks: %w", err)
 			}
 			// Filter out tasks that do not belong to the current project context
-			tasks = FilterTasksByProject(tasks, repoRoot)
+			tasks = FilterTasksByProject(tasks, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 			// Select the most critical task from the remaining list
 			autoKey, err := selectNextPriorityTask(tasks)
@@ -134,12 +135,12 @@ var taskStartCmd = &cobra.Command{
 				return errCtx
 			}
 			// Perform final checks to ensure agent configuration is applied correctly
-			_, _, errStart := task.StartTask(ctx, repoRoot, tracker, key, assignee, "", injectIntelligenceProfileExemptions)
+			_, _, errStart := task.StartTask(ctx, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), tracker, key, assignee, "", injectIntelligenceProfileExemptions)
 			if errStart != nil {
 				return errStart
 			}
 
-			if stashID, found := DetectStashForTask(repoRoot, key); found {
+			if stashID, found := DetectStashForTask(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key); found {
 				fmt.Printf("⚠️  Stashed WIP detected for Task %s (%s). Run 'git stash pop %s' to resume work.\n", key, stashID, stashID)
 			}
 
@@ -155,8 +156,8 @@ var taskStartCmd = &cobra.Command{
 			// Announce transition to PLAN phase for standard local development
 			fmt.Printf("✅ Task %s started successfully and workspace transitioned to PLAN phase.\n", key)
 
-			if isOrchestratorRoot(repoRoot) {
-				_ = scaffoldTaskWorktree(repoRoot, key)
+			if isOrchestratorRoot(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) {
+				_ = scaffoldTaskWorktree(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key)
 				if len(crossReposFlag) > 0 {
 					scaffoldCrossRepoWorktrees(repoRoot, key, crossReposFlag)
 				}

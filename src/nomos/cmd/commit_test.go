@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"strings"
 	"testing"
+
+	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
 func TestParseCommitMessage(t *testing.T) {

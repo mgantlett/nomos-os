@@ -3,6 +3,9 @@ package cmd
 
 import (
 	"fmt"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +25,7 @@ func loadEnvService(service string) (string, *env.ServiceConfig, error) {
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to load repo root: %w", err)
 	}
-	svc, err := env.ResolveService(repoRoot, service)
+	svc, err := env.ResolveService(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), service)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to resolve service %s: %w", service, err)
 	}

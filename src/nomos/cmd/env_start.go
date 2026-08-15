@@ -4,6 +4,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +31,7 @@ var envStartCmd = &cobra.Command{
 		if args[0] == "all" {
 			fmt.Println("Starting all services...")
 			for _, s := range env.GetAllServices() {
-				svc, err := env.ResolveService(repoRoot, s)
+				svc, err := env.ResolveService(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), s)
 				if err != nil {
 					continue
 				}
@@ -38,7 +40,7 @@ var envStartCmd = &cobra.Command{
 				} else {
 					fmt.Printf("Starting %s...\n", svc.Name)
 				}
-				_ = env.Start(repoRoot, svc.Name, svc.LogFile, svc.Command, svc.Cwd)
+				_ = env.Start(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), svc.Name, svc.LogFile, svc.Command, svc.Cwd)
 			}
 			fmt.Println("Successfully started all services")
 			return nil
@@ -54,7 +56,7 @@ var envStartCmd = &cobra.Command{
 		} else {
 			fmt.Printf("Starting %s...\n", svc.Name)
 		}
-		if err := env.Start(repoRoot, svc.Name, svc.LogFile, svc.Command, svc.Cwd); err != nil {
+		if err := env.Start(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), svc.Name, svc.LogFile, svc.Command, svc.Cwd); err != nil {
 			return err
 		}
 

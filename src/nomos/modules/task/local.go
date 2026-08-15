@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 )
@@ -23,7 +25,8 @@ type LocalTracker struct {
 // NewLocalTracker creates a new instance of LocalTracker bound to a specific repository root.
 // It initializes the LocalTracker structure with the given repoRoot which is then used
 // dynamically resolve paths to the project's state directories and SQLite graph database.
-func NewLocalTracker(repoRoot string) *LocalTracker {
+func NewLocalTracker(ctx *workspace.WorkspaceContext) *LocalTracker {
+	repoRoot := ctx.RepoRoot
 	return &LocalTracker{
 		repoRoot: repoRoot,
 	}

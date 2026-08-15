@@ -3,11 +3,12 @@ package provider
 import (
 	"errors"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 )

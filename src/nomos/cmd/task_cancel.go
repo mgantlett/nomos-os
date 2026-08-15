@@ -6,6 +6,8 @@ import (
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -29,8 +31,8 @@ var taskCancelCmd = &cobra.Command{
 		_ = telemetry.EmitEvent(repoRoot, "task_cancel", fmt.Sprintf("Task ID: %s | Reason: %s", key, comment))
 
 		// Transition back to IDLE if the active task was cancelled
-		if state, _ := task.GetPhaseState(repoRoot); state != nil && state.TaskId == key {
-			_ = task.TransitionPhase(repoRoot, statepkg.PhaseIdle)
+		if state, _ := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); state != nil && state.TaskId == key {
+			_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), statepkg.PhaseIdle)
 			fmt.Printf("✅ Active task %s cancelled. Workspace reset to %s phase.\n", key, statepkg.PhaseIdle)
 		}
 

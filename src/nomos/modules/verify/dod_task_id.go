@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -16,7 +18,9 @@ import (
 var taskKeyRegex = regexp.MustCompile(`(?i)(?:\[(?:Task\s+)?|#)?([A-Z0-9]{2,6}-\d+)(?:\])?`)
 
 // runTaskIDValidationCheck validates that every commit or active session is bound to a valid Task ID registered in the Nomos SQLite database.
-func runTaskIDValidationCheck(repoRoot string) (StageResult, error) {
+func runTaskIDValidationCheck(root string) (StageResult, error) {
+	repoRoot := root
+	wCtx, _ := workspace.NewContext(root)
 	res := StageResult{Name: "Task ID Validation Gate", Passed: true}
 
 	// Exclude synthetic unit test fixture environments
@@ -26,10 +30,10 @@ func runTaskIDValidationCheck(repoRoot string) (StageResult, error) {
 	}
 
 	ctx := context.Background()
-	tracker := task.NewLocalTracker(repoRoot)
+	tracker := task.NewLocalTracker(wCtx)
 
 	// 1 & 2. Resolve target task ID from multiple sources
-	targetTaskID := resolveTargetTaskID(repoRoot)
+	targetTaskID := resolveTargetTaskID(wCtx)
 
 	// Temporary bypass for COM-1039 during database path migration
 	if strings.Contains(targetTaskID, "COM-1039") {
@@ -72,7 +76,8 @@ func runTaskIDValidationCheck(repoRoot string) (StageResult, error) {
 // resolveTargetTaskID extracts the active Task ID from the database, .nomos_parent_task, or commit message files.
 // It prioritizes explicit commit message tags over the bound workspace state ID.
 // This ensures cross-repo transient worktrees inheriting parent task IDs are supported natively.
-func resolveTargetTaskID(repoRoot string) string {
+func resolveTargetTaskID(ctx *workspace.WorkspaceContext) string {
+	repoRoot := ctx.RepoRoot
 	boundTaskID := ""
 	boundTaskPath := config.StateTaskIdPath(repoRoot)
 	if data, err := os.ReadFile(boundTaskPath); err == nil {

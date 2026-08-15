@@ -11,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
@@ -33,7 +35,7 @@ var taskApproveCmd = &cobra.Command{
 		}
 
 		// Read and unmarshal local phase state structure
-		state, err := task.GetPhaseState(repoRoot)
+		state, err := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 		if err != nil {
 			return err
 		}
@@ -74,8 +76,8 @@ var taskApproveCmd = &cobra.Command{
 
 		// Calculate and persist SHA-256 state signature for Data Integrity Gate
 		hash := task.CalculatePhaseStateHash(pbytes)
-		_ = task.PersistPhaseStateHash(repoRoot, hash)
-		_ = task.UpdateWorkspaceStateHash(repoRoot)
+		_ = task.PersistPhaseStateHash(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), hash)
+		_ = task.UpdateWorkspaceStateHash(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 		fmt.Printf("Successfully approved task %s (PlanApproved: %s, CommitApproved: %s) and signed state\n", state.TaskId, state.PlanApproved, state.CommitApproved)
 		return nil

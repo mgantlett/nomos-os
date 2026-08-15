@@ -11,6 +11,7 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // TestTransitionPhaseAndHooks verifies phase state updates and hook execution.
@@ -64,7 +65,7 @@ echo "task=$NOMOS_ACTIVE_TASK phase=$NOMOS_CURRENT_PHASE" > "%s"
 	}
 
 	// Run TransitionPhase
-	err = TransitionPhase(tempDir, statepkg.PhaseEdit)
+	err = TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), statepkg.PhaseEdit)
 	if err != nil {
 		t.Fatalf("TransitionPhase failed: %v", err)
 	}
@@ -175,7 +176,7 @@ func TestGetPhaseStateValidation(t *testing.T) {
 				t.Fatalf("failed to write test phase state: %v", err)
 			}
 
-			_, err = GetPhaseState(tempDir)
+			_, err = GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }())
 			if tc.expectPass {
 				if err != nil {
 					t.Errorf("expected validation to pass, but failed: %v", err)

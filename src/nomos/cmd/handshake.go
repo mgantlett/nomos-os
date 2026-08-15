@@ -5,8 +5,11 @@ package cmd
 import (
 	"context"
 	"os"
+
 	"path/filepath"
 	"sync"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
@@ -58,7 +61,7 @@ It writes baseline state, ensures the Git hook verification boundary is in place
 		}
 		repoRoot := findRepoRoot(wd)
 
-		if err := enforceRootZone(repoRoot, "handshake"); err != nil {
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "handshake"); err != nil {
 			return err
 		}
 
@@ -66,7 +69,7 @@ It writes baseline state, ensures the Git hook verification boundary is in place
 		migrateLegacyDirectories(repoRoot)
 
 		// Initialize the telemetry and context payload.
-		payload := createHandshakePayload(repoRoot)
+		payload := createHandshakePayload(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 		// Rotate session logs to ensure we don't build up massive JSONL logs indefinitely.
 		telemetry.RotateSessionLogs(filepath.Join(config.LogsDir(repoRoot), "nomos.jsonl"), 20)
@@ -84,27 +87,27 @@ It writes baseline state, ensures the Git hook verification boundary is in place
 		// 2. Discover the current active branch for workspace state binding.
 		go func() {
 			defer wg.Done()
-			branch = getBranch(repoRoot)
+			branch = getBranch(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 		}()
 
 		go func() {
 			defer wg.Done()
-			dirtyFiles = getDirtyFiles(repoRoot)
+			dirtyFiles = getDirtyFiles(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 		}()
 
 		go func() {
 			defer wg.Done()
-			claims = getClaims(repoRoot)
+			claims = getClaims(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 		}()
 
 		ctx := context.Background()
-		populateTrackerTasks(ctx, &payload, repoRoot)
+		populateTrackerTasks(ctx, &payload, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 		query := "General Workspace Context"
 		if payload.ActiveTaskName != "" {
 			query = payload.ActiveTaskName
 		}
-		memories, errs := getMemories(repoRoot, query)
+		memories, errs := getMemories(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), query)
 
 		wg.Wait()
 

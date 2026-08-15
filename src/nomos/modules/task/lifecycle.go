@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
@@ -19,11 +21,12 @@ import (
 
 // EscalationEvaluatorFunc is a pluggable callback hook for evaluating closed-loop Swarm escalation.
 // This decouples the task lifecycle package from the engine package to prevent Go import cycles.
-var EscalationEvaluatorFunc func(repoRoot string, key string, failCount int, detail string) (bool, string, error)
+var EscalationEvaluatorFunc func(ctx *workspace.WorkspaceContext, key string, failCount int, detail string) (bool, string, error)
 
 // PostPhaseComment posts a comment to the issue tracker when local phase transitions occur.
 // It formats markdown updates for PLAN, EDIT, and REVIEW phases and submits them to the tracker.
-func PostPhaseComment(repoRoot, key string, phase state.WorkspacePhase) {
+func PostPhaseComment(ctx *workspace.WorkspaceContext, key string, phase state.WorkspacePhase) {
+	repoRoot := ctx.RepoRoot
 	// Guard against empty key or phase strings
 	if key == "" || phase == "" {
 		// Log debug warning if key or phase is empty
@@ -31,7 +34,7 @@ func PostPhaseComment(repoRoot, key string, phase state.WorkspacePhase) {
 	}
 
 	// Instantiate task tracker for the specified repository root path
-	tracker, err := getTracker(repoRoot)
+	tracker, err := getTracker(ctx)
 	if err != nil {
 		// Return gracefully if tracker instance initialization fails
 		return
@@ -79,14 +82,14 @@ func PostPhaseComment(repoRoot, key string, phase state.WorkspacePhase) {
 // Swarm telemetry failure metrics are recorded to track consecutive failures per task.
 // Closed-loop escalation callbacks evaluate whether tier advancement is required.
 // Comments are published to local JSON tasks or remote tracker backends.
-func PostDoDFailure(repoRoot string, key string, failMsgs []string) {
+func PostDoDFailure(ctx *workspace.WorkspaceContext, key string, failMsgs []string) {
 	// Return early if key is empty or no failure messages are provided
 	if key == "" || len(failMsgs) == 0 {
 		return
 	}
 
 	// Retrieve active task tracker instance from repo root configuration
-	tracker, err := getTracker(repoRoot)
+	tracker, err := getTracker(ctx)
 	if err != nil {
 		return
 	}
@@ -116,7 +119,7 @@ func PostDoDFailure(repoRoot string, key string, failMsgs []string) {
 		// Evaluate closed-loop auto-escalation via pluggable callback hook
 		if EscalationEvaluatorFunc != nil {
 			// Trigger escalation logic if threshold limit is reached
-			_, _, _ = EscalationEvaluatorFunc(repoRoot, k, failCount, detailStr)
+			_, _, _ = EscalationEvaluatorFunc(ctx, k, failCount, detailStr)
 		}
 
 		// Construct formatted warning comment body with failure breakdown
@@ -130,9 +133,9 @@ func PostDoDFailure(repoRoot string, key string, failMsgs []string) {
 }
 
 // getTracker resolves credentials configuration and constructs the tracker object for a repo root.
-func getTracker(repoRoot string) (Tracker, error) {
+func getTracker(ctx *workspace.WorkspaceContext) (Tracker, error) {
 	// Load configuration settings for active repository workspace
-	cfg, err := LoadConfig(repoRoot)
+	cfg, err := LoadConfig(ctx)
 	if err != nil {
 		// Return error if config failed to load
 		return nil, err

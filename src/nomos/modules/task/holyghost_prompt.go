@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
@@ -28,7 +30,8 @@ type CodeSnippet struct {
 
 // fetchTaskKeywords views task tracker and falls back to task.md to obtain clean keywords.
 // It extracts descriptive key terms from task titles and bodies for vector semantic searches.
-func fetchTaskKeywords(ctx context.Context, repoRoot string, tracker Tracker, taskKey string) string {
+func fetchTaskKeywords(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, taskKey string) string {
+	repoRoot := wCtx.RepoRoot
 	// Attempt to view task record from local tracker store
 	t, err := tracker.View(ctx, taskKey)
 	if err != nil {
@@ -283,7 +286,8 @@ func writeWorkspaceProtocol(f *strings.Builder, repoRoot string) {
 
 // gatherActiveContext builds the gravity anchor string from the task's implementation plan.
 // It parses file:// links embedded in implementation_plan.md and reads target source contents.
-func gatherActiveContext(repoRoot string, taskKey string) string {
+func gatherActiveContext(ctx *workspace.WorkspaceContext, taskKey string) string {
+	repoRoot := ctx.RepoRoot
 	planPath := filepath.Join(config.PlansDir(repoRoot), taskKey, "implementation_plan.md")
 	planData, err := os.ReadFile(planPath)
 	if err != nil {

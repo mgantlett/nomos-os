@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
@@ -91,18 +93,19 @@ func StageAutoDebtTask(repoRoot string, file string, gate DebtGate, reason strin
 // SyncQualityDebtManifest dynamically checks all active quality debts and prunes resolved ones.
 // It also seamlessly promotes unresolved "AUTO" quality debt items into tracked backlog tasks.
 // promoteAutoDebtTasks promotes AUTO bypasses into real backlog tasks.
-func promoteAutoDebtTasks(repoRoot string, autoByFile map[string][]int, newActiveDebt []QualityDebtItem) bool {
+func promoteAutoDebtTasks(ctx *workspace.WorkspaceContext, autoByFile map[string][]int, newActiveDebt []QualityDebtItem) bool {
+
 	if len(autoByFile) == 0 {
 		return false
 	}
 	modified := false
 	var tracker task.Tracker
-	if cfg, err := task.LoadConfig(repoRoot); err == nil {
+	if cfg, err := task.LoadConfig(ctx); err == nil {
 		tracker, _ = task.NewTracker(cfg)
 	}
 
 	if tracker != nil {
-		projectName := filepath.Base(filepath.Clean(repoRoot))
+		projectName := filepath.Base(filepath.Clean(ctx.RepoRoot))
 		for file, indices := range autoByFile {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			title := fmt.Sprintf("Resolve Quality Debt: %s", file)
@@ -182,7 +185,7 @@ func SyncQualityDebtManifest(repoRoot string) {
 		}
 	}
 
-	if promoteAutoDebtTasks(repoRoot, autoByFile, newActiveDebt) {
+	if promoteAutoDebtTasks(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), autoByFile, newActiveDebt) {
 		modified = true
 	}
 
@@ -245,12 +248,13 @@ func SyncQualityDebtStories(repoRoot string) {
 
 	// Load active task tracker configuration to sync remote task bodies
 	var tracker task.Tracker
-	if cfg, err := task.LoadConfig(repoRoot); err == nil {
+	ctx, _ := workspace.NewContext(repoRoot)
+	if cfg, err := task.LoadConfig(ctx); err == nil {
 		tracker, _ = task.NewTracker(cfg)
 	}
 
 	for taskID, items := range grouped {
-		content := generateTaskStoryMarkdown(repoRoot, taskID, items)
+		content := generateTaskStoryMarkdown(ctx, taskID, items)
 
 		if tracker != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -268,7 +272,8 @@ func SyncQualityDebtStories(repoRoot string) {
 }
 
 // generateTaskStoryMarkdown builds the structured markdown content for a backlog story.
-func generateTaskStoryMarkdown(repoRoot string, taskID string, items []QualityDebtItem) string {
+func generateTaskStoryMarkdown(ctx *workspace.WorkspaceContext, taskID string, items []QualityDebtItem) string {
+
 	s := &schema.TaskSchema{
 		Description:    fmt.Sprintf("As a developer, I want to resolve the following quality debt items associated with Task %s to keep the codebase maintainable.", taskID),
 		TechnicalNotes: []string{"- Automatically tracked and synchronized by Nomos Quality Debt Manager."},
@@ -277,7 +282,7 @@ func generateTaskStoryMarkdown(repoRoot string, taskID string, items []QualityDe
 
 	seenFiles := make(map[string]bool)
 	for _, item := range items {
-		s.AcceptanceCriteria = append(s.AcceptanceCriteria, fmt.Sprintf("- [ ] Resolve %s in [%s](file://%s) (Reason: %s)", item.Gate, item.File, filepath.Join(repoRoot, item.File), item.Reason))
+		s.AcceptanceCriteria = append(s.AcceptanceCriteria, fmt.Sprintf("- [ ] Resolve %s in [%s](file://%s) (Reason: %s)", item.Gate, item.File, filepath.Join(ctx.RepoRoot, item.File), item.Reason))
 
 		if !seenFiles[item.File] {
 			seenFiles[item.File] = true
@@ -290,11 +295,12 @@ func generateTaskStoryMarkdown(repoRoot string, taskID string, items []QualityDe
 // isTaskTerminal verifies whether a specific task is permanently closed.
 // It uses the SQLite task tracker to load the task and inspect its status field.
 // "AUTO" bypass tasks are synthetically generated and never considered closed by this function.
-func isTaskTerminal(repoRoot, tID string) bool {
+func isTaskTerminal(ctx *workspace.WorkspaceContext, tID string) bool {
+
 	if tID == "" || tID == "AUTO" {
 		return false
 	}
-	tracker := task.NewLocalTracker(repoRoot)
+	tracker := task.NewLocalTracker(ctx)
 	tasks, err := tracker.List(context.Background())
 	if err != nil {
 		return false

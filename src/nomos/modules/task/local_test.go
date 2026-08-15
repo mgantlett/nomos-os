@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +14,7 @@ func TestLocalTracker(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	tracker := NewLocalTracker(tmpDir)
+	tracker := NewLocalTracker(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tmpDir); return c }())
 	require.NotNil(t, tracker)
 
 	ctx := context.Background()

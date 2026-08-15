@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
@@ -138,7 +139,7 @@ func TestFilterTasksByProject(t *testing.T) {
 	os.Setenv("NOMOS_TASKS_DIR", "/some/global/dir")
 	defer os.Unsetenv("NOMOS_TASKS_DIR")
 
-	filtered := FilterTasksByProject(tasks, repoRoot)
+	filtered := FilterTasksByProject(tasks, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 	if len(filtered) != 2 {
 		t.Errorf("Expected 2 tasks, got %d", len(filtered))
 	}
@@ -150,7 +151,7 @@ func TestFilterTasksByProject(t *testing.T) {
 
 	// Test local mode filtering
 	os.Unsetenv("NOMOS_TASKS_DIR")
-	filteredLocal := FilterTasksByProject(tasks, repoRoot)
+	filteredLocal := FilterTasksByProject(tasks, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 	if len(filteredLocal) != 3 {
 		t.Errorf("Expected 3 tasks in local mode (including empty project), got %d", len(filteredLocal))
 	}

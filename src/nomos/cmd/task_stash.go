@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +35,7 @@ var taskStashAuditCmd = &cobra.Command{
 		}
 
 		// Filter out tasks that do not belong to the current project context
-		tasks = FilterTasksByProject(tasks, repoRoot)
+		tasks = FilterTasksByProject(tasks, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 		// Build a map of task key to closed status for O(1) lookups during audit
 		taskMap := make(map[string]bool)
 		for _, t := range tasks {

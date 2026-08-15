@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
@@ -35,7 +37,7 @@ var devCmd = &cobra.Command{
 			return fmt.Errorf("deprecated command: 'nomos dev cockpit' has been deprecated in favor of 'nomos cockpit --dev'. Please run 'nomos cockpit --dev' (or 'nomos cockpit -d') to launch hot-reloading development mode.")
 		}
 
-		svc, err := env.ResolveService(repoRoot, serviceName)
+		svc, err := env.ResolveService(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), serviceName)
 		if err != nil {
 			return fmt.Errorf("failed to resolve service: %w", err)
 		}

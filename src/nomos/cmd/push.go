@@ -6,12 +6,14 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
@@ -19,7 +21,7 @@ import (
 	"github.com/mgantlett/nomos-os/src/nomos/modules/gitops"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
-	"github.com/mgantlett/nomos-os/src/nomos/modules/workspace"
+	nomosworkspace "github.com/mgantlett/nomos-os/src/nomos/modules/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +63,7 @@ var pushCmd = &cobra.Command{
 
 		repoRoot := findRepoRoot(wd)
 
-		if err := enforceWorktreeZone(repoRoot, "push"); err != nil {
+		if err := enforceWorktreeZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "push"); err != nil {
 			return err
 		}
 
@@ -87,7 +89,7 @@ var pushCmd = &cobra.Command{
 		synapse.Info("🚀 Starting push flow to target environment: %s\n", targetEnv)
 
 		// Process cross-repo transient worktrees before root workspace push
-		if err := processCrossRepoWorktrees(repoRoot, targetEnv); err != nil {
+		if err := processCrossRepoWorktrees(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv); err != nil {
 			return fmt.Errorf("cross-repo worktree push failed: %w", err)
 		}
 
@@ -224,7 +226,7 @@ var pushCmd = &cobra.Command{
 			synapse.Info("🔀 GitFlow: Merging feature branch '%s' into 'develop'...\n", currBranch)
 
 			// Temporarily unlock workspace to allow git checkout
-			_ = task.TransitionPhase(repoRoot, statepkg.PhaseEdit)
+			_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), statepkg.PhaseEdit)
 
 			// Checkout develop
 			if _, err := runGit("checkout", "develop"); err != nil {
@@ -300,7 +302,7 @@ var pushCmd = &cobra.Command{
 		// 4. Auto-Close Tasks: Process pending sprint tasks and update closed state telemetry
 		if len(autoCloseKeys) > 0 {
 			// Load task tracker configuration from active workspace root
-			cfg, err := task.LoadConfig(repoRoot)
+			cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(repoRoot); return task.LoadConfig(c) }()
 			if err == nil {
 				// Instantiate task tracker instance for active workspace
 				tracker, err := task.NewTracker(cfg)
@@ -473,7 +475,7 @@ var pushCmd = &cobra.Command{
 		_ = os.Remove(filepath.Join(repoRoot, ".agent", ".state_plan_approved"))
 
 		// Transition phase to IDLE
-		if err := task.TransitionPhase(repoRoot, statepkg.PhaseIdle); err != nil {
+		if err := task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), statepkg.PhaseIdle); err != nil {
 			return err
 		}
 
@@ -510,7 +512,8 @@ func syncMultiRepoRootPushes(repoRoot string, targetEnv string) {
 // It performs Definition of Done verification, mechanically commits dirty changes using the parent Task ID,
 // and merges into the target deployment branch to synchronize cross-repository codebase state.
 // This function ensures the transient downstream repository remains in sync with the orchestrating root task.
-func syncSingleWorktree(wt, repoRoot, targetEnv string) error {
+func syncSingleWorktree(wt string, ctx *workspace.WorkspaceContext, targetEnv string) error {
+	repoRoot := ctx.RepoRoot
 	synapse.Info("🔄 Cross-Repo Sync: Processing transient worktree %s...\n", wt)
 
 	parentTaskPath := filepath.Join(wt, ".nomos_parent_task")
@@ -595,8 +598,9 @@ func commitWorktreeChanges(wt, parentTaskID string) error {
 // This function orchestrates the lifecycle completion of these transient worktrees by looping through
 // them, performing necessary commits on dirty state, executing the remote push protocol, and finally
 // tearing them down (pruning branches) to restore a pristine environment.
-func processCrossRepoWorktrees(repoRoot, targetEnv string) error {
-	wts, err := workspace.GetCrossRepoWorktrees(repoRoot)
+func processCrossRepoWorktrees(ctx *workspace.WorkspaceContext, targetEnv string) error {
+	repoRoot := ctx.RepoRoot
+	wts, err := nomosworkspace.GetCrossRepoWorktrees(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 	if err != nil {
 		return err
 	}
@@ -605,7 +609,7 @@ func processCrossRepoWorktrees(repoRoot, targetEnv string) error {
 	}
 
 	for _, wt := range wts {
-		if err := syncSingleWorktree(wt, repoRoot, targetEnv); err != nil {
+		if err := syncSingleWorktree(wt, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv); err != nil {
 			return err
 		}
 	}

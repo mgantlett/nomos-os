@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
@@ -45,7 +47,7 @@ func runCommitCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	repoRoot := findRepoRoot(root)
-	if err := enforceWorktreeZone(repoRoot, "commit"); err != nil {
+	if err := enforceWorktreeZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "commit"); err != nil {
 		return err
 	}
 
@@ -149,7 +151,7 @@ func resolvePhaseState(root string) (*task.PhaseState, error) {
 	if err := verify.CheckPOCommitApproval(repoRoot); err != nil {
 		return nil, err
 	}
-	state, _ := task.GetPhaseState(repoRoot)
+	state, _ := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 	if state == nil || state.TaskId == "" {
 		return nil, fmt.Errorf("Commit Blocked: Missing active task binding. All commits must be bound to an active Task per DoD constraints")
 	}

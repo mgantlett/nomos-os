@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
@@ -48,7 +50,8 @@ func getLlamaBinPath() string {
 	return llamaBin
 }
 
-func ResolveService(repoRoot, service string) (*ServiceConfig, error) {
+func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceConfig, error) {
+	repoRoot := ctx.RepoRoot
 	// Construct absolute log file path destination inside active workspace logs directory
 	logFile := filepath.Join(config.LogsDir(repoRoot), "nomos.jsonl")
 

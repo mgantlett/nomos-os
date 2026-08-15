@@ -11,6 +11,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // TestRunHygieneCleanups test-drives database vacuuming, process pruning,
@@ -93,7 +94,7 @@ func TestRunHygieneCleanups(t *testing.T) {
 	_ = os.WriteFile(staleStoryPath, []byte("stale"), 0644)
 
 	// Run cleanups.
-	err = RunHygieneCleanups(tmpDir)
+	err = RunHygieneCleanups(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tmpDir); return c }())
 	if err != nil {
 		t.Fatalf("RunHygieneCleanups failed: %v", err)
 	}

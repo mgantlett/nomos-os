@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
@@ -17,7 +19,8 @@ type Config struct {
 // LoadConfig parses local and global environment files to load task credentials dynamically.
 // It loads configuration sequentially from the user's home directory config followed
 // by active repository configs, allowing environment overrides.
-func LoadConfig(repoRoot string) (*Config, error) {
+func LoadConfig(ctx *workspace.WorkspaceContext) (*Config, error) {
+	repoRoot := ctx.RepoRoot
 	// 1. Load from home global config files
 	home, err := os.UserHomeDir()
 	if err == nil {

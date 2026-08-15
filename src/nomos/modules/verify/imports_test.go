@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 func TestAuditImports(t *testing.T) {
@@ -84,7 +86,7 @@ source "os/exec"
 		"script.sh",
 	}
 
-	violations, err := AuditImports(tempDir, files)
+	violations, err := AuditImports(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tempDir); return c }(), files)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}

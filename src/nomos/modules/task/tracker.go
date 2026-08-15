@@ -3,6 +3,8 @@ package task
 import (
 	"context"
 	"errors"
+
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // Tracker defines operations for interacting with ticketing engines.
@@ -32,7 +34,8 @@ func NewTracker(cfg *Config) (Tracker, error) {
 	}
 	switch cfg.TrackerType {
 	case "local":
-		return NewLocalTracker(cfg.RepoRoot), nil
+		ctx, _ := workspace.NewContext(cfg.RepoRoot)
+		return NewLocalTracker(ctx), nil
 	default:
 		return nil, errors.New("unsupported task tracker type: " + cfg.TrackerType)
 	}

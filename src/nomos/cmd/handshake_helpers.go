@@ -24,6 +24,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"time"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
@@ -53,7 +55,8 @@ func migrateLegacyDirectories(repoRoot string) {
 
 // getBranch retrieves the current active git branch using the git CLI.
 // It returns 'unknown' if the command fails.
-func getBranch(repoRoot string) string {
+func getBranch(ctx *workspace.WorkspaceContext) string {
+	repoRoot := ctx.RepoRoot
 	branch := "unknown"
 	branchCmd := exec.Command("git", "branch", "--show-current")
 	branchCmd.Dir = repoRoot
@@ -65,7 +68,8 @@ func getBranch(repoRoot string) string {
 
 // getDirtyFiles returns a list of modified files in the workspace
 // by parsing the output of git status --porcelain.
-func getDirtyFiles(repoRoot string) []string {
+func getDirtyFiles(ctx *workspace.WorkspaceContext) []string {
+	repoRoot := ctx.RepoRoot
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = repoRoot
 	var dirtyFiles []string
@@ -83,7 +87,8 @@ func getDirtyFiles(repoRoot string) []string {
 
 // getClaims inspects the SQLite locks table and local file locks
 // to determine which autonomous processes currently hold mutation rights.
-func getClaims(repoRoot string) []string {
+func getClaims(ctx *workspace.WorkspaceContext) []string {
+	repoRoot := ctx.RepoRoot
 	claims := []string{}
 	// Open sqlite connection using the cached database file path.
 	db, err := db.Open(cacheDbPath)
@@ -119,7 +124,9 @@ func getClaims(repoRoot string) []string {
 }
 
 // getMemories executes the gitbrain CLI to fetch semantic memories if available.
-func getMemories(repoRoot string, taskDesc string) ([]MemoryInsight, []string) {
+func getMemories(ctx *workspace.WorkspaceContext, taskDesc string) ([]MemoryInsight, []string) {
+	repoRoot := ctx.RepoRoot
+	_ = repoRoot
 	_, err := exec.LookPath("nomos-gitbrain")
 	if err != nil {
 		return nil, []string{"Semantic memory disabled: nomos-gitbrain enterprise module not installed."}
@@ -159,7 +166,9 @@ func getMemories(repoRoot string, taskDesc string) ([]MemoryInsight, []string) {
 
 // getActiveTaskKey reads the current phase state document to
 // identify the active task ID the workspace is bound to.
-func getActiveTaskKey(repoRoot string) string {
+func getActiveTaskKey(ctx *workspace.WorkspaceContext) string {
+	repoRoot := ctx.RepoRoot
+	_ = repoRoot
 	phaseStatePath := config.PhaseStatePath(repoRoot)
 	if stateBytes, err := os.ReadFile(phaseStatePath); err == nil {
 		var state map[string]interface{}
@@ -173,7 +182,7 @@ func getActiveTaskKey(repoRoot string) string {
 }
 
 // populateTrackerTasks loads the tracker and populates tasks in the payload
-func populateTrackerTasks(ctx context.Context, payload *HandshakePayload, repoRoot string) {
+func populateTrackerTasks(ctx context.Context, payload *HandshakePayload, wsCtx *workspace.WorkspaceContext) {
 	tracker, _, errTracker := loadTrackerAndRoot()
 	if errTracker != nil {
 		payload.Errors = append(payload.Errors, fmt.Sprintf("unable to load tracker: %v", errTracker))
@@ -184,10 +193,10 @@ func populateTrackerTasks(ctx context.Context, payload *HandshakePayload, repoRo
 	if err != nil {
 		payload.Errors = append(payload.Errors, fmt.Sprintf("unable to retrieve tasks: %v", err))
 	} else {
-		payload.OpenTasks = FilterTasksByProject(tasks, repoRoot)
+		payload.OpenTasks = FilterTasksByProject(tasks, wsCtx)
 	}
 
-	payload.ActiveTaskKey = getActiveTaskKey(repoRoot)
+	payload.ActiveTaskKey = getActiveTaskKey(wsCtx)
 	if payload.ActiveTaskKey != "" {
 		if t, errView := tracker.View(ctx, payload.ActiveTaskKey); errView == nil {
 			payload.ActiveTaskName = t.Title
@@ -196,7 +205,9 @@ func populateTrackerTasks(ctx context.Context, payload *HandshakePayload, repoRo
 }
 
 // createHandshakePayload initializes the default payload structure
-func createHandshakePayload(repoRoot string) HandshakePayload {
+func createHandshakePayload(ctx *workspace.WorkspaceContext) HandshakePayload {
+	repoRoot := ctx.RepoRoot
+	_ = repoRoot
 	return HandshakePayload{
 		Timestamp: time.Now().Format("2006-01-02 15:04:05 MST"),
 		Errors:    []string{},

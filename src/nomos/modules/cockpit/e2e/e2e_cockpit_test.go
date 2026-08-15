@@ -7,12 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/cockpit"
 )
 
 // TestCockpitE2E_ConduitSuite validates Cockpit UI API endpoints and static assets.
 func TestCockpitE2E_ConduitSuite(t *testing.T) {
-	server := cockpit.NewServer("/tmp", 8089, nil)
+	server := cockpit.NewServer(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext("/tmp"); return c }(), 8089, nil)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/status", server.ServeHTTP)
 	mux.HandleFunc("/api/backlog", server.ServeHTTP)

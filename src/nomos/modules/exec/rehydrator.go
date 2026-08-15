@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/assets"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
@@ -18,21 +20,21 @@ import (
 // native passive file discovery requirements.
 // RehydrateWorkspace orchestrates the full rehydration process, extracting embedded files
 // into the local workspace .agents folder.
-func RehydrateWorkspace(repoRoot string, cliSchemaJSON string) error {
+func RehydrateWorkspace(ctx *workspace.WorkspaceContext, cliSchemaJSON string) error {
 	embeddedFS := assets.GetTemplates()
 
 	// 1. Rehydrate AGENTS.md Protocol
-	if err := rehydrateProtocol(repoRoot, embeddedFS, cliSchemaJSON); err != nil {
+	if err := rehydrateProtocol(ctx, embeddedFS, cliSchemaJSON); err != nil {
 		return err
 	}
 
 	// 2. Rehydrate Workflows
-	if err := rehydrateWorkflows(repoRoot, embeddedFS); err != nil {
+	if err := rehydrateWorkflows(ctx, embeddedFS); err != nil {
 		return err
 	}
 
 	// 3. Ensure Gitignore Exclusions
-	if err := ensureGitignoreExclusions(repoRoot); err != nil {
+	if err := ensureGitignoreExclusions(ctx); err != nil {
 		return err
 	}
 
@@ -41,7 +43,8 @@ func RehydrateWorkspace(repoRoot string, cliSchemaJSON string) error {
 
 // ensureGitignoreExclusions guarantees that standard Nomos temporary folders
 // and execution state folders are properly ignored in the repository's git status.
-func ensureGitignoreExclusions(repoRoot string) error {
+func ensureGitignoreExclusions(ctx *workspace.WorkspaceContext) error {
+	repoRoot := ctx.RepoRoot
 	gitignorePath := filepath.Join(repoRoot, ".gitignore")
 	var content string
 	if data, err := os.ReadFile(gitignorePath); err == nil {
@@ -78,7 +81,7 @@ func ensureGitignoreExclusions(repoRoot string) error {
 }
 
 // rehydrateProtocol extracts the global AGENTS.md file and writes it to the global configuration directory.
-func rehydrateProtocol(repoRoot string, embeddedFS fs.FS, cliSchemaJSON string) error {
+func rehydrateProtocol(ctx *workspace.WorkspaceContext, embeddedFS fs.FS, cliSchemaJSON string) error {
 	protocolDir := config.GlobalAgentConfigDir()
 	if err := os.MkdirAll(protocolDir, 0755); err != nil {
 		return fmt.Errorf("failed to create global protocol directory: %w", err)
@@ -127,7 +130,7 @@ func purgeGhostWorkflows(workflowsDir string, embeddedMap map[string]bool) {
 }
 
 // rehydrateWorkflows extracts all global workflows and writes them to the global .agents/workflows directory.
-func rehydrateWorkflows(repoRoot string, embeddedFS fs.FS) error {
+func rehydrateWorkflows(ctx *workspace.WorkspaceContext, embeddedFS fs.FS) error {
 	workflowsDir := filepath.Join(config.GlobalAgentConfigDir(), "workflows")
 	if err := os.MkdirAll(workflowsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create global workflows directory: %w", err)

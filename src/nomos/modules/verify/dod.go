@@ -7,6 +7,8 @@ package verify
 // or phase transition is permitted.
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"os"
 	"path/filepath"
@@ -69,7 +71,8 @@ func VerifyDoD(root string) error {
 	SyncQualityDebtManifest(root)
 
 	// Validate remaining active debts after syncing
-	if state, err := task.GetPhaseState(root); err == nil && os.Getenv("NOMOS_IN_GIT_HOOK") == "1" {
+	ctx, _ := workspace.NewContext(root)
+	if state, err := task.GetPhaseState(ctx); err == nil && os.Getenv("NOMOS_IN_GIT_HOOK") == "1" {
 		autos, invalidLinks := checkActiveDebts(root, state.TaskId)
 		if len(autos) > 0 {
 			return fmt.Errorf("commit blocked: active quality debt items are marked 'AUTO' and must be promoted to backlog issues (or resolved) before committing:\n - %s", strings.Join(autos, "\n - "))
@@ -94,7 +97,7 @@ func VerifyDoD(root string) error {
 		agentName := getActiveAgent(root)
 		taskId := GetActiveTaskId(root)
 		if agentName != "" && agentName != "null" {
-			task.PostDoDFailure(root, taskId, failMsg)
+			task.PostDoDFailure(ctx, taskId, failMsg)
 		}
 
 		// Trigger autonomous DAG remediation for the current task
@@ -121,7 +124,8 @@ func collectFailedGates(results []StageResult) []map[string]interface{} {
 // getActiveStages determines which VerificationStages to run based on the current phase context.
 func getActiveStages(root string) []VerificationStage {
 	activeStages := DoDStages
-	if pState, err := task.GetPhaseState(root); err == nil {
+	ctx, _ := workspace.NewContext(root)
+	if pState, err := task.GetPhaseState(ctx); err == nil {
 		if string(pState.CurrentPhase) == "EDIT" && os.Getenv("NOMOS_FORCE_FULL_DOD") != "1" {
 			var editStages []VerificationStage
 			for _, s := range DoDStages {

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/assets"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
@@ -40,18 +42,19 @@ var initSyncCmd = &cobra.Command{
 		}
 		repoRoot := findRepoRoot(wd)
 
-		if err := enforceRootZone(repoRoot, "init"); err != nil {
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "init"); err != nil {
 			return err
 		}
 
-		return runInitSync(repoRoot)
+		return runInitSync(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 	},
 }
 
 // runInitSync executes the synchronization of embedded workflows and protocols
 // into the specified repository root. It is used by both the init sync command
 // and during the handshake boot sequence.
-func runInitSync(repoRoot string) error {
+func runInitSync(ctx *workspace.WorkspaceContext) error {
+	repoRoot := ctx.RepoRoot
 	// Rehydrate the workspace protocol and workflows from the Go substrate
 	synapse.Info("Syncing embedded workflows and protocols into %s...", repoRoot)
 
@@ -62,7 +65,7 @@ func runInitSync(repoRoot string) error {
 	cliSchemaJSON := string(cliSchemaBytes)
 
 	// Write embedded workflow files and project rules into the target repository
-	if err := nomosexec.RehydrateWorkspace(repoRoot, cliSchemaJSON); err != nil {
+	if err := nomosexec.RehydrateWorkspace(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), cliSchemaJSON); err != nil {
 		return fmt.Errorf("failed to rehydrate workspace: %w", err)
 	}
 

@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
@@ -23,14 +25,16 @@ import (
 )
 
 // RunHygieneCleanups performs workspace maintenance and resets local locks.
-func RunHygieneCleanups(repoRoot string) error {
+func RunHygieneCleanups(ctx *workspace.WorkspaceContext) error {
+	repoRoot := ctx.RepoRoot
 	// 1. Unset any stale PO approval locks to prevent ghost approvals from lingering.
 	poApprovalPath := filepath.Join(config.TmpDir(repoRoot), ".po_approval_granted")
 	_ = os.Remove(poApprovalPath)
 	return nil
 }
 
-func writePhaseState(repoRoot, key, assignee, agentFlag string) error {
+func writePhaseState(ctx *workspace.WorkspaceContext, key, assignee, agentFlag string) error {
+	repoRoot := ctx.RepoRoot
 	phaseStatePath := config.PhaseStatePath(repoRoot)
 	agentType := "ide"
 	if agentFlag == "aider" || assignee == "aider" {
@@ -39,7 +43,7 @@ func writePhaseState(repoRoot, key, assignee, agentFlag string) error {
 
 	// Read existing phase state to preserve TasksCompletedInSession across task starts
 	tasksCompleted := 0
-	if existingState, err := GetPhaseState(repoRoot); err == nil {
+	if existingState, err := GetPhaseState(ctx); err == nil {
 		tasksCompleted = existingState.TasksCompletedInSession
 	}
 
@@ -70,7 +74,8 @@ func writePhaseState(repoRoot, key, assignee, agentFlag string) error {
 }
 
 // StartTrackerOnly isolates the tracker update and telemetry emitting without mutating local workspace state.
-func StartTrackerOnly(ctx context.Context, repoRoot string, tracker Tracker, key string, assignee string) (*Task, error) {
+func StartTrackerOnly(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, key string, assignee string) (*Task, error) {
+	repoRoot := wCtx.RepoRoot
 	t, err := tracker.View(ctx, key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load task for tracker update: %w", err)
@@ -89,10 +94,11 @@ func StartTrackerOnly(ctx context.Context, repoRoot string, tracker Tracker, key
 
 // StartTask centralizes task initialization logic, applying JIT agent routing,
 // workspace transitions, and context generation.
-func StartTask(ctx context.Context, repoRoot string, tracker Tracker, key string, assignee string, agentFlag string, injectExemptionsFunc func(string, string) string) (string, string, error) {
-	_ = RunHygieneCleanups(repoRoot)
+func StartTask(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, key string, assignee string, agentFlag string, injectExemptionsFunc func(string, string) string) (string, string, error) {
+	repoRoot := wCtx.RepoRoot
+	_ = RunHygieneCleanups(wCtx)
 
-	t, err := StartTrackerOnly(ctx, repoRoot, tracker, key, assignee)
+	t, err := StartTrackerOnly(ctx, wCtx, tracker, key, assignee)
 	if err != nil {
 		return "", "", err
 	}
@@ -123,9 +129,9 @@ func StartTask(ctx context.Context, repoRoot string, tracker Tracker, key string
 		return "", "", err
 	}
 
-	_ = writePhaseState(repoRoot, key, assignee, agentFlag)
+	_ = writePhaseState(wCtx, key, assignee, agentFlag)
 
-	if err := TransitionPhase(repoRoot, "PLAN"); err != nil {
+	if err := TransitionPhase(wCtx, "PLAN"); err != nil {
 		return "", "", err
 	}
 
@@ -133,14 +139,15 @@ func StartTask(ctx context.Context, repoRoot string, tracker Tracker, key string
 	if out, err := nomosexec.GitStashPopByName(dbPath, repoRoot, "nomos-park-task-"+key); err == nil && out != "" {
 		fmt.Printf("Restored parked uncommitted changes for task %s from git stash.\n", key)
 	}
-	_ = GenerateHolyGhostContext(ctx, repoRoot, tracker, key)
+	_ = GenerateHolyGhostContext(ctx, wCtx, tracker, key)
 
 	return assignee, agentFlag, nil
 }
 
 // ResetTask performs local workspace reset by discarding changes or stashing them,
 // and transitioning phase to IDLE.
-func ResetTask(repoRoot string, wd string, stash bool) error {
+func ResetTask(ctx *workspace.WorkspaceContext, wd string, stash bool) error {
+	repoRoot := ctx.RepoRoot
 	dbPath := config.ResolveCacheDbPath(repoRoot)
 
 	// Resolve the active task ID from the local state file cache within this workspace directory.
@@ -166,7 +173,7 @@ func ResetTask(repoRoot string, wd string, stash bool) error {
 	}
 
 	// Transition the workspace phase state locally to IDLE using unified executor helper.
-	_ = TransitionPhase(wd, "IDLE")
+	_ = TransitionPhase(ctx, "IDLE")
 
 	fmt.Printf("✅ Task %s workspace reset completed. Session unlocked.\n", taskID)
 	return nil

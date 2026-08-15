@@ -3,6 +3,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"github.com/mgantlett/nomos-os/src/nomos/modules/integration"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +24,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(wd)
-			return integration.RunConduit(repoRoot, []string{"status"})
+			return integration.RunConduit(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), []string{"status"})
 		},
 	}
 
@@ -37,7 +39,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(wd)
-			return integration.RunConduit(repoRoot, []string{"tabs", "open", url})
+			return integration.RunConduit(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), []string{"tabs", "open", url})
 		},
 	}
 
@@ -50,7 +52,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(wd)
-			return integration.RunConduit(repoRoot, []string{"read", "page"})
+			return integration.RunConduit(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), []string{"read", "page"})
 		},
 	}
 
@@ -63,7 +65,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(wd)
-			return integration.RunConduit(repoRoot, []string{"screenshot"})
+			return integration.RunConduit(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), []string{"screenshot"})
 		},
 	}
 
@@ -76,7 +78,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(wd)
-			return integration.RunConduit(repoRoot, []string{"tabs", "list"})
+			return integration.RunConduit(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), []string{"tabs", "list"})
 		},
 	}
 
@@ -91,7 +93,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(wd)
-			return integration.RunConduit(repoRoot, []string{"tabs", "close", tabId})
+			return integration.RunConduit(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), []string{"tabs", "close", tabId})
 		},
 	}
 
@@ -107,7 +109,7 @@ var (
 				return err
 			}
 			repoRoot := findRepoRoot(wd)
-			return integration.RunConduit(repoRoot, []string{"exec", tabId, code})
+			return integration.RunConduit(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), []string{"exec", tabId, code})
 		},
 	}
 )

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -58,7 +59,7 @@ var taskGroomCmd = &cobra.Command{
 		// We enforce a hard ceiling of 13.0 complexity size for any single generated Epic bundle,
 		// ensuring that the resulting AI task dispatch does not exceed Tier 1 cognitive
 		// processing limits (context window caps and max iteration limits).
-		return task.GroomBacklog(ctx, repoRoot, tracker, taskGroomCapacityFlag, projectFilter, taskGroomYesFlag)
+		return task.GroomBacklog(ctx, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), tracker, taskGroomCapacityFlag, projectFilter, taskGroomYesFlag)
 	},
 }
 

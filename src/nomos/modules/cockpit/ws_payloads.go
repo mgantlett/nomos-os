@@ -1,6 +1,8 @@
 package cockpit
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"context"
 	"encoding/json"
 	"fmt"
@@ -29,7 +31,8 @@ func getLogFilename(source string) string {
 }
 
 // GetBacklogPayload retrieves active backlog tasks for the given repository root.
-func GetBacklogPayload(repoRoot string) []map[string]interface{} {
+func GetBacklogPayload(ctx *workspace.WorkspaceContext) []map[string]interface{} {
+	repoRoot := ctx.RepoRoot
 	cfg := &task.Config{TrackerType: "local", RepoRoot: repoRoot}
 	tr, err := task.NewTracker(cfg)
 	if err != nil {
@@ -71,8 +74,9 @@ func GetFallbackPhaseState() map[string]interface{} {
 }
 
 // GetStatusPayload returns the real-time system status.
-func GetStatusPayload(repoRoot string, initialRoot string) interface{} {
-	pState, err := task.GetPhaseState(repoRoot)
+func GetStatusPayload(ctx *workspace.WorkspaceContext, initialRoot string) interface{} {
+	repoRoot := ctx.RepoRoot
+	pState, err := task.GetPhaseState(ctx)
 	var phaseState interface{}
 	if err == nil && pState != nil {
 		phaseState = pState
@@ -102,7 +106,8 @@ func GetStatusPayload(repoRoot string, initialRoot string) interface{} {
 }
 
 // GetDriftPayload returns the configuration drift telemetry.
-func GetDriftPayload(repoRoot string) (interface{}, error) {
+func GetDriftPayload(ctx *workspace.WorkspaceContext) (interface{}, error) {
+
 	return map[string]interface{}{
 		"drift":  []interface{}{},
 		"status": "disabled",
@@ -111,7 +116,8 @@ func GetDriftPayload(repoRoot string) (interface{}, error) {
 }
 
 // GetGraphPayload returns the AST dependency graph topology.
-func GetGraphPayload(repoRoot string) (interface{}, error) {
+func GetGraphPayload(ctx *workspace.WorkspaceContext) (interface{}, error) {
+
 	return map[string]interface{}{
 		"nodes":  []interface{}{},
 		"edges":  []interface{}{},

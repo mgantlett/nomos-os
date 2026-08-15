@@ -17,6 +17,7 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
@@ -51,7 +52,7 @@ var taskCreateCmd = &cobra.Command{
 		}
 
 		// Enforce Tier 2 agent restrictions: sub-agents cannot create new backlog tasks
-		if pState, err := task.GetPhaseState(repoRoot); err == nil && pState.AgentTier == statepkg.Tier2 {
+		if pState, err := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err == nil && pState.AgentTier == statepkg.Tier2 {
 			return fmt.Errorf("Tier 2 atomic rigidity violation: agents are explicitly forbidden from creating new tasks")
 		}
 

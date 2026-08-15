@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -37,12 +38,12 @@ var taskTransitionCmd = &cobra.Command{
 		repoRoot := findRepoRoot(wd)
 
 		// Enforce Tier 2 agent restrictions: sub-agents cannot manually transition phase state
-		if pState, err := task.GetPhaseState(repoRoot); err == nil && pState.AgentTier == statepkg.Tier2 {
+		if pState, err := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err == nil && pState.AgentTier == statepkg.Tier2 {
 			return fmt.Errorf("Tier 2 atomic rigidity violation: agents are explicitly forbidden from manually transitioning phase")
 		}
 
 		// Execute phase state transition and trigger phase transition hooks
-		return task.TransitionPhase(repoRoot, phase)
+		return task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), phase)
 	},
 }
 
