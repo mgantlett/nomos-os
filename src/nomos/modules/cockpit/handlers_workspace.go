@@ -441,7 +441,7 @@ func cleanMainRepository(repoRoot, dbPath, taskID string) {
 	if bytes, err := os.ReadFile(config.StateTaskIdPath(repoRoot)); err == nil {
 		if strings.TrimSpace(string(bytes)) == taskID {
 			_, _ = nomosexec.RunCommand(dbPath, "git", "checkout", ".")
-			_, _ = nomosexec.RunCommand(dbPath, "git", "clean", "-fd")
+			_, _ = nomosexec.RunCommand(dbPath, "git", "clean", "-fd", "-e", "*.db", "-e", ".nomos/data/*")
 			_ = task.TransitionPhase(repoRoot, "IDLE")
 			_ = os.WriteFile(config.StateTaskIdPath(repoRoot), []byte(""), 0644)
 		}
@@ -467,10 +467,15 @@ func PerformTaskReset(repoRoot, dbPath, taskID, wtDir string) {
 	branchToDelete := getBranchToDelete(dbPath, taskID)
 
 	_, _ = nomosexec.RunCommand(dbPath, "git", "worktree", "prune")
-	_, _ = nomosexec.RunCommand(dbPath, "git", "worktree", "remove", "-f", wtDir)
-	_ = ensureWritableAndRemove(wtDir)
+	// Relaxed destruction: Do not use '-f' to prevent silent data loss if there are uncommitted changes.
+	_, err := nomosexec.RunCommand(dbPath, "git", "worktree", "remove", wtDir)
+	if err == nil {
+		_ = ensureWritableAndRemove(wtDir)
+		deleteBranches(dbPath, taskID, branchToDelete)
+	} else {
+		fmt.Printf("Safeguard: Preserving worktree %s (uncommitted changes detected)\n", wtDir)
+	}
 
-	deleteBranches(dbPath, taskID, branchToDelete)
 	cleanMainRepository(repoRoot, dbPath, taskID)
 }
 

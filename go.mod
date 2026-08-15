@@ -45,4 +45,6 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-replace github.com/mgantlett/nomos-commons => ../nomos-commons-COM-1017
+replace github.com/mgantlett/nomos-commons => ../nomos-commons-COM-2
+
+replace github.com/mgantlett/nomos-os => ../nomos-os-COM-2

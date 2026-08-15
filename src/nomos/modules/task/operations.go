@@ -162,7 +162,7 @@ func ResetTask(repoRoot string, wd string, stash bool) error {
 		// Resetting changes: discard local modifications completely via git checkout and clean.
 		fmt.Printf("Resetting task %s inside workspace %s...\n", taskID, wd)
 		_, _ = nomosexec.RunCommand(dbPath, "git", "-C", wd, "checkout", ".")
-		_, _ = nomosexec.RunCommand(dbPath, "git", "-C", wd, "clean", "-fd")
+		_, _ = nomosexec.RunCommand(dbPath, "git", "-C", wd, "clean", "-fd", "-e", "*.db", "-e", ".nomos/data/*")
 	}
 
 	// Transition the workspace phase state locally to IDLE using unified executor helper.
