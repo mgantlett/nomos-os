@@ -67,7 +67,16 @@ func handlePhaseTransition(ctx *workspace.WorkspaceContext, phase statepkg.Works
 
 // loadTrackerForRoot instantiates the tracking backend using an explicit repository root path.
 func loadTrackerForRoot(root string) (task.Tracker, error) {
-	cfg, err := task.LoadConfig(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())
+	primaryRoot := root
+	if strings.Contains(root, "/worktrees/") {
+		parts := strings.Split(root, "/worktrees/")
+		parentRepo := parts[0]
+		if _, statErr := os.Stat(config.ResolveGraphDbPath(parentRepo)); statErr == nil {
+			primaryRoot = parentRepo
+		}
+	}
+
+	cfg, err := task.LoadConfig(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(primaryRoot); return c }())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load task tracker config: %w", err)
 	}
@@ -77,7 +86,7 @@ func loadTrackerForRoot(root string) (task.Tracker, error) {
 		return nil, fmt.Errorf("failed to initialize task tracker: %w", err)
 	}
 
-	tracker = task.WrapWithStateHash(tracker, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())
+	tracker = task.WrapWithStateHash(tracker, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(primaryRoot); return c }())
 	return tracker, nil
 }
 

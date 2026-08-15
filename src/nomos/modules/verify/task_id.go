@@ -19,6 +19,9 @@ func GetActiveTaskId(root string) string {
 	if id := getTaskIdFromState(root); id != "" {
 		return id
 	}
+	if id := getTaskIdFromParentTask(root); id != "" {
+		return id
+	}
 	if id := getTaskIdFromTaskMd(root); id != "" {
 		return id
 	}
@@ -33,6 +36,15 @@ func getTaskIdFromState(root string) string {
 	stateTaskIdPath := config.StateTaskIdPath(root)
 	if content, err := os.ReadFile(stateTaskIdPath); err == nil {
 		return strings.TrimSpace(string(content))
+	}
+	return ""
+}
+
+// getTaskIdFromParentTask reads the active task ID from the .nomos_parent_task file.
+func getTaskIdFromParentTask(root string) string {
+	parentTaskPath := filepath.Join(root, ".nomos_parent_task")
+	if data, err := os.ReadFile(parentTaskPath); err == nil {
+		return strings.TrimSpace(string(data))
 	}
 	return ""
 }

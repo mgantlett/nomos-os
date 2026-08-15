@@ -93,7 +93,7 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 	}
 
 	if branch != targetEnv {
-		if err := PerformGitFlowMerge(wt, branch, targetEnv); err != nil {
+		if err := PerformGitFlowMerge(wt, branch, targetEnv, taskID); err != nil {
 			return err
 		}
 	}
@@ -103,7 +103,7 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 
 	// 3. Teardown Worktree
 	// Safely unlinks the worktree and prunes the stale feature branches locally and remotely.
-	teardownWorktree(wt, branch, repoRoot, taskID)
+	teardownWorktree(wt, branch, targetEnv, repoRoot, taskID)
 
 	return nil
 }
@@ -153,7 +153,7 @@ func parseParentRepoFromGitFile(wtPath string) string {
 
 // teardownWorktree removes the transient worktree and prunes the feature branches.
 // It executes git worktree remove and forcefully deletes the branches via git branch -D and git push --delete.
-func teardownWorktree(wt, branch, repoRoot, taskID string) {
+func teardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 	synapse.Info("🧹 Tearing down transient worktree %s...\n", wt)
 	if repoRoot != "" {
 		removeCmd := exec.Command("git", "worktree", "remove", "--force", wt)
@@ -199,6 +199,8 @@ func teardownWorktree(wt, branch, repoRoot, taskID string) {
 							siblingRemoteDel := exec.Command("git", "push", "origin", "--delete", branch, "--no-verify")
 							siblingRemoteDel.Dir = siblingRoot
 							siblingRemoteDel.Run()
+
+							syncLocalTarget(siblingRoot, targetEnv)
 						}
 					}
 				}
@@ -209,6 +211,34 @@ func teardownWorktree(wt, branch, repoRoot, taskID string) {
 		pruneCmd = exec.Command("git", "worktree", "prune")
 		pruneCmd.Dir = repoRoot
 		pruneCmd.Run()
+
+		syncLocalTarget(repoRoot, targetEnv)
+	}
+}
+
+// syncLocalTarget synchronizes the target environment branch (e.g. develop)
+// in the given repository root if it is currently checked out, or updates the pointer.
+func syncLocalTarget(repoRoot, targetEnv string) {
+	synapse.Info("🔄 Synchronizing local '%s' with origin in %s...\n", targetEnv, repoRoot)
+
+	// Fetch latest targetEnv
+	fetchCmd := exec.Command("git", "fetch", "origin", targetEnv)
+	fetchCmd.Dir = repoRoot
+	fetchCmd.Run()
+
+	// Check if the current branch in repoRoot is targetEnv
+	branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branchCmd.Dir = repoRoot
+	out, err := branchCmd.Output()
+	if err == nil && strings.TrimSpace(string(out)) == targetEnv {
+		pullCmd := exec.Command("git", "pull", "--rebase", "origin", targetEnv)
+		pullCmd.Dir = repoRoot
+		pullCmd.Run()
+	} else {
+		// Just update the local ref to match origin
+		updateCmd := exec.Command("git", "branch", "-f", targetEnv, "origin/"+targetEnv)
+		updateCmd.Dir = repoRoot
+		updateCmd.Run()
 	}
 }
 
@@ -283,7 +313,8 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 	return nil
 }
 
-func PerformGitFlowMerge(wt, branch, targetEnv string) error {
+// PerformGitFlowMerge executes a native git merge of the feature branch into the target environment.
+func PerformGitFlowMerge(wt, branch, targetEnv, taskID string) error {
 	synapse.Info("🔀 GitFlow: Merging feature branch '%s' into '%s' natively...\n", branch, targetEnv)
 
 	// Fetch the latest target environment from remote origin.
@@ -297,7 +328,7 @@ func PerformGitFlowMerge(wt, branch, targetEnv string) error {
 	// Merge remote target environment into the current feature branch.
 	// We inject a Dual-Layer AI-to-AI compliant commit message to satisfy
 	// the mandatory commit-msg git hooks on the repository.
-	commitMsg := fmt.Sprintf("Merge origin/%s into %s\n\n**Impact List:**\n- Synced branch with %s\n\n**Resolution Details:**\n- Auto-merged remote changes natively", targetEnv, branch, targetEnv)
+	commitMsg := fmt.Sprintf("[Task %s] Merge origin/%s into %s\n\n**Impact List:**\n- Synced branch with %s\n\n**Resolution Details:**\n- Auto-merged remote changes natively", taskID, targetEnv, branch, targetEnv)
 	mergeCmd := exec.Command("git", "merge", "origin/"+targetEnv, "-m", commitMsg)
 	mergeCmd.Dir = wt
 	if mergeOut, err := mergeCmd.CombinedOutput(); err != nil {

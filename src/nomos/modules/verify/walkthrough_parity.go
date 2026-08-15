@@ -261,10 +261,18 @@ func isCriterionCovered(criterion, text string) bool {
 	return matchCount > 0
 }
 
-// fetchTaskDetails queries the active tracker
 func fetchTaskDetails(root string, id string) (*task.Task, error) {
+	primaryRoot := root
+	if strings.Contains(root, "/worktrees/") {
+		parts := strings.Split(root, "/worktrees/")
+		parentRepo := parts[0]
+		if _, statErr := os.Stat(config.ResolveGraphDbPath(parentRepo)); statErr == nil {
+			primaryRoot = parentRepo
+		}
+	}
+
 	// Load configuration settings for workspace
-	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(root); return task.LoadConfig(c) }()
+	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(primaryRoot); return task.LoadConfig(c) }()
 	if err != nil {
 		// Return error if loading config failed
 		return nil, err

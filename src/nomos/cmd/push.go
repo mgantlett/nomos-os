@@ -536,7 +536,7 @@ func syncSingleWorktree(wt string, ctx *workspace.WorkspaceContext, targetEnv st
 	}
 
 	if branch != targetEnv && targetEnv == "develop" {
-		if err := gitops.PerformGitFlowMerge(wt, branch, targetEnv); err != nil {
+		if err := gitops.PerformGitFlowMerge(wt, branch, targetEnv, parentTaskID); err != nil {
 			return err
 		}
 	}

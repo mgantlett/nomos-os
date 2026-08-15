@@ -30,7 +30,8 @@ func runTaskIDValidationCheck(root string) (StageResult, error) {
 	}
 
 	ctx := context.Background()
-	tracker := task.NewLocalTracker(wCtx)
+	// Look up the task tracker. For cross-repo worktrees, this resolves the primary repo's tracker.
+	tracker := resolvePrimaryTracker(root, wCtx)
 
 	// 1 & 2. Resolve target task ID from multiple sources
 	targetTaskID := resolveTargetTaskID(wCtx)
@@ -110,4 +111,31 @@ func resolveTargetTaskID(ctx *workspace.WorkspaceContext) string {
 		return commitTaskID
 	}
 	return boundTaskID
+}
+
+// resolvePrimaryTracker determines if the given root is a transient worktree
+// and attempts to locate the primary graph database in the parent repository.
+// It returns a tracker connected to the correct database.
+func resolvePrimaryTracker(root string, wCtx *workspace.WorkspaceContext) task.Tracker {
+	tracker := task.NewLocalTracker(wCtx)
+	primaryRoot := root
+
+	// If the execution is inside a transient worktree, attempt to find the parent repo.
+	if strings.Contains(root, "/worktrees/") {
+		parts := strings.Split(root, "/worktrees/")
+		parentRepo := parts[0]
+
+		// Check if the graph.db exists in the parent repository.
+		if _, statErr := os.Stat(config.ResolveGraphDbPath(parentRepo)); statErr == nil {
+			primaryRoot = parentRepo
+		}
+	}
+
+	// Use the primary tracker if we resolved a different root.
+	if primaryRoot != root {
+		primaryCtx := &workspace.WorkspaceContext{RepoRoot: primaryRoot}
+		tracker = task.NewLocalTracker(primaryCtx)
+	}
+
+	return tracker
 }
