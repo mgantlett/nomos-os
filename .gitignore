@@ -68,3 +68,4 @@ go.work.sum
 tmp/
 /nomos
 .nomos_parent_task
+/worktrees/

@@ -37,21 +37,7 @@ pkgs.mkShell {
         echo "🔨 Compiling contextual nomos binary..."
         go build -o bin/nomos ./src/nomos/main.go || true
         
-        COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
-        if [ -n "$COMMON_DIR" ]; then
-          if [[ "$COMMON_DIR" == /* ]]; then
-            ROOT_DIR=$(dirname "$COMMON_DIR")
-          else
-            ROOT_DIR=$(cd $(dirname "$COMMON_DIR") && pwd)
-          fi
-          
-          SOV_BIN="$ROOT_DIR/../../private/nomos-sovereign/bin/nomos"
-          
-          if [ -d "$ROOT_DIR/../../private/nomos-sovereign/bin" ]; then
-             echo "🔄 Re-compiling contextual binary for nomos-sovereign edition natively..."
-             go build -o "$SOV_BIN" ./src/nomos/main.go || true
-          fi
-        fi
+
       fi
     else
       echo "🐚 Running in Hollow Shell mode (src/ hidden). Binary compilation skipped."
