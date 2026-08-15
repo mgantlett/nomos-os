@@ -137,7 +137,7 @@ func runDoDGates(root string) error {
 	synapse.Info("%s", fmt.Sprint("🛡️  Running Definition of Done (DoD) verification gates..."))
 	os.Setenv("NOMOS_IN_GIT_HOOK", "1")
 	defer os.Unsetenv("NOMOS_IN_GIT_HOOK")
-	if err := verify.VerifyDoD(root); err != nil {
+	if err := verify.VerifyDoD(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }()); err != nil {
 		return fmt.Errorf("definition of done checks failed, commit aborted: %w", err)
 	}
 	synapse.Info("%s", fmt.Sprint("✅ DoD verification gates passed."))

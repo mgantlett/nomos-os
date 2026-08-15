@@ -7,6 +7,8 @@ package verify
 // as new features are built or refactored.
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -115,7 +117,8 @@ func processDeadCodeFile(root string, f string) []string {
 }
 
 // runDeadCodeCheck checks modified files for unreferenced internal symbols.
-func runDeadCodeCheck(root string) (StageResult, error) {
+func runDeadCodeCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	staged, err := getStagedFiles(root)
 	if err != nil {
 		return StageResult{Passed: true}, nil

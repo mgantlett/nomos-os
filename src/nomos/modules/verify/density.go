@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"bufio"
 	"fmt"
 	"os"
@@ -14,7 +16,8 @@ import (
 // It ensures that all files maintain a minimum of 10% comment lines relative to code lines.
 // Files with high logic density but no explanation are notoriously hard to maintain.
 // This check enforces that engineers leave breadcrumbs and reasoning for complex implementations.
-func runCommentDensityCheck(root string) (StageResult, error) {
+func runCommentDensityCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	res := StageResult{Name: "Comment Density Check", Passed: true}
 
 	// Retrieve list of currently staged files

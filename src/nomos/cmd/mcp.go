@@ -190,7 +190,7 @@ func handleToolCall(repoRoot string, w io.Writer, id interface{}, name string, a
 		sendToolCallResult(w, id, string(bytes))
 
 	case "verify_dod":
-		err := verify.VerifyDoD(repoRoot)
+		err := verify.VerifyDoD(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 		if err != nil {
 			sendToolCallResultContent(w, id, fmt.Sprintf("❌ Definition of Done verification failed: %v", err), true)
 			return

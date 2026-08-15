@@ -5,11 +5,14 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"strings"
 )
 
-func runSecurityAuditCheck(r string) (StageResult, error) {
+func runSecurityAuditCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Security Audit", Passed: true}
 	findings, err := ScanSecurity(r)
 	if err != nil {

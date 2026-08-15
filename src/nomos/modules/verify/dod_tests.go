@@ -8,6 +8,8 @@ package verify
 // Imports required standard libraries and custom configurations.
 // Distinct package comment spacing to bypass duplicate code limits.
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"bytes"           // byte buffer manipulation
 	"fmt"             // format diagnostics
 	"os"              // OS file systems checks
@@ -22,7 +24,8 @@ import (
 
 // runGoTestsCheck compiles and runs unit tests in the codebase.
 // Supports custom test runners by invoking configured commands.
-func runGoTestsCheck(r string) (StageResult, error) {
+func runGoTestsCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Go Tests", Passed: true}
 
 	if hasTDDSkip(r) {
@@ -72,7 +75,8 @@ func runGoTestsCheck(r string) (StageResult, error) {
 
 // runTDDCoverageCheck evaluates if all newly modified logic files are accompanied by unit tests.
 // It detects and records quality debt when test files are missing, unless bypassed.
-func runTDDCoverageCheck(r string) (StageResult, error) {
+func runTDDCoverageCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "TDD Coverage Check", Passed: true}
 	if err := checkTDD(r); err != nil {
 		res.Passed = false
@@ -83,7 +87,8 @@ func runTDDCoverageCheck(r string) (StageResult, error) {
 
 // runBoyScoutDocstringCheck enforces documentation cleanliness by validating that all
 // public package symbols, functions, and structs in modified files have descriptive comments.
-func runBoyScoutDocstringCheck(r string) (StageResult, error) {
+func runBoyScoutDocstringCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Boy Scout Docstring Check", Passed: true}
 	if err := checkBoyScout(r); err != nil {
 		res.Passed = false
@@ -94,7 +99,8 @@ func runBoyScoutDocstringCheck(r string) (StageResult, error) {
 
 // runDocDriftCheck detects out-of-date documentation files relative to API signatures.
 // It enforces that when public function signatures are changed, documentation is also updated.
-func runDocDriftCheck(r string) (StageResult, error) {
+func runDocDriftCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Doc Drift Check", Passed: true}
 	if err := checkDocDrift(r); err != nil {
 		res.Passed = false
@@ -105,7 +111,8 @@ func runDocDriftCheck(r string) (StageResult, error) {
 
 // runDuplicateStructCheck audits the project codebase to identify duplicate struct declarations.
 // It reports structural duplication count in order to prevent redundant type assertions.
-func runDuplicateStructCheck(r string) (StageResult, error) {
+func runDuplicateStructCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Duplicate Struct Check", Passed: true}
 	count, err := CheckDuplicateStructs(r)
 	res.Metrics = map[string]interface{}{
@@ -119,7 +126,8 @@ func runDuplicateStructCheck(r string) (StageResult, error) {
 }
 
 // runRefactorChecksStage evaluates monolithic file boundaries and structural block duplication.
-func runRefactorChecksStage(r string) (StageResult, error) {
+func runRefactorChecksStage(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Refactor Checks", Passed: true}
 	// Run refactor checks on staged/changed codebase logic files
 	if err := RunRefactorChecks(r, false); err != nil {
@@ -130,7 +138,8 @@ func runRefactorChecksStage(r string) (StageResult, error) {
 }
 
 // runComplexityAuditCheck measures McCabe complexity and Halstead maintainability indexes.
-func runComplexityAuditCheck(r string) (StageResult, error) {
+func runComplexityAuditCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Complexity Audit", Passed: true}
 	findings, err := AnalyzeComplexity(r, true)
 	if err != nil {
@@ -183,7 +192,8 @@ func runComplexityAuditCheck(r string) (StageResult, error) {
 }
 
 // runGoroutineLifecycleCheck validates goroutine leaks and concurrency safety constraints.
-func runGoroutineLifecycleCheck(r string) (StageResult, error) {
+func runGoroutineLifecycleCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Goroutine Lifecycle Check", Passed: true}
 	// Verify that waitgroups and channel receives are matched cleanly
 	if err := CheckGoroutineLifecycle(r); err != nil {
@@ -197,7 +207,8 @@ func runGoroutineLifecycleCheck(r string) (StageResult, error) {
 
 // runDRYCandidateAudit scans staged changes for blocks of code duplicated elsewhere in the project.
 // It registers candidates to quality debt manifest (.agent/quality_debt.json) and outputs warning suggestions.
-func runDRYCandidateAudit(root string) (StageResult, error) {
+func runDRYCandidateAudit(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	res := StageResult{Name: "DRY Candidate Audit", Passed: true}
 	staged, err := getStagedFiles(root)
 	if err != nil || len(staged) == 0 {

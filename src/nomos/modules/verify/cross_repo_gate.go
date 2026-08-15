@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"os"
 	"os/exec"
@@ -126,7 +128,8 @@ func processWorktree(usePath, root string, errCh chan<- error, wg *sync.WaitGrou
 // sibling git worktrees are fully committed and pushed to their remote origins.
 // This prevents cross-repository topology errors during automated swarm agent deployment.
 // It acts as a hard boundary before the active downstream repository is allowed to commit.
-func runCrossRepoWorktreeGate(root string) (StageResult, error) {
+func runCrossRepoWorktreeGate(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	goWorkPath := filepath.Join(root, "go.work")
 
 	if _, err := os.Stat(goWorkPath); os.IsNotExist(err) {

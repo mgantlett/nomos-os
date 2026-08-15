@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"os"
 	"path/filepath"
@@ -114,7 +116,8 @@ func processSingleFileChurn(root string, file string, mu *sync.Mutex) churnResul
 // Files that are highly complex but rarely change are usually stable core libraries.
 // However, files that are BOTH highly complex AND change frequently are major sources of bugs.
 // This check flags files crossing the hotspot threshold (Churn * Complexity > Limit).
-func runChurnComplexityAudit(root string) (StageResult, error) {
+func runChurnComplexityAudit(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	res := StageResult{Name: "Churn-vs-Complexity Audit", Passed: true}
 
 	// Retrieve list of currently staged files in Git

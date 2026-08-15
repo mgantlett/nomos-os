@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,7 +18,8 @@ import (
 // The checks enforce a unidirectional dependency graph across all nomos internal modules.
 // Returns a StageResult encapsulating the execution outcome, error flags, and recorded metrics.
 // This metric prevents the codebase from deteriorating into a monolithic 'big ball of mud'.
-func runCouplingAnalysisCheck(root string) (StageResult, error) {
+func runCouplingAnalysisCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	res := StageResult{Name: "Coupling Analysis Check", Passed: true}
 
 	// 1. Discover all internal Go source files

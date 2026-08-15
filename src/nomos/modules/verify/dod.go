@@ -43,7 +43,8 @@ import (
 // It executes phase discipline, formatting, unit tests, coverage, security audits,
 // complexity checks, comment density checks, and module coupling verifications.
 // This function acts as the primary gatekeeper before any code is committed.
-func VerifyDoD(root string) error {
+func VerifyDoD(ctx *workspace.WorkspaceContext) error {
+	root := ctx.RepoRoot
 	// First, check if the PO has authorized code modifications via review phase state.
 	if err := CheckPOCommitApproval(root); err != nil {
 		return err
@@ -59,7 +60,7 @@ func VerifyDoD(root string) error {
 	activeStages := getActiveStages(root)
 
 	// Execute defined stages concurrently using a worker pool and channels
-	results := runVerificationStages(root, activeStages)
+	results := runVerificationStages(ctx, activeStages)
 
 	// Format and output the definition of done dashboard
 	failed, failMsg := printVerificationDashboard(results)
@@ -71,7 +72,7 @@ func VerifyDoD(root string) error {
 	SyncQualityDebtManifest(root)
 
 	// Validate remaining active debts after syncing
-	ctx, _ := workspace.NewContext(root)
+	// Validate remaining active debts after syncing
 	if state, err := task.GetPhaseState(ctx); err == nil && os.Getenv("NOMOS_IN_GIT_HOOK") == "1" {
 		autos, invalidLinks := checkActiveDebts(root, state.TaskId)
 		if len(autos) > 0 {
@@ -185,11 +186,11 @@ func checkBypassAuthorized(root string) (bool, string) {
 }
 
 // executeVerificationStage runs a single verification stage and emits its telemetry results.
-func executeVerificationStage(root string, s VerificationStage, wg *sync.WaitGroup, ch chan<- StageResult) {
+func executeVerificationStage(ctx *workspace.WorkspaceContext, s VerificationStage, wg *sync.WaitGroup, ch chan<- StageResult) {
 	defer wg.Done()
 	// Track execution time to log slow audits if necessary.
 	startTime := time.Now()
-	res, err := s.Run(root)
+	res, err := s.Run(ctx)
 	duration := time.Since(startTime)
 	if err != nil {
 		res.Passed = false
@@ -215,14 +216,14 @@ func executeVerificationStage(root string, s VerificationStage, wg *sync.WaitGro
 	if res.Metrics != nil {
 		metadata["metrics"] = res.Metrics
 	}
-	_ = telemetry.EmitEventWithMetadata(root, telemetry.EventVerifyGateResult, fmt.Sprintf("DoD Gate %s: %s", s.Name, statusStr), metadata)
+	_ = telemetry.EmitEventWithMetadata(ctx.RepoRoot, telemetry.EventVerifyGateResult, fmt.Sprintf("DoD Gate %s: %s", s.Name, statusStr), metadata)
 
 	ch <- res
 }
 
 // runVerificationStages runs all DoD verification stages in parallel using a WaitGroup.
 // This executes static audits concurrently and compiles results efficiently.
-func runVerificationStages(root string, stages []VerificationStage) []StageResult {
+func runVerificationStages(ctx *workspace.WorkspaceContext, stages []VerificationStage) []StageResult {
 	// Buffered channel to collect concurrent execution results
 	ch := make(chan StageResult, len(stages))
 	var wg sync.WaitGroup
@@ -231,7 +232,7 @@ func runVerificationStages(root string, stages []VerificationStage) []StageResul
 	for _, stage := range stages {
 		// Increment execution waitgroup counter for each launched check.
 		wg.Add(1)
-		go executeVerificationStage(root, stage, &wg, ch)
+		go executeVerificationStage(ctx, stage, &wg, ch)
 	}
 
 	// Wait for all worker goroutines to finish
