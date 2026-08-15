@@ -119,7 +119,7 @@ var pushCmd = &cobra.Command{
 		// 1. Run Definition of Done Gates
 		synapse.Info("%s", fmt.Sprint("🛡️  Running Definition of Done (DoD) verification gates..."))
 		os.Setenv("NOMOS_IN_GIT_HOOK", "1")
-		if err := verify.VerifyDoD(repoRoot); err != nil {
+		if err := verify.VerifyDoD(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err != nil {
 			os.Unsetenv("NOMOS_IN_GIT_HOOK")
 			return fmt.Errorf("definition of done checks failed, push aborted: %w", err)
 		}

@@ -16,8 +16,8 @@ import (
 
 // runPhaseDisciplineCheck validates that no source code files are modified during PLAN or REVIEW phases,
 // except during git pre-commit hook executions when the human PO has approved the active commit.
-func runPhaseDisciplineCheck(root string) (StageResult, error) {
-	ctx, _ := workspace.NewContext(root)
+func runPhaseDisciplineCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	res := StageResult{Name: "Phase Discipline Check", Passed: true}
 
 	// Retrieve the active phase state file if it exists.
@@ -114,8 +114,7 @@ func isPlanningFile(m string) bool {
 
 // runDataIntegrityCheck executes the Data Integrity Gate.
 // This gate ensures that no JSON state files in the workspace have been manually altered.
-func runDataIntegrityCheck(root string) (StageResult, error) {
-	ctx, _ := workspace.NewContext(root)
+func runDataIntegrityCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
 	res := StageResult{Name: "Data Integrity Gate", Passed: true}
 
 	// Calculate the live cryptographic hash of all local state files.

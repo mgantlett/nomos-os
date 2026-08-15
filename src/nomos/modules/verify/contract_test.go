@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"os"
 	"path/filepath"
 	"testing"
@@ -309,7 +311,7 @@ contracts:
 			dummyTs := filepath.Join(tempDir, "src/index.ts")
 			_ = os.WriteFile(dummyTs, []byte(""), 0644)
 
-			res, err := runContractFirstCheck(tempDir)
+			res, err := runContractFirstCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 			if err != nil {
 				t.Fatalf("unexpected handler error: %v", err)
 			}

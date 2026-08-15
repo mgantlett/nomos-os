@@ -6,6 +6,8 @@ package verify
 // this check will fail the Definition of Done gate.
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,7 +18,8 @@ import (
 
 // runConfigDriftCheck scans the codebase for environment variable lookups
 // and ensures they are defined in .env.example templates.
-func runConfigDriftCheck(root string) (StageResult, error) {
+func runConfigDriftCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	envPath := filepath.Join(root, ".env.example")
 	content, err := os.ReadFile(envPath)
 	if err != nil {

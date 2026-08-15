@@ -35,9 +35,9 @@ type StageResult struct {
 
 // VerificationStage defines a check stage name, its runner function, and actionable guidance instructions.
 type VerificationStage struct {
-	Name     string                                 `json:"name"`
-	Guidance string                                 `json:"guidance"`
-	Run      func(root string) (StageResult, error) `json:"-"`
+	Name     string                                                     `json:"name"`
+	Guidance string                                                     `json:"guidance"`
+	Run      func(ctx *workspace.WorkspaceContext) (StageResult, error) `json:"-"`
 }
 
 // DoDStages lists all active static analysis and DoD gate stages.
@@ -210,7 +210,8 @@ var DoDStages = []VerificationStage{
 // runWorkflowDeterminismCheck performs deterministic workflow auditing.
 // It scans markdown workflow files in .agent/workflows/ to ensure every shell command
 // and flag declared in workflow documentation exists natively in the bin/nomos engine.
-func runWorkflowDeterminismCheck(root string) (StageResult, error) {
+func runWorkflowDeterminismCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	// Execute workflow AST parser audit across repository template paths
 	err := CheckSSOTDrift(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())
 	if err != nil {
@@ -220,7 +221,8 @@ func runWorkflowDeterminismCheck(root string) (StageResult, error) {
 }
 
 // hasGoFiles checks if there are any modified .go files in the workspace.
-func hasGoFiles(root string) bool {
+func hasGoFiles(ctx *workspace.WorkspaceContext) bool {
+	root := ctx.RepoRoot
 	modified, err := GetModifiedFiles(root)
 	if err != nil {
 		return false
@@ -234,16 +236,16 @@ func hasGoFiles(root string) bool {
 }
 
 // skipIfNotGo wraps a verification stage and skips it if no .go files were modified in the workspace.
-func skipIfNotGo(name string, run func(root string) (StageResult, error)) func(root string) (StageResult, error) {
-	return func(root string) (StageResult, error) {
-		if !hasGoFiles(root) {
+func skipIfNotGo(name string, run func(ctx *workspace.WorkspaceContext) (StageResult, error)) func(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	return func(ctx *workspace.WorkspaceContext) (StageResult, error) {
+		if !hasGoFiles(ctx) {
 			return StageResult{
 				Name:    name,
 				Passed:  true,
 				Message: "Skipped (No .go files modified)",
 			}, nil
 		}
-		return run(root)
+		return run(ctx)
 	}
 }
 
@@ -268,7 +270,8 @@ func getStageGuidance(name string) string {
 
 // runSystemHealthDoctorCheck executes the AuditHealth diagnostic checks.
 // If port checks fail, it reports warnings. If hooks/locks fail, it reports hard failures.
-func runSystemHealthDoctorCheck(root string) (StageResult, error) {
+func runSystemHealthDoctorCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	status, err := AuditHealth(root)
 	if err != nil {
 		return StageResult{Passed: false, Message: fmt.Sprintf("Health audit failed: %v", err)}, err
@@ -296,7 +299,8 @@ func runSystemHealthDoctorCheck(root string) (StageResult, error) {
 }
 
 // runPathHardcodingBlocker delegates to the CheckHardcodedPaths analyzer.
-func runPathHardcodingBlocker(root string) (StageResult, error) {
+func runPathHardcodingBlocker(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	files, err := getStagedFiles(root)
 	if err != nil {
 		return StageResult{Passed: false, Message: "Failed to get staged files."}, err
@@ -319,7 +323,8 @@ func runPathHardcodingBlocker(root string) (StageResult, error) {
 
 // runMagicStringDetectorCheck delegates to the CheckMagicStrings analyzer.
 // It is registered as part of the DoD pipeline to enforce strict typing on domain functions.
-func runMagicStringDetectorCheck(root string) (StageResult, error) {
+func runMagicStringDetectorCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	// First, fetch the list of currently staged files from the git repository context.
 	files, err := getStagedFiles(root)
 	if err != nil {

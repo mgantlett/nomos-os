@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,7 +89,7 @@ func TestMain(t *testing.T) {
 	runGit(tempDir, "commit", "--no-verify", "-m", "initial commit")
 
 	// 1. Run VerifyDoD (should pass because there's no spec plan, formatting is correct, no secrets, tests pass)
-	err := VerifyDoD(tempDir)
+	err := VerifyDoD(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected VerifyDoD to pass, but got: %v", err)
 	}
@@ -126,7 +128,7 @@ func TestBadFormat(t *testing.T) {
 	runGit(tempDir, "add", badGoPath)
 	runGit(tempDir, "add", badTestPath)
 
-	err = VerifyDoD(tempDir)
+	err = VerifyDoD(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected VerifyDoD to pass and auto-format the file, but it failed: %v", err)
 	}
@@ -138,7 +140,7 @@ func TestBadFormat(t *testing.T) {
 
 	// 3. Test Bypass via environment variable
 	os.Setenv("NOMOS_LEGACY_APPROVAL_TOKEN", "OVERRIDE")
-	err = VerifyDoD(tempDir)
+	err = VerifyDoD(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected VerifyDoD to succeed via bypass, but got: %v", err)
 	}
@@ -158,7 +160,7 @@ func TestFail(t *testing.T) {
 	os.WriteFile(failingTestPath, []byte(failingTest), 0644)
 	runGit(tempDir, "add", failingTestPath)
 
-	err = VerifyDoD(tempDir)
+	err = VerifyDoD(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err == nil {
 		t.Errorf("expected VerifyDoD to fail due to failing test, but it succeeded")
 	}

@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,7 +15,8 @@ import (
 // It executes two separate verification gates: banned imports check and banned
 // monolithic paths check. If any check fails, it blocks the commit to prevent
 // leaks of proprietary enterprise code into the open-source repository.
-func runArchitectureCheck(root string) (StageResult, error) {
+func runArchitectureCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	// 1. Audit Cockpit UI SSoT synchronization
 	_, _ = SyncCockpitUI(root)
 

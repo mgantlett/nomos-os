@@ -81,7 +81,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 	// 1. EDIT phase (should pass even with modified code files)
 	writePhaseState("EDIT", "false")
 	modifyCodeFile()
-	res, err := runPhaseDisciplineCheck(tempDir)
+	res, err := runPhaseDisciplineCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected no error in EDIT phase, got: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 
 	// 2. PLAN phase with no modified files (should pass)
 	writePhaseState("PLAN", "false")
-	res, err = runPhaseDisciplineCheck(tempDir)
+	res, err = runPhaseDisciplineCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected no error in PLAN phase, got: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 
 	// 3. PLAN phase with modified code files (should fail)
 	modifyCodeFile()
-	res, err = runPhaseDisciplineCheck(tempDir)
+	res, err = runPhaseDisciplineCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 
 	// 4. REVIEW phase with no modified files (should pass)
 	writePhaseState("REVIEW", "false")
-	res, err = runPhaseDisciplineCheck(tempDir)
+	res, err = runPhaseDisciplineCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected no error in REVIEW phase, got: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 
 	// 5. REVIEW phase with modified code files, commit not approved (should fail)
 	modifyCodeFile()
-	res, err = runPhaseDisciplineCheck(tempDir)
+	res, err = runPhaseDisciplineCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 	// 6. REVIEW phase with modified code files, commit approved, NOT in git hook (should fail)
 	writePhaseState("REVIEW", "true")
 	os.Unsetenv("NOMOS_IN_GIT_HOOK")
-	res, err = runPhaseDisciplineCheck(tempDir)
+	res, err = runPhaseDisciplineCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 	// 7. REVIEW phase with modified code files, commit approved, in git hook (should pass)
 	os.Setenv("NOMOS_IN_GIT_HOOK", "1")
 	defer os.Unsetenv("NOMOS_IN_GIT_HOOK")
-	res, err = runPhaseDisciplineCheck(tempDir)
+	res, err = runPhaseDisciplineCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 	if err := os.WriteFile(statePath, tamperedData, 0644); err != nil {
 		t.Fatalf("failed to write tampered phase state file: %v", err)
 	}
-	res, err = runPhaseDisciplineCheck(tempDir)
+	res, err = runPhaseDisciplineCheck(&workspace.WorkspaceContext{RepoRoot: tempDir})
 	if err != nil {
 		t.Errorf("expected no error, got: %v", err)
 	}

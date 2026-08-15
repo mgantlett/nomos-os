@@ -18,7 +18,8 @@ import (
 )
 
 // runBrokenWireDetector sweeps for Zombie tasks and trips the Hallucination Circuit Breaker
-func runBrokenWireDetector(root string) (StageResult, error) {
+func runBrokenWireDetector(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(root); return task.LoadConfig(c) }()
 	if err != nil {
 		return StageResult{Passed: false, Message: "failed to load tracker config"}, err
@@ -28,13 +29,13 @@ func runBrokenWireDetector(root string) (StageResult, error) {
 		return StageResult{Passed: false, Message: "failed to init tracker"}, err
 	}
 
-	ctx := context.Background()
-	tasks, err := tracker.List(ctx)
+	bgCtx := context.Background()
+	tasks, err := tracker.List(bgCtx)
 	if err != nil {
 		return StageResult{Passed: false, Message: "failed to list tasks"}, err
 	}
 
-	zombieCount := sweepZombieTasks(root, ctx, tracker, tasks)
+	zombieCount := sweepZombieTasks(root, bgCtx, tracker, tasks)
 
 	wireReport, wireErr := AuditWires(root)
 	if wireErr == nil && wireReport != nil && !wireReport.Passed {

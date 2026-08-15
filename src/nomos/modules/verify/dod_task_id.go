@@ -18,7 +18,8 @@ import (
 var taskKeyRegex = regexp.MustCompile(`(?i)(?:\[(?:Task\s+)?|#)?([A-Z0-9]{2,6}-\d+)(?:\])?`)
 
 // runTaskIDValidationCheck validates that every commit or active session is bound to a valid Task ID registered in the Nomos SQLite database.
-func runTaskIDValidationCheck(root string) (StageResult, error) {
+func runTaskIDValidationCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	repoRoot := root
 	wCtx, _ := workspace.NewContext(root)
 	res := StageResult{Name: "Task ID Validation Gate", Passed: true}
@@ -29,9 +30,9 @@ func runTaskIDValidationCheck(root string) (StageResult, error) {
 		return res, nil
 	}
 
-	ctx := context.Background()
+	bgCtx := context.Background()
 	// Look up the task tracker. For cross-repo worktrees, this resolves the primary repo's tracker.
-	tracker := resolvePrimaryTracker(root, wCtx)
+	tracker := resolvePrimaryTracker(root, ctx)
 
 	// 1 & 2. Resolve target task ID from multiple sources
 	targetTaskID := resolveTargetTaskID(wCtx)
@@ -50,9 +51,9 @@ func runTaskIDValidationCheck(root string) (StageResult, error) {
 	}
 
 	// 3. Query SQLite database across all projects to verify targetTaskID existence
-	allTasks, err := tracker.ListAll(ctx)
+	allTasks, err := tracker.ListAll(bgCtx)
 	if err != nil {
-		allTasks, _ = tracker.List(ctx)
+		allTasks, _ = tracker.List(bgCtx)
 	}
 
 	found := false

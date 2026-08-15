@@ -1,6 +1,8 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"bytes"
 	"fmt"
 	"go/ast"
@@ -67,7 +69,8 @@ func loadContractsSpec(specPath string) (*ContractsSpec, error) {
 
 // runContractFirstCheck loads contracts configuration and runs AST or polyglot validation.
 // It verifies that code signatures matches contracts.yaml specification constraints.
-func runContractFirstCheck(root string) (StageResult, error) {
+func runContractFirstCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	res := StageResult{Name: "Contract-First Gate", Passed: true}
 	specPath := config.ContractsPath(root)
 

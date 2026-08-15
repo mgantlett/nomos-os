@@ -39,7 +39,7 @@ func RunDoD(wt string) error {
 	os.Setenv("NOMOS_FORCE_FULL_DOD", "1")
 	defer os.Unsetenv("NOMOS_IN_GIT_HOOK")
 	defer os.Unsetenv("NOMOS_FORCE_FULL_DOD")
-	return verify.VerifyDoD(wt)
+	return verify.VerifyDoD(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(wt); return c }())
 }
 
 // PushWorktreeBranch gets the current branch from HEAD and pushes it natively to the origin remote.

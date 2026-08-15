@@ -721,7 +721,8 @@ func RunCustomVerifyCmd(root string, cmdStr string) ([]string, error) {
 }
 
 // runWalkthroughParityCheck evaluates the alignment between the active task description and the walkthrough.
-func runWalkthroughParityCheck(r string) (StageResult, error) {
+func runWalkthroughParityCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Walkthrough Parity Check", Passed: true}
 
 	phaseState, err := func() (*task.PhaseState, error) { c, _ := workspace.NewContext(r); return task.GetPhaseState(c) }()
@@ -749,7 +750,8 @@ func runWalkthroughParityCheck(r string) (StageResult, error) {
 }
 
 // runGeneratedCodeBlockerCheck enforces the Generated Code Blocker DoD gate.
-func runGeneratedCodeBlockerCheck(root string) (StageResult, error) {
+func runGeneratedCodeBlockerCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	root := ctx.RepoRoot
 	if err := checkGeneratedCode(root); err != nil {
 		return StageResult{Passed: false}, err
 	}

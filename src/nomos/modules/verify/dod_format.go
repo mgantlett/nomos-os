@@ -3,6 +3,8 @@ package verify
 // Import standard library dependencies and config package.
 // Unique docstrings and formatting are used here to resolve duplication gates.
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+
 	"bytes"         // buffer manipulations
 	"fmt"           // printing logs
 	"os"            // directory statistics
@@ -18,7 +20,8 @@ import (
 // runGoFormatAndVetCheck evaluates code formatting and linter/compiler vet checks.
 // It supports polyglot environments by reading custom vet_cmd and fmt_cmd fields
 // from config.yaml in the global data directory, falling back to standard Go formatting and vetting.
-func runGoFormatAndVetCheck(r string) (StageResult, error) {
+func runGoFormatAndVetCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Go Format & Vet", Passed: true}
 
 	cfg, err := config.LoadConfig(filepath.Join(config.GlobalDataDir(r), "config.yaml"))

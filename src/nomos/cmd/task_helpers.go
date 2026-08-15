@@ -402,7 +402,7 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 	worktreeDir := filepath.Join(config.WorktreesDir(repoRoot), fmt.Sprintf("%s-%s", repoName, taskKey))
 
 	// Ensure the worktrees directory is ignored by git natively
-	excludePath := filepath.Join(repoRoot, "info", "exclude")
+	excludePath := filepath.Join(repoRoot, ".git", "info", "exclude")
 	if excludeData, err := os.ReadFile(excludePath); err == nil {
 		if !strings.Contains(string(excludeData), "worktrees/") {
 			os.WriteFile(excludePath, []byte(string(excludeData)+"\nworktrees/\n"), 0644)

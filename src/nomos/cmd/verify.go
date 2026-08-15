@@ -87,7 +87,7 @@ var (
 				return nil
 			}
 
-			return verify.VerifyDoD(root)
+			return verify.VerifyDoD(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())
 		},
 	}
 )

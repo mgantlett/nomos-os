@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-func runLegacyCodeBlockerCheck(r string) (StageResult, error) {
+func runLegacyCodeBlockerCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
+	r := ctx.RepoRoot
 	res := StageResult{Name: "Legacy Code Blocker", Passed: true}
 
 	// Get all modified/staged files in the active workspace
