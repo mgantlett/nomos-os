@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -21,7 +20,7 @@ func runPhaseDisciplineCheck(ctx *workspace.WorkspaceContext) (StageResult, erro
 	res := StageResult{Name: "Phase Discipline Check", Passed: true}
 
 	// Retrieve the active phase state file if it exists.
-	phaseStatePath := config.PhaseStatePath(root)
+	phaseStatePath := workspace.MustNewContext(root).NomosStatePath(".phase_state.json")
 	data, err := os.ReadFile(phaseStatePath)
 	if err != nil {
 		// Bypass phase validation if state file is not present.
@@ -104,10 +103,10 @@ func checkForbiddenCodeModifications(r string) ([]string, error) {
 // isPlanningFile checks if a modified file is an agent specification, log, doc, or wiki/lessons log.
 func isPlanningFile(m string) bool {
 	m = filepath.ToSlash(m)
-	return config.IsInternalAgentDir(m) ||
-		config.IsInternalNomosDir(m) ||
+	return workspace.IsInternalAgentDir(m) ||
+		workspace.IsInternalNomosDir(m) ||
 		strings.HasSuffix(m, ".md") ||
-		m == config.WalkthroughFileName ||
+		m == workspace.WalkthroughFileName ||
 		m == "implementation_plan.md" ||
 		m == "quality_debt.json"
 }

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // ParseSpecFiles extracts planned file paths from implementation_plan.md
@@ -192,7 +192,7 @@ func parseGitStatusFiles(runGitHelper func(...string) []string, modified map[str
 // isAgentStateFile detects if the given relative file path belongs to the
 // internal agent specifications, task specs, quality debt files, or state caches.
 func isAgentStateFile(f string) bool {
-	return config.IsAgentStateFile(f)
+	return workspace.IsAgentStateFile(f)
 }
 
 // CheckSpecParity executes the spec parity logic and writes the markdown report.
@@ -272,14 +272,14 @@ func writeAndPrintParity(specsDir, reportPath, taskId string, driftScore, parity
 // resolveSpecPaths constructs absolute directories and files paths for task specifications.
 // It checks primary .nomos specs, temporary implementation plans, and legacy locations.
 func resolveSpecPaths(root, taskId string) (specsDir, planPath, reportPath string) {
-	specsDir = filepath.Join(config.PlansDir(root), taskId)
+	specsDir = filepath.Join(workspace.MustNewContext(root).DataPath("plans"), taskId)
 	planPath = filepath.Join(specsDir, "implementation_plan.md")
 	if _, err := os.Stat(planPath); err == nil {
 		reportPath = filepath.Join(specsDir, "parity_report.md")
 		return
 	}
 
-	altPlan := filepath.Join(config.TmpDir(root), "implementation_plan.md")
+	altPlan := filepath.Join(workspace.MustNewContext(root).TmpDir(), "implementation_plan.md")
 	if _, errAlt := os.Stat(altPlan); errAlt == nil {
 		planPath = altPlan
 		reportPath = filepath.Join(specsDir, "parity_report.md")

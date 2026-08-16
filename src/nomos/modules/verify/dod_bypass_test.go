@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 func TestVerifyDoDCommitApproval(t *testing.T) {
@@ -45,8 +45,8 @@ exit 1
 		t.Fatalf("failed to write mock nomos: %v", err)
 	}
 
-	_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-	phaseStatePath := config.PhaseStatePath(tempDir)
+	_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+	phaseStatePath := workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json")
 
 	runGit := func(dir string, args ...string) {
 		cmd := execGit(dir, args...)
@@ -125,7 +125,7 @@ exit 1
 		t.Run(tc.name, func(t *testing.T) {
 			_ = os.RemoveAll(filepath.Join(agentDir, "specs"))
 			if tc.name == "Success - REVIEW phase and commit_approved true" {
-				walkthroughsDir := config.WalkthroughsDir(tempDir)
+				walkthroughsDir := workspace.MustNewContext(tempDir).DataPath("walkthroughs")
 				os.MkdirAll(walkthroughsDir, 0755)
 				walkthroughPath := filepath.Join(walkthroughsDir, "123.md")
 				_ = os.WriteFile(walkthroughPath, []byte("# Walkthrough\n"), 0644)
@@ -182,8 +182,8 @@ func TestVerifyDoDWalkthroughGate(t *testing.T) {
 		"commit_approved": "true",
 		"task_id": "22"
 	}`
-	_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-	phaseStatePath := config.PhaseStatePath(tempDir)
+	_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+	phaseStatePath := workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json")
 	if err := os.WriteFile(phaseStatePath, []byte(state), 0644); err != nil {
 		t.Fatalf("failed to write phase state: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestVerifyDoDWalkthroughGate(t *testing.T) {
 	}
 
 	// 3. Create specs folder and walkthrough.md
-	walkthroughsDir := config.WalkthroughsDir(tempDir)
+	walkthroughsDir := workspace.MustNewContext(tempDir).DataPath("walkthroughs")
 	if err := os.MkdirAll(walkthroughsDir, 0755); err != nil {
 		t.Fatalf("failed to create walkthroughs dir: %v", err)
 	}

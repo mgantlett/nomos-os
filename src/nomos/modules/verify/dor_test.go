@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 func TestVerifyDoR(t *testing.T) {
@@ -89,7 +89,7 @@ func TestVerifyDoR(t *testing.T) {
 				t.Fatalf("failed to create .agent dir: %v", err)
 			}
 
-			phaseStatePath := config.PhaseStatePath(tempDir)
+			phaseStatePath := workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json")
 			if err := os.MkdirAll(filepath.Dir(phaseStatePath), 0755); err != nil {
 				t.Fatalf("failed to create state dir: %v", err)
 			}

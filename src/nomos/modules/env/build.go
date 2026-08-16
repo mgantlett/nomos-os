@@ -6,7 +6,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	nexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 )
 
@@ -18,7 +17,7 @@ func Build(ctx *workspace.WorkspaceContext, svc *ServiceConfig) error {
 		return fmt.Errorf("service '%s' does not have a build command configured", svc.Name)
 	}
 
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 
 	// Execute the build command synchronously using standard execution logic.
 	// We map stdout/stderr directly so the user sees compiler output in real time.

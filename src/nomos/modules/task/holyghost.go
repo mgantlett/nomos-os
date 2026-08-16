@@ -26,9 +26,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
-
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // GenerateHolyGhostContext fetches task details and builds .agent/tmp/.context-prompt.md
@@ -73,7 +72,7 @@ func GenerateHolyGhostContext(ctx context.Context, wCtx *workspace.WorkspaceCont
 	}
 
 	// 9. Write the compressed context to the file
-	contextPath := filepath.Join(config.TmpDir(repoRoot), ".context-prompt.md")
+	contextPath := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), ".context-prompt.md")
 	_ = os.MkdirAll(filepath.Dir(contextPath), 0755)
 	f, err := os.Create(contextPath)
 	if err != nil {
@@ -99,7 +98,7 @@ func CompressContext(ctx context.Context, rawContext *strings.Builder, wCtx *wor
 	tokenCount := len(rawString) / 4
 
 	compressionThreshold := 4096
-	configPath := filepath.Join(config.GlobalDataDir(repoRoot), "config.yaml")
+	configPath := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "config.yaml")
 	if cfg, err := config.LoadConfig(configPath); err == nil && cfg.MaxContextTokens > 0 {
 		compressionThreshold = cfg.MaxContextTokens
 	}

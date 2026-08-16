@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
@@ -42,11 +41,11 @@ func TestGenerateHolyGhostContext(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	agentDir := config.TmpDir(tempDir)
+	agentDir := workspace.MustNewContext(tempDir).TmpDir()
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
 		t.Fatalf("failed to create .agent/tmp: %v", err)
 	}
-	if err := os.MkdirAll(config.TmpDir(tempDir), 0755); err != nil {
+	if err := os.MkdirAll(workspace.MustNewContext(tempDir).TmpDir(), 0755); err != nil {
 		t.Fatalf("failed to create tmp dir: %v", err)
 	}
 
@@ -89,11 +88,11 @@ func TestGenerateHolyGhostContextTemplates(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	if err := os.MkdirAll(config.TmpDir(tempDir), 0755); err != nil {
+	if err := os.MkdirAll(workspace.MustNewContext(tempDir).TmpDir(), 0755); err != nil {
 		t.Fatalf("failed to create agent tmp dir: %v", err)
 	}
 
-	if err := os.MkdirAll(config.TmpDir(tempDir), 0755); err != nil {
+	if err := os.MkdirAll(workspace.MustNewContext(tempDir).TmpDir(), 0755); err != nil {
 		t.Fatalf("failed to create tmp dir: %v", err)
 	}
 
@@ -103,8 +102,8 @@ func TestGenerateHolyGhostContextTemplates(t *testing.T) {
 		"current_phase": "PLAN",
 		"task_id": "JAZZ-123"
 	}`
-	_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-	if err := os.WriteFile(config.PhaseStatePath(tempDir), []byte(state), 0644); err != nil {
+	_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+	if err := os.WriteFile(workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json"), []byte(state), 0644); err != nil {
 		t.Fatalf("failed to write phase state: %v", err)
 	}
 
@@ -121,7 +120,7 @@ func TestGenerateHolyGhostContextTemplates(t *testing.T) {
 		t.Fatalf("GenerateHolyGhostContext failed: %v", err)
 	}
 
-	promptPath := filepath.Join(config.TmpDir(tempDir), ".context-prompt.md")
+	promptPath := filepath.Join(workspace.MustNewContext(tempDir).TmpDir(), ".context-prompt.md")
 	contentBytes, err := os.ReadFile(promptPath)
 	if err != nil {
 		t.Fatalf("failed to read context prompt: %v", err)
@@ -144,7 +143,7 @@ func TestGenerateHolyGhostContextCompact(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	agentDir := filepath.Join(tempDir, ".agent")
-	if err := os.MkdirAll(config.TmpDir(tempDir), 0755); err != nil {
+	if err := os.MkdirAll(workspace.MustNewContext(tempDir).TmpDir(), 0755); err != nil {
 		t.Fatalf("failed to create agent tmp dir: %v", err)
 	}
 
@@ -155,11 +154,11 @@ func TestGenerateHolyGhostContextCompact(t *testing.T) {
 		"task_id": "125",
 		"compact_context": true
 	}`
-	_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-	if err := os.WriteFile(config.PhaseStatePath(tempDir), []byte(state), 0644); err != nil {
+	_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+	if err := os.WriteFile(workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json"), []byte(state), 0644); err != nil {
 		t.Fatalf("failed to write phase state: %v", err)
 	}
-	if err := os.MkdirAll(config.TmpDir(tempDir), 0755); err != nil {
+	if err := os.MkdirAll(workspace.MustNewContext(tempDir).TmpDir(), 0755); err != nil {
 		t.Fatalf("failed to create tmp dir: %v", err)
 	}
 
@@ -227,7 +226,7 @@ func PerformOption(o Option) error {
 		t.Fatalf("GenerateHolyGhostContext failed: %v", err)
 	}
 
-	promptPath := filepath.Join(config.TmpDir(tempDir), ".context-prompt.md")
+	promptPath := filepath.Join(workspace.MustNewContext(tempDir).TmpDir(), ".context-prompt.md")
 	contentBytes, err := os.ReadFile(promptPath)
 	if err != nil {
 		t.Fatalf("failed to read context prompt: %v", err)

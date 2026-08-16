@@ -7,14 +7,16 @@ import (
 
 	"fmt"
 	"os"
-
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 // findRepoRoot searches upwards from the start directory to find the git repository root.
 // Results are memoized in repoRootCache to eliminate redundant disk I/O traversals.
 func findRepoRoot(start string) string {
-	return config.FindRepoRoot(start)
+	ctx, err := workspace.NewContext(start)
+	if err == nil {
+		return ctx.RepoRoot
+	}
+	return start
 }
 
 // enforceRootZone strictly checks that the active directory is the global Hollow Shell.

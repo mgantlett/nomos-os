@@ -13,23 +13,20 @@ import (
 	"strings"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
-
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
-// BannedImportsConfig represents the structure of the configuration file.
-type BannedImportsConfig struct {
+// bannedImportsConfig represents the structure of the configuration file.
+type bannedImportsConfig struct {
 	BannedImports []string `json:"banned_imports"`
 	BannedPhrases []string `json:"banned_phrases"`
 }
 
 // loadBannedImportsConfig loads configuration rules from .agent/rules/banned_imports.json or falls back to defaults.
 // It parses banned import package paths and banned phrase rules used to audit code files.
-func loadBannedImportsConfig(ctx *workspace.WorkspaceContext) (BannedImportsConfig, error) {
-	repoRoot := ctx.RepoRoot
-	configPath := config.AgentPath(repoRoot, "rules", "banned_imports.json")
+func loadBannedImportsConfig(ctx *workspace.WorkspaceContext) (bannedImportsConfig, error) {
+	configPath := ctx.AgentPath("rules", "banned_imports.json")
 
-	var config BannedImportsConfig
+	var config bannedImportsConfig
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -69,7 +66,7 @@ func isFileExemptFromExec(relPath string) bool {
 }
 
 // checkImportViolations returns import violation strings for a single import path.
-func checkImportViolations(relPath string, impPath string, config BannedImportsConfig, isExemptFromExec bool) []string {
+func checkImportViolations(relPath string, impPath string, config bannedImportsConfig, isExemptFromExec bool) []string {
 	var violations []string
 
 	// 1. Check banned imports list
@@ -187,7 +184,7 @@ func AuditImports(ctx *workspace.WorkspaceContext, files []string) ([]string, er
 // auditSingleFile selects the language-specific audit parser for a given file.
 // It routes Go files (.go), Nix files (.nix), and Shell scripts (.sh, .bash)
 // to their corresponding verification checker logic.
-func auditSingleFile(ctx *workspace.WorkspaceContext, relPath string, config BannedImportsConfig, fset *token.FileSet) []string {
+func auditSingleFile(ctx *workspace.WorkspaceContext, relPath string, config bannedImportsConfig, fset *token.FileSet) []string {
 	absPath := filepath.Join(ctx.RepoRoot, relPath)
 
 	if strings.HasSuffix(relPath, ".go") {
@@ -203,7 +200,7 @@ func auditSingleFile(ctx *workspace.WorkspaceContext, relPath string, config Ban
 	return nil
 }
 
-func auditGoFile(relPath, absPath string, config BannedImportsConfig, fset *token.FileSet) []string {
+func auditGoFile(relPath, absPath string, config bannedImportsConfig, fset *token.FileSet) []string {
 	if strings.HasSuffix(relPath, "_test.go") {
 		return nil
 	}
@@ -224,7 +221,7 @@ func auditGoFile(relPath, absPath string, config BannedImportsConfig, fset *toke
 
 // auditNixFile scans a Nix expression file for imports and audits them against rules.
 // It extracts local/relative references and checks them for banned package boundaries.
-func auditNixFile(relPath, absPath string, config BannedImportsConfig) []string {
+func auditNixFile(relPath, absPath string, config bannedImportsConfig) []string {
 	content, err := os.ReadFile(absPath)
 	if err != nil {
 		return nil
@@ -240,7 +237,7 @@ func auditNixFile(relPath, absPath string, config BannedImportsConfig) []string 
 
 // auditShellFile scans a bash or sh file to detect sourced paths and audits them.
 // It detects sourcing commands and verifies they do not cross boundaries.
-func auditShellFile(relPath, absPath string, config BannedImportsConfig) []string {
+func auditShellFile(relPath, absPath string, config bannedImportsConfig) []string {
 	content, err := os.ReadFile(absPath)
 	if err != nil {
 		return nil

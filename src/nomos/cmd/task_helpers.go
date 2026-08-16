@@ -10,7 +10,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -71,7 +70,7 @@ func loadTrackerForRoot(root string) (task.Tracker, error) {
 	if strings.Contains(root, "/worktrees/") {
 		parts := strings.Split(root, "/worktrees/")
 		parentRepo := parts[0]
-		if _, statErr := os.Stat(config.ResolveGraphDbPath(parentRepo)); statErr == nil {
+		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).DbPath("graph.db")); statErr == nil {
 			primaryRoot = parentRepo
 		}
 	}
@@ -264,7 +263,7 @@ func isGitTreeClean(ctx *workspace.WorkspaceContext) bool {
 		if len(parts) >= 2 {
 			filePath := parts[len(parts)-1]
 			// Exempt files inside .nomos/ (e.g. task state metadata or holy ghost context)
-			if config.IsInternalNomosDir(filePath) {
+			if workspace.IsInternalNomosDir(filePath) {
 				continue
 			}
 		}
@@ -399,7 +398,7 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 	repoRoot := ctx.RepoRoot
 	repoName := filepath.Base(repoRoot)
 	branchName := fmt.Sprintf("feature/%s", taskKey)
-	worktreeDir := filepath.Join(config.WorktreesDir(repoRoot), fmt.Sprintf("%s-%s", repoName, taskKey))
+	worktreeDir := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), fmt.Sprintf("%s-%s", repoName, taskKey))
 
 	// Ensure the worktrees directory is ignored by git natively
 	excludePath := filepath.Join(repoRoot, ".git", "info", "exclude")
@@ -435,7 +434,7 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 
 // scaffoldCrossRepoWorktrees provisions transient worktrees for cross-repo dependencies inside the orchestrator's worktrees boundary.
 func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
-	orchestratorWtDir := filepath.Join(config.WorktreesDir(repoRoot), fmt.Sprintf("%s-%s", filepath.Base(repoRoot), taskKey))
+	orchestratorWtDir := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), fmt.Sprintf("%s-%s", filepath.Base(repoRoot), taskKey))
 
 	for _, crossRepoPath := range crossRepos {
 		// Resolve the absolute path of the sibling repository
@@ -452,7 +451,7 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 
 		repoName := filepath.Base(absCrossRepoPath)
 		branchName := fmt.Sprintf("feature/%s", taskKey)
-		crossWorktreeDir := filepath.Join(config.WorktreesDir(repoRoot), fmt.Sprintf("%s-%s", repoName, taskKey))
+		crossWorktreeDir := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), fmt.Sprintf("%s-%s", repoName, taskKey))
 
 		fmt.Printf("\n🔄 Orchestrating cross-repo worktree for %s...\n", repoName)
 

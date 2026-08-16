@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
@@ -61,7 +61,7 @@ func persistentPreRun(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to get working directory: %w", err)
 		}
 		repoRoot := exec.FindRepoRoot(cwd)
-		path = filepath.Join(config.GlobalDataDir(repoRoot), "config.yaml")
+		path = filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "config.yaml")
 	}
 
 	dir := filepath.Dir(path)
@@ -85,7 +85,7 @@ agent_dir: .agents
 		return err
 	}
 
-	cacheDbPath = config.ResolveCacheDbPath(filepath.Dir(path))
+	cacheDbPath = workspace.MustNewContext(filepath.Dir(path)).DbPath("cache.db")
 	if err := InitCacheDB(cacheDbPath); err != nil {
 		return err
 	}

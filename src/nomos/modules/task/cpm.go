@@ -9,7 +9,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 )
 
@@ -17,7 +16,7 @@ import (
 // of execution duration (AgentCycles) grouped by Layer Tag, excluding extreme outliers.
 func SyncAgentVelocities(ctx context.Context, wCtx *workspace.WorkspaceContext, tasks []Task) error {
 	repoRoot := wCtx.RepoRoot
-	dbPath := config.ResolveStateDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("state.db")
 	conn, err := db.Open(dbPath)
 	if err != nil {
 		return err
@@ -67,7 +66,7 @@ func SyncAgentVelocities(ctx context.Context, wCtx *workspace.WorkspaceContext, 
 // GetRollingAverages retrieves the average AgentCycles per Layer, excluding outliers (e.g. > 100 cycles).
 func GetRollingAverages(ctx *workspace.WorkspaceContext) (map[string]float64, error) {
 	repoRoot := ctx.RepoRoot
-	dbPath := config.ResolveStateDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("state.db")
 	conn, err := db.Open(dbPath)
 	if err != nil {
 		return nil, err

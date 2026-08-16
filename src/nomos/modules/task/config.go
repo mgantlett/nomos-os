@@ -5,9 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
-
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // Config represents task tracker connection parameters.
@@ -28,8 +27,8 @@ func LoadConfig(ctx *workspace.WorkspaceContext) (*Config, error) {
 	}
 
 	// 2. Load from global data directory configs
-	parseEnvFile(filepath.Join(config.GlobalDataDir(repoRoot), "config.env"))
-	parseEnvFile(filepath.Join(config.GlobalDataDir(repoRoot), "config.local.env"))
+	parseEnvFile(filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "config.env"))
+	parseEnvFile(filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "config.local.env"))
 
 	// Bind overrides from standard environment variables
 	trackerType := os.Getenv("NOMOS_DEFAULT_TASK_TRACKER")

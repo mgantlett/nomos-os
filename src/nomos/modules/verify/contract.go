@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -36,31 +35,31 @@ type SymbolContract struct {
 	Patterns []string         `yaml:"patterns"` // Regex patterns to verify polyglot code
 }
 
-// FileContract binds a source file to its expected symbol contracts.
-type FileContract struct {
+// fileContract binds a source file to its expected symbol contracts.
+type fileContract struct {
 	File     string           `yaml:"file" validate:"required"`
 	Language string           `yaml:"language" validate:"required"`
 	Symbols  []SymbolContract `yaml:"symbols" validate:"required,dive"`
 }
 
-// ContractsSpec represents the root structure of the contracts.yaml configuration.
-type ContractsSpec struct {
-	Contracts []FileContract `yaml:"contracts" validate:"required,dive"`
+// contractsSpec represents the root structure of the contracts.yaml configuration.
+type contractsSpec struct {
+	Contracts []fileContract `yaml:"contracts" validate:"required,dive"`
 }
 
 // loadContractsSpec handles file reading, unmarshaling, and struct validation
 // of the contracts.yaml specification file.
-func loadContractsSpec(specPath string) (*ContractsSpec, error) {
+func loadContractsSpec(specPath string) (*contractsSpec, error) {
 	data, err := os.ReadFile(specPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read contracts spec at %s: %w", specPath, err)
 	}
-	var spec ContractsSpec
+	var spec contractsSpec
 	if err := yaml.Unmarshal(data, &spec); err != nil {
 		return nil, fmt.Errorf("failed to parse contracts spec: %w", err)
 	}
 	validate := validator.New()
-	validate.RegisterStructValidation(validateFileContract, FileContract{})
+	validate.RegisterStructValidation(validateFileContract, fileContract{})
 	if err := validate.Struct(&spec); err != nil {
 		return nil, fmt.Errorf("contracts spec validation failed: %w", err)
 	}
@@ -72,7 +71,7 @@ func loadContractsSpec(specPath string) (*ContractsSpec, error) {
 func runContractFirstCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
 	root := ctx.RepoRoot
 	res := StageResult{Name: "Contract-First Gate", Passed: true}
-	specPath := config.ContractsPath(root)
+	specPath := workspace.MustNewContext(root).DataPath("contracts.yaml")
 
 	if _, err := os.Stat(specPath); os.IsNotExist(err) {
 		res.Message = "Skipped: no global contracts.yaml spec found"
@@ -104,7 +103,7 @@ func runContractFirstCheck(ctx *workspace.WorkspaceContext) (StageResult, error)
 
 // verifySingleContract checks a single file contract and returns any drift findings.
 // Supports both Go AST parsing and general polyglot regex pattern matching.
-func verifySingleContract(root string, fc FileContract) []string {
+func verifySingleContract(root string, fc fileContract) []string {
 	var failures []string
 	fullPath := filepath.Join(root, fc.File)
 
@@ -256,8 +255,8 @@ const (
 	errMethodReturns    = "method %s returns mismatch in %s"
 )
 
-// InterfaceMethod stores interface method signatures.
-type InterfaceMethod struct {
+// interfaceMethod stores interface method signatures.
+type interfaceMethod struct {
 	Params  []string
 	Returns []string
 	HasSig  bool
@@ -266,8 +265,8 @@ type InterfaceMethod struct {
 // collectInterfaceMethods indexes all methods declared in an interface type.
 // It maps the method names to their corresponding parameters and returns,
 // skipping embedded interfaces or non-function fields for precise verification.
-func collectInterfaceMethods(ityp *ast.InterfaceType, exprStr func(ast.Expr) string) map[string]InterfaceMethod {
-	methods := make(map[string]InterfaceMethod)
+func collectInterfaceMethods(ityp *ast.InterfaceType, exprStr func(ast.Expr) string) map[string]interfaceMethod {
+	methods := make(map[string]interfaceMethod)
 	if ityp.Methods == nil {
 		return methods
 	}
@@ -278,10 +277,10 @@ func collectInterfaceMethods(ityp *ast.InterfaceType, exprStr func(ast.Expr) str
 		name := field.Names[0].Name
 		ft, ok := field.Type.(*ast.FuncType)
 		if !ok {
-			methods[name] = InterfaceMethod{HasSig: false}
+			methods[name] = interfaceMethod{HasSig: false}
 			continue
 		}
-		methods[name] = InterfaceMethod{
+		methods[name] = interfaceMethod{
 			Params:  getFuncParamTypes(ft.Params, exprStr),
 			Returns: getFuncParamTypes(ft.Results, exprStr),
 			HasSig:  true,
@@ -363,11 +362,11 @@ func sliceEquals(a, b []string) bool {
 	return true
 }
 
-// validateFileContract performs struct-level schema validation on FileContract entries.
+// validateFileContract performs struct-level schema validation on fileContract entries.
 // Enforces kind matching for Go symbols and pattern constraints for non-Go symbols.
 // It dynamically dispatches to language-specific validators depending on the file language.
 func validateFileContract(sl validator.StructLevel) {
-	fc := sl.Current().Interface().(FileContract)
+	fc := sl.Current().Interface().(fileContract)
 	if strings.ToLower(fc.Language) == "go" {
 		validateGoSymbols(sl, fc.Symbols)
 	} else {

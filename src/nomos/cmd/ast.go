@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -96,7 +96,7 @@ var graphVisualCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		g, workspaceRoot := getWorkspaceGraph(cmd)
-		outPath := filepath.Join(config.TmpDir(workspaceRoot), "dependency_graph.html")
+		outPath := filepath.Join(workspace.MustNewContext(workspaceRoot).TmpDir(), "dependency_graph.html")
 		if len(args) > 0 {
 			outPath = args[0]
 		}

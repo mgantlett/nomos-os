@@ -13,7 +13,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 )
 
@@ -50,7 +49,7 @@ func ensureDbTable(dbPath string) error {
 
 // List fetches tasks from the current project.
 func (lt *LocalTracker) List(ctx context.Context) ([]Task, error) {
-	dbPaths := []string{config.ResolveGraphDbPath(lt.repoRoot)}
+	dbPaths := []string{workspace.MustNewContext(lt.repoRoot).GraphDbPath()}
 	return lt.listFromPaths(ctx, dbPaths)
 }
 
@@ -223,13 +222,13 @@ func splitKey(key string) (string, int) {
 }
 
 var projectPrefixes = map[string]string{
-	"nomos-commons":        "COM",
-	"nomos-sovereign":      "SOV",
-	"nomos-cockpit":        "CPT",
+	"nomos-commons":        "NOM",
+	"nomos-sovereign":      "NOM",
+	"nomos-cockpit":        "NOM",
 	"papermind":            "PMD",
 	"nomos-ink":            "PMD",
-	"nomos-swarm":          "SWM",
-	"nomos-gitbrain":       "GB",
+	"nomos-swarm":          "NOM",
+	"nomos-gitbrain":       "NOM",
 	"gsi-management":       "GSI",
 	"sophialabs":           "SLA",
 	"nix-audio-visualizer": "NAV",
@@ -255,9 +254,9 @@ func (lt *LocalTracker) SaveTask(t Task) error {
 // It uses an INSERT OR REPLACE UPSERT strategy to ensure data idempotent writes.
 // This guarantees that any existing task with the same key is overwritten entirely.
 func (lt *LocalTracker) saveTask(t Task) error {
-	dbPath := config.ResolveGraphDbPath(lt.repoRoot)
+	dbPath := workspace.MustNewContext(lt.repoRoot).GraphDbPath()
 	if t.Project != "" && filepath.Base(filepath.Clean(lt.repoRoot)) != t.Project && !strings.Contains(lt.repoRoot, "tmp") && !strings.Contains(lt.repoRoot, "Test") {
-		dataRoot := filepath.Dir(config.GlobalDataDir(lt.repoRoot))
+		dataRoot := filepath.Dir(workspace.MustNewContext(lt.repoRoot).DataDir())
 		dbPath = filepath.Join(dataRoot, t.Project, "state", "graph.db")
 	}
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
@@ -284,7 +283,7 @@ func (lt *LocalTracker) saveTask(t Task) error {
 // and gracefully unmarshals the JSON representation into a strongly typed Task structure.
 // Returns an error if the task does not exist or JSON parsing fails.
 func (lt *LocalTracker) View(ctx context.Context, key string) (*Task, error) {
-	dbPath := config.ResolveGraphDbPath(lt.repoRoot)
+	dbPath := workspace.MustNewContext(lt.repoRoot).GraphDbPath()
 	conn, err := db.Open(dbPath)
 	if err != nil {
 		return nil, err
@@ -397,9 +396,9 @@ func (lt *LocalTracker) Transition(ctx context.Context, key string, status TaskS
 // alphanumeric prefix, finds the maximum existing ID for that prefix, and auto-increments it.
 func (lt *LocalTracker) Create(ctx context.Context, title string, body string, labels []string, parentKey string, project string, taskType TaskType, isSpike bool, initialStatus TaskStatus) (string, error) {
 	// First, fetch existing tasks in target project database to find max ID for prefix
-	targetDbPath := config.ResolveGraphDbPath(lt.repoRoot)
+	targetDbPath := workspace.MustNewContext(lt.repoRoot).GraphDbPath()
 	if project != "" && filepath.Base(filepath.Clean(lt.repoRoot)) != project {
-		dataRoot := filepath.Dir(config.GlobalDataDir(lt.repoRoot))
+		dataRoot := filepath.Dir(workspace.MustNewContext(lt.repoRoot).DataDir())
 		targetDbPath = filepath.Join(dataRoot, project, "state", "graph.db")
 	}
 

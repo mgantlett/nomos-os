@@ -10,7 +10,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
@@ -80,7 +79,7 @@ func runTaskIDValidationCheck(ctx *workspace.WorkspaceContext) (StageResult, err
 func resolveTargetTaskID(ctx *workspace.WorkspaceContext) string {
 	repoRoot := ctx.RepoRoot
 	boundTaskID := ""
-	boundTaskPath := config.StateTaskIdPath(repoRoot)
+	boundTaskPath := workspace.MustNewContext(repoRoot).NomosStatePath(".state_task_id")
 	if data, err := os.ReadFile(boundTaskPath); err == nil {
 		boundTaskID = strings.TrimSpace(string(data))
 	}
@@ -94,8 +93,8 @@ func resolveTargetTaskID(ctx *workspace.WorkspaceContext) string {
 	var commitTaskID string
 	commitMsgPaths := []string{
 		filepath.Join(ctx.PrimaryWorktree, ".git", "COMMIT_EDITMSG"),
-		filepath.Join(config.TmpDir(ctx.PrimaryWorktree), "commit_msg.txt"),
-		filepath.Join(config.TmpDir(ctx.PrimaryWorktree), "nomos_commit_in_flight.md"),
+		filepath.Join(workspace.MustNewContext(ctx.PrimaryWorktree).TmpDir(), "commit_msg.txt"),
+		filepath.Join(workspace.MustNewContext(ctx.PrimaryWorktree).TmpDir(), "nomos_commit_in_flight.md"),
 	}
 	for _, p := range commitMsgPaths {
 		if content, err := os.ReadFile(p); err == nil {
@@ -126,7 +125,7 @@ func resolvePrimaryTracker(root string, wCtx *workspace.WorkspaceContext) task.T
 		parentRepo := parts[0]
 
 		// Check if the graph.db exists in the parent repository.
-		if _, statErr := os.Stat(config.ResolveGraphDbPath(parentRepo)); statErr == nil {
+		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).DbPath("graph.db")); statErr == nil {
 			primaryRoot = parentRepo
 		}
 	}

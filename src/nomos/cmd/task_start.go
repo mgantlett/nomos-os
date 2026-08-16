@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
@@ -64,7 +63,7 @@ var taskStartCmd = &cobra.Command{
 		}
 
 		// Rotate telemetry logs for the new task session
-		telemetry.RotateSessionLogs(filepath.Join(config.LogsDir(repoRoot), "nomos.jsonl"), 20)
+		telemetry.RotateSessionLogs(filepath.Join(workspace.MustNewContext(repoRoot).LogsDir(), "nomos.jsonl"), 20)
 
 		ctx := context.Background()
 		// Initialize empty slice to hold the target task keys to start

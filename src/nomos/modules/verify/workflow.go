@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
 )
@@ -30,8 +30,8 @@ import (
 // and performs deep structure validations against each parsed AST
 // command line node. If discrepancies are found, it blocks execution.
 
-// WorkflowDiscrepancy holds the details of a found discrepancy between documentation and actual implementation.
-type WorkflowDiscrepancy struct {
+// workflowDiscrepancy holds the details of a found discrepancy between documentation and actual implementation.
+type workflowDiscrepancy struct {
 	File    string
 	Line    int
 	Command string
@@ -41,7 +41,7 @@ type WorkflowDiscrepancy struct {
 var binNomosRegex = regexp.MustCompile(`(?:bin/)?\bnomos\s+([^` + "`" + `\n]+)`)
 
 func getCliSchema(root string) (*schema.CliSchema, error) {
-	dbPath := config.ResolveCacheDbPath(root)
+	dbPath := workspace.MustNewContext(root).DbPath("cache.db")
 	binPath := filepath.Join(root, "bin", "nomos")
 
 	if _, err := os.Stat(binPath); os.IsNotExist(err) {
@@ -72,8 +72,8 @@ func getCliSchema(root string) (*schema.CliSchema, error) {
 }
 
 // AuditWorkflows scans markdown files for bin/nomos commands and verifies parity with the compiled CLI.
-func AuditWorkflows(root string) ([]WorkflowDiscrepancy, error) {
-	var discrepancies []WorkflowDiscrepancy
+func AuditWorkflows(root string) ([]workflowDiscrepancy, error) {
+	var discrepancies []workflowDiscrepancy
 
 	cliSchema, err := getCliSchema(root)
 	if err != nil {
@@ -81,8 +81,8 @@ func AuditWorkflows(root string) ([]WorkflowDiscrepancy, error) {
 	}
 
 	dirsToScan := []string{
-		config.AgentPath(root, "workflows"),
-		config.GlobalWorkflowsDir(),
+		workspace.MustNewContext(root).AgentPath("workflows"),
+		workspace.GlobalWorkflowsDir(),
 	}
 
 	for _, dir := range dirsToScan {
@@ -111,8 +111,8 @@ func AuditWorkflows(root string) ([]WorkflowDiscrepancy, error) {
 	return discrepancies, nil
 }
 
-func auditFile(cliSchema *schema.CliSchema, root, path string) ([]WorkflowDiscrepancy, error) {
-	var discrepancies []WorkflowDiscrepancy
+func auditFile(cliSchema *schema.CliSchema, root, path string) ([]workflowDiscrepancy, error) {
+	var discrepancies []workflowDiscrepancy
 
 	file, err := os.Open(path)
 	if err != nil {
@@ -180,7 +180,7 @@ func parseCommandTokens(tokens []string) ([]string, []string) {
 }
 
 // checkNomosCommand performs the core audit flow for a single CLI invocation against the JSON schema.
-func checkNomosCommand(cliSchema *schema.CliSchema, root, path string, lineNum int, fullLine, argsString string) []WorkflowDiscrepancy {
+func checkNomosCommand(cliSchema *schema.CliSchema, root, path string, lineNum int, fullLine, argsString string) []workflowDiscrepancy {
 	tokens := strings.Fields(argsString)
 	subcommands, flags := parseCommandTokens(tokens)
 	relPath, _ := filepath.Rel(root, path)
@@ -211,7 +211,7 @@ func checkNomosCommand(cliSchema *schema.CliSchema, root, path string, lineNum i
 		}
 	}
 
-	var discrepancies []WorkflowDiscrepancy
+	var discrepancies []workflowDiscrepancy
 	for _, f := range flags {
 		flagName := strings.TrimLeft(f, "-")
 		found := false
@@ -232,7 +232,7 @@ func checkNomosCommand(cliSchema *schema.CliSchema, root, path string, lineNum i
 		}
 
 		if !found {
-			discrepancies = append(discrepancies, WorkflowDiscrepancy{
+			discrepancies = append(discrepancies, workflowDiscrepancy{
 				File:    relPath,
 				Line:    lineNum,
 				Command: fullLine,

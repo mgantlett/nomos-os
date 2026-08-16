@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 )
 
@@ -67,7 +67,7 @@ func OrchestrateSwarm(planPath string) error {
 		return fmt.Errorf("pre-flight base branch check failed: %w", err)
 	}
 
-	worktreeBase := filepath.Join(config.GlobalDataDir(plan.TargetRepo), "orchestrate", filepath.Base(plan.TargetRepo))
+	worktreeBase := filepath.Join(workspace.MustNewContext(plan.TargetRepo).DataDir(), "orchestrate", filepath.Base(plan.TargetRepo))
 	if err := os.MkdirAll(worktreeBase, 0755); err != nil {
 		return fmt.Errorf("failed to create temporary worktree directory: %w", err)
 	}
@@ -135,9 +135,9 @@ func executeSingleSwarmSubtask(t SwarmSubtask, plan SwarmPlan, worktreeBase, nom
 
 	synapse.Info("🚀 [Orchestrator] Dispatching Task %s in worktree...\n", t.ID)
 
-	logDir := config.LogsDir(plan.TargetRepo)
+	logDir := workspace.MustNewContext(plan.TargetRepo).LogsDir()
 	_ = os.MkdirAll(logDir, 0755)
-	dbPath := config.ResolveCacheDbPath(plan.TargetRepo)
+	dbPath := workspace.MustNewContext(plan.TargetRepo).DbPath("cache.db")
 
 	runErr := runSwarmCommand(t, wtDir, nomosBin, dbPath, logDir)
 

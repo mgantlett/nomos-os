@@ -14,7 +14,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace" // String manipulation for diagnostic reports
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task" // Task credentials loader
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
@@ -186,7 +185,7 @@ func checkSubmodule(root string) bool {
 
 // checkConfig checks if the global config file is present.
 func checkConfig(root string) bool {
-	f := filepath.Join(config.GlobalDataDir(root), "config.yaml")
+	f := filepath.Join(workspace.MustNewContext(root).DataDir(), "config.yaml")
 	info, err := os.Stat(f)
 	if err != nil {
 		return false
@@ -196,7 +195,7 @@ func checkConfig(root string) bool {
 
 // checkDatabase verifies the presence of the SQLite cache file.
 func checkDatabase(root string) bool {
-	f := config.ResolveCacheDbPath(root)
+	f := workspace.MustNewContext(root).DbPath("cache.db")
 	_, err := os.Stat(f)
 	return err == nil
 }

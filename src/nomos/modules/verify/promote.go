@@ -13,7 +13,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
@@ -30,7 +29,7 @@ func StageAutoDebtTask(repoRoot string, file string, gate DebtGate, reason strin
 	if getActiveAgentTier(repoRoot) == state.Tier1 {
 		return
 	}
-	manifestPath := filepath.Join(config.GlobalDataDir(repoRoot), "state", "quality_debt.json")
+	manifestPath := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "state", "quality_debt.json")
 	_ = os.Chmod(manifestPath, 0644)
 	var manifest QualityDebtManifest
 
@@ -48,7 +47,7 @@ func StageAutoDebtTask(repoRoot string, file string, gate DebtGate, reason strin
 	}
 
 	// Create refactor stories directory
-	storiesDir := filepath.Join(config.TmpDir(repoRoot), "refactor_stories")
+	storiesDir := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), "refactor_stories")
 	_ = os.MkdirAll(storiesDir, 0755)
 
 	taskHash := md5.Sum([]byte(relFile + "_" + string(gate)))
@@ -243,7 +242,7 @@ func SyncQualityDebtStories(repoRoot string) {
 		}
 	}
 
-	tmpDir := config.TmpDir(repoRoot)
+	tmpDir := workspace.MustNewContext(repoRoot).TmpDir()
 	_ = os.MkdirAll(tmpDir, 0755)
 
 	// Load active task tracker configuration to sync remote task bodies

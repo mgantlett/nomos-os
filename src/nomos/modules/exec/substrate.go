@@ -11,8 +11,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // Substrate represents the underlying system execution environment
@@ -127,7 +127,7 @@ func GetNomosVersion() string {
 func getRepoColor(root string) string {
 	// First, check if the user has explicitly randomized the workspace color using `nomos ide color random`.
 	// This state is stored locally within the repository's `.nomos/state/` folder to avoid committing personal preferences.
-	colorPath := filepath.Join(config.StateDir(root), ".repo_color")
+	colorPath := filepath.Join(workspace.MustNewContext(root).StateDir(), ".repo_color")
 	if data, err := os.ReadFile(colorPath); err == nil && len(data) > 0 {
 		return strings.TrimSpace(string(data))
 	}
@@ -221,7 +221,7 @@ func resolveSubstratePhase(root string, locked bool) (string, string) {
 	phaseName := string(statepkg.PhaseIdle)
 	taskId := ""
 
-	phasePath := config.PhaseStatePath(root)
+	phasePath := workspace.MustNewContext(root).NomosStatePath(".phase_state.json")
 	if data, err := os.ReadFile(phasePath); err == nil {
 		var state map[string]interface{}
 		if json.Unmarshal(data, &state) == nil {
@@ -279,8 +279,8 @@ func UpdateVSCodeTheme(root string, locked bool) error {
 	writeVSCodeTitleFile(root, baseName, taskId, emoji, phaseName, ver)
 
 	if strings.Contains(root, "worktrees") {
-		projectName := filepath.Base(config.GlobalDataDir(root))
-		parentRoot := config.ResolveRepoRootForProject(root, projectName)
+		projectName := filepath.Base(workspace.MustNewContext(root).DataDir())
+		parentRoot := workspace.MustNewContext(root).RepoRoot
 		if parentRoot != root {
 			writeVSCodeTitleFile(parentRoot, projectName, taskId, emoji, phaseName, ver)
 		}
@@ -325,7 +325,7 @@ func ValidateSubstrateTargetPath(root string, targetPath string) error {
 	}
 
 	// Target path is located inside <repoRoot>/.nomos/data/ or a task-isolated worktree directory
-	globalDataDir := config.GlobalDataDir(root)
+	globalDataDir := workspace.MustNewContext(root).DataDir()
 	relToGlobal, err := filepath.Rel(globalDataDir, absTarget)
 	if err == nil && !strings.HasPrefix(relToGlobal, "..") {
 		return nil

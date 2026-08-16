@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 func execCommand(dir string, name string, args ...string) *exec.Cmd {
@@ -24,14 +24,14 @@ func TestCheckQualityDebtBypass(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	agentDir := filepath.Join(config.GlobalDataDir(tmpDir), "state")
+	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
 		t.Fatalf("failed to create agent dir: %v", err)
 	}
 
 	// Mock phase state to indicate Tier2 agent so bypasses are processed
-	_ = os.MkdirAll(config.StateDir(tmpDir), 0755)
-	phaseStatePath := config.PhaseStatePath(tmpDir)
+	_ = os.MkdirAll(workspace.MustNewContext(tmpDir).StateDir(), 0755)
+	phaseStatePath := workspace.MustNewContext(tmpDir).NomosStatePath(".phase_state.json")
 	_ = os.WriteFile(phaseStatePath, []byte(`{"agent": "aider", "agent_tier": "tier2"}`), 0644)
 
 	manifestPath := filepath.Join(agentDir, "quality_debt.json")
@@ -106,13 +106,13 @@ func TestStageAutoDebtTask(t *testing.T) {
 	_ = gitCmd.Run()
 
 	// Mock phase state to indicate low-tier agent so bypasses are created
-	_ = os.MkdirAll(config.StateDir(tmpDir), 0755)
-	phaseStatePath := config.PhaseStatePath(tmpDir)
+	_ = os.MkdirAll(workspace.MustNewContext(tmpDir).StateDir(), 0755)
+	phaseStatePath := workspace.MustNewContext(tmpDir).NomosStatePath(".phase_state.json")
 	_ = os.WriteFile(phaseStatePath, []byte(`{"agent": "aider", "agent_tier": "tier2"}`), 0644)
 
 	StageAutoDebtTask(tmpDir, filepath.Join(tmpDir, "src/dirty.go"), "doc_drift", "drift detected")
 
-	agentDir := filepath.Join(config.GlobalDataDir(tmpDir), "state")
+	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	manifestPath := filepath.Join(agentDir, "quality_debt.json")
 	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
 		t.Fatalf("expected quality_debt.json to be created")
@@ -151,13 +151,13 @@ func TestStageAutoDebtTask_AgentTierHigh(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	agentDir := filepath.Join(config.GlobalDataDir(tmpDir), "state")
+	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
 		t.Fatalf("failed to create agent dir: %v", err)
 	}
 
-	_ = os.MkdirAll(config.StateDir(tmpDir), 0755)
-	phaseStatePath := config.PhaseStatePath(tmpDir)
+	_ = os.MkdirAll(workspace.MustNewContext(tmpDir).StateDir(), 0755)
+	phaseStatePath := workspace.MustNewContext(tmpDir).NomosStatePath(".phase_state.json")
 	stateContent := `{"agent": "antigravity", "agent_tier": "tier1"}`
 	if err := os.WriteFile(phaseStatePath, []byte(stateContent), 0644); err != nil {
 		t.Fatalf("failed to write mock phase state: %v", err)
@@ -178,13 +178,13 @@ func TestStageAutoDebtTask_AgentTierLow(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	agentDir := filepath.Join(config.GlobalDataDir(tmpDir), "state")
+	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
 		t.Fatalf("failed to create agent dir: %v", err)
 	}
 
-	_ = os.MkdirAll(config.StateDir(tmpDir), 0755)
-	phaseStatePath := config.PhaseStatePath(tmpDir)
+	_ = os.MkdirAll(workspace.MustNewContext(tmpDir).StateDir(), 0755)
+	phaseStatePath := workspace.MustNewContext(tmpDir).NomosStatePath(".phase_state.json")
 	stateContent := `{"agent": "aider", "agent_tier": "tier2"}`
 	if err := os.WriteFile(phaseStatePath, []byte(stateContent), 0644); err != nil {
 		t.Fatalf("failed to write mock phase state: %v", err)
@@ -208,7 +208,7 @@ func TestSyncQualityDebtManifest(t *testing.T) {
 	// Stub git init
 	_ = execCommand(tmpDir, "git", "init").Run()
 
-	agentDir := filepath.Join(config.GlobalDataDir(tmpDir), "state")
+	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	_ = os.MkdirAll(agentDir, 0755)
 
 	// Create a clean Go file (formatted)
@@ -280,7 +280,7 @@ func TestPruneQualityDebtForTask(t *testing.T) {
 
 	_ = execCommand(tmpDir, "git", "init").Run()
 
-	agentDir := filepath.Join(config.GlobalDataDir(tmpDir), "state")
+	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	_ = os.MkdirAll(agentDir, 0755)
 
 	manifest := QualityDebtManifest{
@@ -334,7 +334,7 @@ func TestSyncQualityDebtManifest_AutoClear(t *testing.T) {
 
 	_ = execCommand(tmpDir, "git", "init").Run()
 
-	agentDir := filepath.Join(config.GlobalDataDir(tmpDir), "state")
+	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	_ = os.MkdirAll(agentDir, 0755)
 
 	// 1. Create a clean Go file (formatted and has a matching test file)

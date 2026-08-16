@@ -60,7 +60,7 @@ var DoDStages = []VerificationStage{
 	// The Task ID Validation Gate verifies that every commit is tagged to a valid Task ID registered in the Nomos SQLite database.
 	{
 		Name:     "Task ID Validation Gate",
-		Guidance: "Every commit must be bound to a valid Task ID registered in SQLite state.db. Run 'nomos task create' to create missing tasks.",
+		Guidance: "Every commit must be bound to a valid Task ID registered in SQLite graph.db. Run 'nomos task create' to create missing tasks.",
 		Run:      runTaskIDValidationCheck,
 	},
 	// The Data Integrity Gate prevents rogue AI agents from mutating JSON state files without CLI bounds.
@@ -249,8 +249,8 @@ func skipIfNotGo(name string, run func(ctx *workspace.WorkspaceContext) (StageRe
 	}
 }
 
-// GetDoDStageNames returns the names of all currently registered DoD verification stages.
-func GetDoDStageNames() []string {
+// getDoDStageNames returns the names of all currently registered DoD verification stages.
+func getDoDStageNames() []string {
 	names := make([]string, len(DoDStages))
 	for i, s := range DoDStages {
 		names[i] = s.Name

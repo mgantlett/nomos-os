@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
@@ -232,7 +231,7 @@ var taskCreateCmd = &cobra.Command{
 		if fileVal != "" {
 			absPath, absErr := filepath.Abs(fileVal)
 			if absErr == nil {
-				tmpDirAbs, tmpDirErr := filepath.Abs(filepath.Join(config.GlobalDataDir(repoRoot), "tmp"))
+				tmpDirAbs, tmpDirErr := filepath.Abs(filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "tmp"))
 				if tmpDirErr == nil && strings.HasPrefix(absPath, tmpDirAbs) {
 					_ = os.Remove(absPath)
 				}

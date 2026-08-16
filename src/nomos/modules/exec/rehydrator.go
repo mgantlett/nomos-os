@@ -10,7 +10,6 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/assets"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 )
 
@@ -82,7 +81,7 @@ func ensureGitignoreExclusions(ctx *workspace.WorkspaceContext) error {
 
 // rehydrateProtocol extracts the global AGENTS.md file and writes it to the global configuration directory.
 func rehydrateProtocol(ctx *workspace.WorkspaceContext, embeddedFS fs.FS, cliSchemaJSON string) error {
-	protocolDir := config.GlobalAgentConfigDir()
+	protocolDir := workspace.GlobalAgentConfigDir()
 	if err := os.MkdirAll(protocolDir, 0755); err != nil {
 		return fmt.Errorf("failed to create global protocol directory: %w", err)
 	}
@@ -131,7 +130,7 @@ func purgeGhostWorkflows(workflowsDir string, embeddedMap map[string]bool) {
 
 // rehydrateWorkflows extracts all global workflows and writes them to the global .agents/workflows directory.
 func rehydrateWorkflows(ctx *workspace.WorkspaceContext, embeddedFS fs.FS) error {
-	workflowsDir := filepath.Join(config.GlobalAgentConfigDir(), "workflows")
+	workflowsDir := filepath.Join(workspace.GlobalAgentConfigDir(), "workflows")
 	if err := os.MkdirAll(workflowsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create global workflows directory: %w", err)
 	}

@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ var exploreCmd = &cobra.Command{
 			return fmt.Errorf("must be run inside a git repository")
 		}
 
-		dbPath := config.GlobalDataDir(repoRoot)
+		dbPath := workspace.MustNewContext(repoRoot).DataDir()
 
 		fmt.Printf("Launching Datasette to explore %s...\n", dbPath)
 		fmt.Println("Press Ctrl+C to exit.")

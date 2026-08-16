@@ -12,7 +12,6 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
@@ -87,7 +86,7 @@ func checkGitHooks(root string, status *HealthStatus) {
 // checkAndClearDatabaseLocks queries the local cache database locks table.
 // If process check identifies dead holding PIDs, it performs transaction cleanup.
 func checkAndClearDatabaseLocks(root string, status *HealthStatus) {
-	dbPath := config.ResolveCacheDbPath(root)
+	dbPath := workspace.MustNewContext(root).DbPath("cache.db")
 	if _, err := os.Stat(dbPath); err != nil {
 		return
 	}
@@ -142,7 +141,7 @@ func checkAndClearDatabaseLocks(root string, status *HealthStatus) {
 // When consecutive error events hit threshold limits, it auto-files backlog tickets.
 // It also cleans up the failures if the recent check succeeds.
 func persistFailureHistory(root string, status *HealthStatus) {
-	failuresFile := filepath.Join(config.TmpDir(root), "health_failures.json")
+	failuresFile := filepath.Join(workspace.MustNewContext(root).TmpDir(), "health_failures.json")
 	var state struct {
 		Failures []string `json:"failures"`
 		Filed    bool     `json:"filed"`
@@ -163,14 +162,14 @@ func persistFailureHistory(root string, status *HealthStatus) {
 	}
 
 	failureData, _ := json.Marshal(state)
-	_ = os.MkdirAll(config.TmpDir(root), 0755)
+	_ = os.MkdirAll(workspace.MustNewContext(root).TmpDir(), 0755)
 	_ = os.WriteFile(failuresFile, failureData, 0644)
 }
 
 // readCachedHealth reads the health status from a JSON file.
 // Returns status pointer and true if cache exists and is newer than 2 minutes.
 func readCachedHealth(root string) (*HealthStatus, bool) {
-	cachePath := filepath.Join(config.TmpDir(root), ".health_cache.json")
+	cachePath := filepath.Join(workspace.MustNewContext(root).TmpDir(), ".health_cache.json")
 	data, err := os.ReadFile(cachePath)
 	if err != nil {
 		return nil, false
@@ -189,7 +188,7 @@ func readCachedHealth(root string) (*HealthStatus, bool) {
 
 // writeCachedHealth saves the health status to a JSON file.
 func writeCachedHealth(root string, status HealthStatus) {
-	cachePath := filepath.Join(config.TmpDir(root), ".health_cache.json")
+	cachePath := filepath.Join(workspace.MustNewContext(root).TmpDir(), ".health_cache.json")
 	_ = os.MkdirAll(filepath.Dir(cachePath), 0755)
 	data, _ := json.Marshal(status)
 	_ = os.WriteFile(cachePath, data, 0644)

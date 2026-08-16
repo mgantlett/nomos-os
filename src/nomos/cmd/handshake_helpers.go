@@ -28,7 +28,6 @@ import (
 
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
@@ -37,7 +36,7 @@ import (
 // migrateLegacyDirectories ensures that any legacy agent directories
 // are gracefully moved to their new locations under the .nomos state directory.
 func migrateLegacyDirectories(repoRoot string) {
-	globalDir := config.GlobalDataDir(repoRoot)
+	globalDir := workspace.MustNewContext(repoRoot).DataDir()
 	_ = os.MkdirAll(globalDir, 0755)
 
 	dirsToMove := []string{"state", "tmp", "walkthroughs", "tasks", "locks"}
@@ -112,7 +111,7 @@ func getClaims(ctx *workspace.WorkspaceContext) []string {
 	}
 
 	// Inspect local file locks in .nomos/locks/ folder for multi-environment safety.
-	locksDir := filepath.Join(config.GlobalDataDir(repoRoot), "locks")
+	locksDir := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "locks")
 	if files, err := os.ReadDir(locksDir); err == nil {
 		for _, f := range files {
 			if !f.IsDir() {
@@ -169,7 +168,7 @@ func getMemories(ctx *workspace.WorkspaceContext, taskDesc string) ([]MemoryInsi
 func getActiveTaskKey(ctx *workspace.WorkspaceContext) string {
 	repoRoot := ctx.RepoRoot
 	_ = repoRoot
-	phaseStatePath := config.PhaseStatePath(repoRoot)
+	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 	if stateBytes, err := os.ReadFile(phaseStatePath); err == nil {
 		var state map[string]interface{}
 		if err := json.Unmarshal(stateBytes, &state); err == nil {

@@ -20,8 +20,6 @@ import (
 	"sync"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
-
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 // CalculateWorkspaceStateHash computes a deterministic cryptographic hash of all JSON state and task files.
@@ -32,7 +30,7 @@ import (
 // guaranteeing reproducible output hashes across any standard workspace configuration.
 func CalculateWorkspaceStateHash(ctx *workspace.WorkspaceContext) (string, error) {
 	repoRoot := ctx.RepoRoot
-	dataDir := config.GlobalDataDir(repoRoot)
+	dataDir := workspace.MustNewContext(repoRoot).DataDir()
 	stateDir := filepath.Join(dataDir, "state")
 
 	var filesToHash []string
@@ -111,7 +109,7 @@ func collectStateFiles(stateDir string) []string {
 // PersistWorkspaceStateHash records the workspace signature hash to a flat file manifest.
 func PersistWorkspaceStateHash(ctx *workspace.WorkspaceContext, hash string) error {
 	repoRoot := ctx.RepoRoot
-	hashPath := filepath.Join(config.TmpDir(repoRoot), ".workspace_state.hash")
+	hashPath := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), ".workspace_state.hash")
 	dir := filepath.Dir(hashPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create tmp directory: %w", err)
@@ -126,7 +124,7 @@ func PersistWorkspaceStateHash(ctx *workspace.WorkspaceContext, hash string) err
 // GetPersistedWorkspaceStateHash reads the registered workspace signature hash.
 func GetPersistedWorkspaceStateHash(ctx *workspace.WorkspaceContext) (string, error) {
 	repoRoot := ctx.RepoRoot
-	hashPath := filepath.Join(config.TmpDir(repoRoot), ".workspace_state.hash")
+	hashPath := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), ".workspace_state.hash")
 	if _, err := os.Stat(hashPath); os.IsNotExist(err) {
 		return "", nil
 	}

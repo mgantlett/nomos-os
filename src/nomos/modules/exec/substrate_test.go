@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // TestValidateSubstrateTargetPath tests target edit path validation for local, worktree, and cross-root paths.
@@ -18,7 +18,7 @@ func TestValidateSubstrateTargetPath(t *testing.T) {
 	}
 
 	// 2. Global data / worktree path should pass validation
-	worktreeFile := filepath.Join(config.GlobalDataDir(root), "worktrees", "sibling-task", "main.go")
+	worktreeFile := filepath.Join(workspace.MustNewContext(root).DataDir(), "worktrees", "sibling-task", "main.go")
 	if err := ValidateSubstrateTargetPath(root, worktreeFile); err != nil {
 		t.Fatalf("expected worktree path to be valid, got: %v", err)
 	}

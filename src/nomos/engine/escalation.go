@@ -8,11 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
-
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
@@ -27,7 +26,7 @@ func evaluateEscalation(ctx *workspace.WorkspaceContext, key string, failCount i
 		return false, "", nil
 	}
 
-	cfg, err := config.LoadConfig(filepath.Join(config.GlobalDataDir(repoRoot), "config.yaml"))
+	cfg, err := config.LoadConfig(filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "config.yaml"))
 	if err != nil {
 		return false, "", err
 	}
@@ -57,7 +56,7 @@ func RemediateASTCycle(root string, cycleSignature string) {
 	cycleHash := hex.EncodeToString(hash[:])
 
 	// 2. Check for infinite loop using escalations state directory
-	escalationDir := filepath.Join(config.GlobalDataDir(root), "state", "escalations")
+	escalationDir := filepath.Join(workspace.MustNewContext(root).DataDir(), "state", "escalations")
 	_ = os.MkdirAll(escalationDir, 0755)
 	flagFile := filepath.Join(escalationDir, cycleHash+".flag")
 

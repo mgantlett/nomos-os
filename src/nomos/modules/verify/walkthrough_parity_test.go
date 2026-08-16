@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/stretchr/testify/require"
@@ -23,7 +22,7 @@ func TestVerifyWalkthroughParityExtended(t *testing.T) {
 	require.NoError(t, err)
 
 	// Mock task phase state
-	stateDir := filepath.Join(config.StateDir(root))
+	stateDir := filepath.Join(workspace.MustNewContext(root).StateDir())
 	require.NoError(t, os.MkdirAll(stateDir, 0755))
 	stateData := map[string]interface{}{
 		"task_id": taskId,
@@ -32,7 +31,7 @@ func TestVerifyWalkthroughParityExtended(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(stateDir, ".phase_state.json"), stateBytes, 0644))
 
 	// Mock plan
-	plansDir := config.PlansDir(root)
+	plansDir := workspace.MustNewContext(root).DataPath("plans")
 	require.NoError(t, os.MkdirAll(plansDir, 0755))
 	planContent := `
 # Implementation Plan
@@ -44,7 +43,7 @@ func TestVerifyWalkthroughParityExtended(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(plansDir, taskId+".md"), []byte(planContent), 0644))
 
 	// Test 1: Walkthrough missing extended criteria
-	walkthroughsDir := config.WalkthroughsDir(root)
+	walkthroughsDir := workspace.MustNewContext(root).DataPath("walkthroughs")
 	require.NoError(t, os.MkdirAll(walkthroughsDir, 0755))
 
 	wtContent1 := `

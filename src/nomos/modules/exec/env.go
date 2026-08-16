@@ -8,15 +8,13 @@ import (
 	"strings"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
-
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 // (Socket resolution functions removed)
 
 // resolvePhaseToken reads the active phase token from .phase_state.json.
 func resolvePhaseToken(targetDir string) string {
-	phasePath := config.PhaseStatePath(targetDir)
+	phasePath := workspace.MustNewContext(targetDir).NomosStatePath(".phase_state.json")
 	if data, err := os.ReadFile(phasePath); err == nil {
 		var state map[string]interface{}
 		if json.Unmarshal(data, &state) == nil {

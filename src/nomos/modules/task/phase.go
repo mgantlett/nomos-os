@@ -16,7 +16,6 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
@@ -61,7 +60,7 @@ type PhaseState struct {
 // the security boundaries for write-access across the entire workspace via the phase_token.
 func GetPhaseState(ctx *workspace.WorkspaceContext) (*PhaseState, error) {
 	repoRoot := ctx.RepoRoot
-	phaseStatePath := config.PhaseStatePath(repoRoot)
+	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 	data, err := os.ReadFile(phaseStatePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read phase state file: %w", err)
@@ -85,7 +84,7 @@ func GetPhaseState(ctx *workspace.WorkspaceContext) (*PhaseState, error) {
 // TransitionPhase changes the workspace phase and executes phase change hooks
 func TransitionPhase(ctx *workspace.WorkspaceContext, nextPhase state.WorkspacePhase) error {
 	repoRoot := ctx.RepoRoot
-	phaseStatePath := config.PhaseStatePath(repoRoot)
+	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 
 	var state PhaseState
 	if data, err := os.ReadFile(phaseStatePath); err == nil {
@@ -111,7 +110,7 @@ func persistPhaseState(ctx *workspace.WorkspaceContext, phaseStatePath string, s
 		return fmt.Errorf("failed to marshal phase state: %w", err)
 	}
 
-	if err := os.MkdirAll(config.StateDir(repoRoot), 0755); err != nil {
+	if err := os.MkdirAll(workspace.MustNewContext(repoRoot).StateDir(), 0755); err != nil {
 		return fmt.Errorf("failed to create agent state dir: %w", err)
 	}
 
@@ -135,7 +134,7 @@ func enforceSubstrateLock(repoRoot string, nextPhase state.WorkspacePhase) {
 	}
 
 	if nextPhase == state.PhaseIdle {
-		_ = os.Remove(filepath.Join(config.TmpDir(repoRoot), "task.md"))
+		_ = os.Remove(filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), "task.md"))
 	}
 }
 
@@ -203,7 +202,7 @@ var phaseHandlers = map[state.WorkspacePhase]phaseTransitionFn{
 		b64Payload := base64.StdEncoding.EncodeToString(b)
 
 		// Load the HMAC secret to sign the token payload.
-		dbPath := config.ResolveStateDbPath(repoRoot)
+		dbPath := workspace.MustNewContext(repoRoot).DbPath("state.db")
 		secret, _ := db.GetOrCreatePhaseSecret(dbPath)
 		mac := hmac.New(sha256.New, []byte(secret))
 		mac.Write(b)
@@ -305,7 +304,7 @@ func CalculatePhaseStateHash(data []byte) string {
 // This registry allows pre-commit gates to verify the integrity of the active state file.
 func PersistPhaseStateHash(ctx *workspace.WorkspaceContext, hash string) error {
 	repoRoot := ctx.RepoRoot
-	hashPath := filepath.Join(config.TmpDir(repoRoot), ".phase_hash.txt")
+	hashPath := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), ".phase_hash.txt")
 	dir := filepath.Dir(hashPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create tmp directory: %w", err)
@@ -321,7 +320,7 @@ func PersistPhaseStateHash(ctx *workspace.WorkspaceContext, hash string) error {
 // It retrieves the hash for verification against the current filesystem state.
 func GetPersistedPhaseStateHash(ctx *workspace.WorkspaceContext) (string, error) {
 	repoRoot := ctx.RepoRoot
-	hashPath := filepath.Join(config.TmpDir(repoRoot), ".phase_hash.txt")
+	hashPath := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), ".phase_hash.txt")
 	if _, err := os.Stat(hashPath); os.IsNotExist(err) {
 		return "", nil
 	}
@@ -356,7 +355,7 @@ func verifyTokenSignature(ctx *workspace.WorkspaceContext, b64Payload, sig, expe
 		return fmt.Errorf("failed to decode phase token payload: %w", err)
 	}
 
-	dbPath := config.ResolveStateDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("state.db")
 	secret, err := db.GetOrCreatePhaseSecret(dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve phase secret: %w", err)

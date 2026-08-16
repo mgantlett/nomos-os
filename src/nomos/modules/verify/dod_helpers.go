@@ -7,6 +7,7 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"bufio"
@@ -26,13 +27,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
-// LocalPhaseState represents the local workspace agent phase state.
-type LocalPhaseState struct {
+// dodLocalPhaseState represents the local workspace agent phase state.
+type dodLocalPhaseState struct {
 	Agent          string `json:"agent"`
 	CurrentPhase   string `json:"current_phase"`
 	PlanApproved   string `json:"plan_approved"`
@@ -90,14 +90,14 @@ func IsMetadataOnly(root string) (bool, error) {
 // CheckPOCommitApproval checks if the human Product Owner has approved git commits in active AI workspaces.
 // It parses the local phase state file and evaluates approval status hooks during commits.
 func CheckPOCommitApproval(root string) error {
-	phaseStatePath := config.PhaseStatePath(root)
+	phaseStatePath := workspace.MustNewContext(root).NomosStatePath(".phase_state.json")
 	data, err := os.ReadFile(phaseStatePath)
 	if err != nil {
 		// If phase state file doesn't exist, bypass check (e.g. initial setup)
 		return nil
 	}
 
-	var state LocalPhaseState
+	var state dodLocalPhaseState
 	// Parse workspace phase structure layout
 	if err := json.Unmarshal(data, &state); err != nil {
 		return fmt.Errorf("failed to parse phase state: %w", err)
@@ -127,7 +127,7 @@ func CheckPOCommitApproval(root string) error {
 
 // checkGitHookPhase validates the workspace phase during git pre-commit hooks.
 // It ensures that edits are made in EDIT phase and commits in REVIEW phase.
-func checkGitHookPhase(root string, state *LocalPhaseState) error {
+func checkGitHookPhase(root string, state *dodLocalPhaseState) error {
 	if state.CurrentPhase == string(statepkg.PhaseReview) {
 		if state.CommitApproved != "true" {
 			return fmt.Errorf("PO commit approval check failed: walkthrough and diff have not been approved by the PO. Please request approval in chat")
@@ -149,10 +149,10 @@ func checkGitHookPhase(root string, state *LocalPhaseState) error {
 // and the phase state files have been reviewed for at least 2 seconds before committing.
 func verifyWalkthroughAndStateTimes(root string, taskId string) error {
 	// Verify the active walkthrough exists in the centralized final path
-	walkthroughPath := config.WalkthroughFinalPath(root, taskId)
+	walkthroughPath := workspace.MustNewContext(root).WalkthroughFinalPath(taskId)
 	_, err := os.Stat(walkthroughPath)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("walkthrough not found: when workspace is in REVIEW phase, %s must be generated and synced to %s", config.WalkthroughFileName, walkthroughPath)
+		return fmt.Errorf("walkthrough not found: when workspace is in REVIEW phase, %s must be generated and synced to %s", workspace.WalkthroughFileName, walkthroughPath)
 	}
 	// Removed cognitive firewall delay to support autonomous AI execution loops
 
@@ -234,7 +234,7 @@ func checkTDD(root string) error {
 	}
 
 	var excludes []string
-	configPath := filepath.Join(config.GlobalDataDir(root), "config.yaml")
+	configPath := filepath.Join(workspace.MustNewContext(root).DataDir(), "config.yaml")
 	// Load repository-level configuration to find TDD exclusions
 	if cfg, err := config.LoadConfig(configPath); err == nil {
 		excludes = cfg.TddExclude
@@ -355,7 +355,7 @@ func shouldCheckTDD(relPath string, excludes []string) bool {
 
 // isSystemPath checks if the file is a internal configuration or script file.
 func isSystemPath(f string) bool {
-	return config.IsInternalSystemDir(f)
+	return workspace.IsInternalSystemDir(f)
 }
 
 // isSupportedLang matches valid programming extensions for the TDD gate check.
@@ -584,10 +584,10 @@ func checkTmpDirForTrailer(tmpDir, trailer string) bool {
 // hasCommitMsgTrailer checks if a specific trailer tag exists in the commit message or draft templates.
 func hasCommitMsgTrailer(root, trailer string) bool {
 	if checkFileForTrailer(filepath.Join(root, ".git", "COMMIT_EDITMSG"), trailer) ||
-		checkFileForTrailer(filepath.Join(config.TmpDir(root), "commit_msg.md"), trailer) {
+		checkFileForTrailer(filepath.Join(workspace.MustNewContext(root).TmpDir(), "commit_msg.md"), trailer) {
 		return true
 	}
-	return checkTmpDirForTrailer(config.TmpDir(root), trailer)
+	return checkTmpDirForTrailer(workspace.MustNewContext(root).TmpDir(), trailer)
 }
 
 func hasTDDSkip(root string) bool {
@@ -662,7 +662,7 @@ func verifyDocDriftBypasses(root string, staged []string) error {
 // getActiveAgent reads the local phase state file and returns the active agent string identifier.
 // This is used for posting DoD verification outcomes to external backlogs.
 func getActiveAgent(root string) string {
-	phaseStatePath := config.PhaseStatePath(root)
+	phaseStatePath := workspace.MustNewContext(root).NomosStatePath(".phase_state.json")
 	data, err := os.ReadFile(phaseStatePath)
 	if err != nil {
 		return ""
@@ -680,7 +680,7 @@ func getActiveAgent(root string) string {
 // getActiveAgentTier reads the local phase state file and returns the active agent tier string.
 // If missing, corrupt, or empty, it defaults to returning "high".
 func getActiveAgentTier(root string) statepkg.AgentTier {
-	phaseStatePath := config.PhaseStatePath(root)
+	phaseStatePath := workspace.MustNewContext(root).NomosStatePath(".phase_state.json")
 	data, err := os.ReadFile(phaseStatePath)
 	if err != nil {
 		return statepkg.Tier1

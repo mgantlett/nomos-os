@@ -13,7 +13,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
@@ -80,7 +79,7 @@ func ParseEnvFileToMap(path string) map[string]string {
 func loadModelsConfig(ctx *workspace.WorkspaceContext) (*ModelsYAML, error) {
 	repoRoot := ctx.RepoRoot
 	v := viper.New()
-	v.SetConfigFile(config.ModelsPath(repoRoot))
+	v.SetConfigFile(workspace.MustNewContext(repoRoot).DataPath("models.yaml"))
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err
 	}
@@ -137,7 +136,7 @@ func resolveProviderAndModel(ctx *workspace.WorkspaceContext, phase string) (str
 	llmURL := "http://localhost:8082/v1"
 	modelName := "model"
 
-	envMap := ParseEnvFileToMap(filepath.Join(config.GlobalDataDir(repoRoot), "config.env"))
+	envMap := ParseEnvFileToMap(filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "config.env"))
 	if u := envMap["NOMOS_SWARM_LLM_URL"]; u != "" {
 		llmURL = u
 	}
@@ -281,7 +280,7 @@ func resolveAiderPlanFiles(ctx *workspace.WorkspaceContext, planPath string) []s
 // auto-commit parameters for automated workspace tasks.
 func resolveAiderArgs(ctx *workspace.WorkspaceContext, planPath, modelName, llmURL string) []string {
 	repoRoot := ctx.RepoRoot
-	chatHistory := filepath.Join(config.GlobalDataDir(repoRoot), "tmp", "aider.chat.history.md")
+	chatHistory := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "tmp", "aider.chat.history.md")
 	args := []string{
 		"--model", "openai/" + modelName,
 		"--openai-api-base", llmURL,

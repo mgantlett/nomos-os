@@ -10,6 +10,7 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
 )
 
@@ -21,7 +22,7 @@ type VerificationStage struct {
 // GenerateWiki exports the code-truth based on configuration to the outDir.
 // It iterates through the Wiki configuration sync targets and delegates to specific generators.
 func GenerateWiki(root string, outDir string) error {
-	configPath := filepath.Join(config.GlobalDataDir(root), "config.yaml")
+	configPath := filepath.Join(workspace.MustNewContext(root).DataDir(), "config.yaml")
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config for wiki generation: %w", err)
@@ -36,7 +37,7 @@ func GenerateWiki(root string, outDir string) error {
 		return fmt.Errorf("failed to create output directory %s: %w", outDir, err)
 	}
 
-	dbPath := config.ResolveCacheDbPath(root)
+	dbPath := workspace.MustNewContext(root).DbPath("cache.db")
 	binPath := filepath.Join(root, "bin", "nomos")
 	if _, err := os.Stat(binPath); os.IsNotExist(err) {
 		binPath = "nomos"
@@ -128,7 +129,7 @@ func generateDodGates(dbPath, binPath, outFilePath string) error {
 
 // generateWorkflows iterates over agent workflows and concatenates them into a single Markdown file.
 func generateWorkflows(root, outFilePath string) error {
-	workflowsDir := config.WorkflowsDir(root)
+	workflowsDir := workspace.WorkflowsDir()
 	var sb strings.Builder
 	sb.WriteString("# Agent Workflows\n\n")
 
@@ -151,6 +152,17 @@ func generateWorkflows(root, outFilePath string) error {
 }
 
 // generateRawFile resolves raw file paths and copies them.
+// It handles paths prefixed with "~/" by replacing it with the user's home directory.
+// For relative paths, it joins them with the provided root directory.
+// The resolved source file is then read into memory and written to the output file path.
+// This is primarily used for copying static documentation files like READMEs or architecture diagrams.
+//
+// Arguments:
+// - root: The repository root directory.
+// - source: The source file path (can be absolute, relative, or home-relative).
+// - outFilePath: The destination file path where the contents will be written.
+//
+// Returns an error if reading the source or writing the output fails.
 func generateRawFile(root, source, outFilePath string) error {
 	if strings.HasPrefix(source, "~/") {
 		home, _ := os.UserHomeDir()

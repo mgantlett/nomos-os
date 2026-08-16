@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
@@ -30,8 +29,8 @@ func getLogFilename(source string) string {
 	return fmt.Sprintf("worker_%s.log", source)
 }
 
-// GetBacklogPayload retrieves active backlog tasks for the given repository root.
-func GetBacklogPayload(ctx *workspace.WorkspaceContext) []map[string]interface{} {
+// getBacklogPayload retrieves active backlog tasks for the given repository root.
+func getBacklogPayload(ctx *workspace.WorkspaceContext) []map[string]interface{} {
 	repoRoot := ctx.RepoRoot
 	cfg := &task.Config{TrackerType: "local", RepoRoot: repoRoot}
 	tr, err := task.NewTracker(cfg)
@@ -73,8 +72,8 @@ func GetFallbackPhaseState() map[string]interface{} {
 	}
 }
 
-// GetStatusPayload returns the real-time system status.
-func GetStatusPayload(ctx *workspace.WorkspaceContext, initialRoot string) interface{} {
+// getStatusPayload returns the real-time system status.
+func getStatusPayload(ctx *workspace.WorkspaceContext, initialRoot string) interface{} {
 	repoRoot := ctx.RepoRoot
 	pState, err := task.GetPhaseState(ctx)
 	var phaseState interface{}
@@ -84,7 +83,7 @@ func GetStatusPayload(ctx *workspace.WorkspaceContext, initialRoot string) inter
 		phaseState = GetFallbackPhaseState()
 	}
 
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 	cacheActive := false
 	if _, err := os.Stat(dbPath); err == nil {
 		cacheActive = true
@@ -105,8 +104,8 @@ func GetStatusPayload(ctx *workspace.WorkspaceContext, initialRoot string) inter
 	}
 }
 
-// GetDriftPayload returns the configuration drift telemetry.
-func GetDriftPayload(ctx *workspace.WorkspaceContext) (interface{}, error) {
+// getDriftPayload returns the configuration drift telemetry.
+func getDriftPayload(ctx *workspace.WorkspaceContext) (interface{}, error) {
 
 	return map[string]interface{}{
 		"drift":  []interface{}{},
@@ -115,8 +114,8 @@ func GetDriftPayload(ctx *workspace.WorkspaceContext) (interface{}, error) {
 	}, nil
 }
 
-// GetGraphPayload returns the AST dependency graph topology.
-func GetGraphPayload(ctx *workspace.WorkspaceContext) (interface{}, error) {
+// getGraphPayload returns the AST dependency graph topology.
+func getGraphPayload(ctx *workspace.WorkspaceContext) (interface{}, error) {
 
 	return map[string]interface{}{
 		"nodes":  []interface{}{},

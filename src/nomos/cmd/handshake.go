@@ -11,7 +11,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
@@ -72,7 +71,7 @@ It writes baseline state, ensures the Git hook verification boundary is in place
 		payload := createHandshakePayload(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 		// Rotate session logs to ensure we don't build up massive JSONL logs indefinitely.
-		telemetry.RotateSessionLogs(filepath.Join(config.LogsDir(repoRoot), "nomos.jsonl"), 20)
+		telemetry.RotateSessionLogs(filepath.Join(workspace.MustNewContext(repoRoot).LogsDir(), "nomos.jsonl"), 20)
 
 		var branch string
 		var dirtyFiles []string

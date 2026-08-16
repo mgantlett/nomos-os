@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	execMod "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ var vaultSyncCmd = &cobra.Command{
 		} else {
 			// Otherwise, generate the dynamic Nomos code-truth vault
 			if vaultOutDir == "" {
-				vaultOutDir = config.TmpDir(root)
+				vaultOutDir = workspace.MustNewContext(root).TmpDir()
 				vaultOutDir = filepath.Join(vaultOutDir, "vault-export")
 			}
 			err = execMod.GenerateWiki(root, vaultOutDir)

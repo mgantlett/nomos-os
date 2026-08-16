@@ -17,7 +17,6 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
 
@@ -36,8 +35,8 @@ func RunHygieneCleanups(ctx *workspace.WorkspaceContext) error {
 
 	// Resolve the list of standard databases.
 	dbFiles := []string{
-		config.ResolveCacheDbPath(repoRoot),
-		config.ResolveGitBrainDbPath(repoRoot),
+		workspace.MustNewContext(repoRoot).DbPath("cache.db"),
+		workspace.MustNewContext(repoRoot).DbPath("gitbrain.db"),
 	}
 
 	// 1. SQLite Database Vacuum.
@@ -97,7 +96,7 @@ func cleanupWorktrees(repoRoot string, tracker task.Tracker) {
 	if tracker == nil {
 		return
 	}
-	worktreesDir := config.WorktreesDir(repoRoot)
+	worktreesDir := workspace.MustNewContext(repoRoot).WorktreesDir()
 	entries, err := os.ReadDir(worktreesDir)
 	if err != nil {
 		return
@@ -129,7 +128,7 @@ func cleanupWorktrees(repoRoot string, tracker task.Tracker) {
 				_ = ensureWritableAndRemove(wtPath)
 
 				// Clean up the associated nomos data folder for this worktree (e.g., <repoRoot>/.nomos/data/<entry.Name()>)
-				dataDir := filepath.Join(filepath.Dir(config.GlobalDataDir(repoRoot)), entry.Name())
+				dataDir := filepath.Join(filepath.Dir(workspace.MustNewContext(repoRoot).DataDir()), entry.Name())
 				if _, err := os.Stat(dataDir); err == nil {
 					synapse.Info("   ↳ Pruning associated data folder: %s\n", dataDir)
 					_ = ensureWritableAndRemove(dataDir)
@@ -209,7 +208,7 @@ func isProcessAlive(pid int) bool {
 
 // checkExpiredQualityDebt prints warnings for expired quality debt bypasses.
 func checkExpiredQualityDebt(repoRoot string) {
-	manifestPath := filepath.Join(config.GlobalDataDir(repoRoot), "state", "quality_debt.json")
+	manifestPath := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "state", "quality_debt.json")
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return
@@ -243,7 +242,7 @@ func isDebtExpired(item verify.QualityDebtItem) bool {
 // time-to-live (e.g. 3 days for logs, 7 days for stories) are forcefully removed
 // to maintain a pristine directory structure.
 func pruneTempFiles(repoRoot string, tracker task.Tracker) {
-	tmpDir := config.TmpDir(repoRoot)
+	tmpDir := workspace.MustNewContext(repoRoot).TmpDir()
 	entries, err := os.ReadDir(tmpDir)
 	if err != nil {
 		return
@@ -304,7 +303,7 @@ func shouldPruneStoryFile(name string, path string, tracker task.Tracker) bool {
 
 // pruneStateFiles deletes old transient pipeline tracking files in state directory.
 func pruneStateFiles(repoRoot string) {
-	stateDir := config.StateDir(repoRoot)
+	stateDir := workspace.MustNewContext(repoRoot).StateDir()
 	entries, err := os.ReadDir(stateDir)
 	if err != nil {
 		return
@@ -342,7 +341,7 @@ func ensureWritableAndRemove(path string) error {
 // pruneRefactorStories deletes draft story files under tmp/refactor_stories/ that are no longer active in quality debt.
 func pruneRefactorStories(repoRoot string) {
 	activeIDs := loadActiveStoryIDs(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
-	storiesDir := filepath.Join(config.GlobalDataDir(repoRoot), "tmp", "refactor_stories")
+	storiesDir := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "tmp", "refactor_stories")
 	entries, err := os.ReadDir(storiesDir)
 	if err != nil {
 		return
@@ -361,7 +360,7 @@ func pruneRefactorStories(repoRoot string) {
 // loadActiveStoryIDs parses quality_debt.json and extracts active story IDs.
 func loadActiveStoryIDs(ctx *workspace.WorkspaceContext) map[string]bool {
 	repoRoot := ctx.RepoRoot
-	manifestPath := filepath.Join(config.GlobalDataDir(repoRoot), "state", "quality_debt.json")
+	manifestPath := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "state", "quality_debt.json")
 	var manifest struct {
 		ActiveDebt []struct {
 			File string `json:"file"`

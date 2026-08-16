@@ -9,8 +9,8 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -59,7 +59,7 @@ var statusCmd = &cobra.Command{
 // It returns IDLE if the file cannot be read or parsed.
 func getActivePhase(root string) string {
 	phase := string(statepkg.PhaseIdle)
-	phasePath := config.PhaseStatePath(root)
+	phasePath := workspace.MustNewContext(root).NomosStatePath(".phase_state.json")
 	if data, err := os.ReadFile(phasePath); err == nil {
 		var stateData struct {
 			CurrentPhase statepkg.WorkspacePhase `json:"current_phase"`
@@ -75,7 +75,7 @@ func getActivePhase(root string) string {
 // If the task cannot be loaded, it returns the task ID instead.
 func getActiveTaskTitle(root string, tracker task.Tracker) string {
 	taskTitle := "None"
-	taskIdPath := config.StateTaskIdPath(root)
+	taskIdPath := workspace.MustNewContext(root).NomosStatePath(".state_task_id")
 	if idData, err := os.ReadFile(taskIdPath); err == nil {
 		taskId := strings.TrimSpace(string(idData))
 		if taskId != "" {

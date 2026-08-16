@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
-
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 // GetCrossRepoWorktrees scans the transient worktrees directory and returns
@@ -15,7 +13,7 @@ import (
 // that do not contain the explicit tracker marker file to prevent accidental teardowns.
 func GetCrossRepoWorktrees(ctx *workspace.WorkspaceContext) ([]string, error) {
 	repoRoot := ctx.RepoRoot
-	wtDir := config.WorktreesDir(repoRoot)
+	wtDir := workspace.MustNewContext(repoRoot).WorktreesDir()
 	entries, err := os.ReadDir(wtDir)
 	if err != nil {
 		if os.IsNotExist(err) {

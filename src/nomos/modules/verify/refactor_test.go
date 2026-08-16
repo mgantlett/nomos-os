@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 func TestNormalizeLine(t *testing.T) {
@@ -76,8 +76,8 @@ func executeStep(action string) {
 	_ = os.WriteFile(f2Path, []byte(file2Content), 0644)
 
 	// Mock phase state to indicate low-tier agent so bypasses are created
-	_ = os.MkdirAll(config.StateDir(tmpDir), 0755)
-	phaseStatePath := config.PhaseStatePath(tmpDir)
+	_ = os.MkdirAll(workspace.MustNewContext(tmpDir).StateDir(), 0755)
+	phaseStatePath := workspace.MustNewContext(tmpDir).NomosStatePath(".phase_state.json")
 	_ = os.WriteFile(phaseStatePath, []byte(`{"agent": "aider", "agent_tier": "low"}`), 0644)
 
 	// Git add files to stage them
@@ -93,7 +93,7 @@ func executeStep(action string) {
 	}
 
 	// Verify that AUTO task and refactor stories were staged
-	manifestPath := filepath.Join(config.GlobalDataDir(tmpDir), "state", "quality_debt.json")
+	manifestPath := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state", "quality_debt.json")
 	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
 		t.Errorf("expected quality_debt.json to be created")
 	}

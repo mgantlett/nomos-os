@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 func TestVerifyGoContract(t *testing.T) {
@@ -296,7 +294,7 @@ contracts:
 			defer os.RemoveAll(tempDir)
 
 			// Write contracts.yaml spec file.
-			specPath := config.ContractsPath(tempDir)
+			specPath := workspace.MustNewContext(tempDir).DataPath("contracts.yaml")
 			os.MkdirAll(filepath.Dir(specPath), 0755)
 			if err := os.WriteFile(specPath, []byte(tc.yamlContent), 0644); err != nil {
 				t.Fatalf("failed to write contracts.yaml: %v", err)

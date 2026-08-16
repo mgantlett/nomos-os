@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 )
@@ -104,7 +104,7 @@ func StopProvider(dbPath string, cfg ProviderConfig) error {
 
 // StartTunnel opens an SSH dynamic tunnel in the background using the workspace substrate command execution wrapper.
 func StartTunnel(dbPath string, cfg ProviderConfig, ip string) (*os.Process, error) {
-	keyPath := config.ExpandHomePath(cfg.SSHKey)
+	keyPath := workspace.ExpandHomePath(cfg.SSHKey)
 	dest := fmt.Sprintf("%s@%s", cfg.SSHUser, ip)
 	forwardRule := fmt.Sprintf("%d:localhost:%d", cfg.LocalPort, cfg.RemotePort)
 

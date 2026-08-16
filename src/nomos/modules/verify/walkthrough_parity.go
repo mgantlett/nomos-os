@@ -11,7 +11,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -79,7 +78,7 @@ func VerifyWalkthroughParity(root string) error {
 // extractExtendedCriteria parses the implementation plan for extended acceptance criteria.
 func extractExtendedCriteria(root string, taskId string) []string {
 	var criteria []string
-	planPath := filepath.Join(config.PlansDir(root), taskId+".md")
+	planPath := filepath.Join(workspace.MustNewContext(root).DataPath("plans"), taskId+".md")
 	planData, err := os.ReadFile(planPath)
 	if err != nil {
 		return criteria
@@ -128,7 +127,7 @@ func syncFromBrainArtifact(root string, taskId string, taskWalkthrough string, w
 	}
 
 	// Glob search pattern across all conversation brain directories
-	brainPattern := filepath.Join(homeDir, ".gemini", "antigravity-ide", "brain", "*", config.WalkthroughFileName)
+	brainPattern := filepath.Join(homeDir, ".gemini", "antigravity-ide", "brain", "*", workspace.WalkthroughFileName)
 	matches, _ := filepath.Glob(brainPattern)
 
 	// Check if any matching brain artifacts were located
@@ -155,7 +154,7 @@ func syncFromBrainArtifact(root string, taskId string, taskWalkthrough string, w
 	_ = os.WriteFile(walkthroughPath, data, 0644)
 
 	// Persist walkthrough content to task SSoT directory
-	_ = os.MkdirAll(config.WalkthroughsDir(root), 0755)
+	_ = os.MkdirAll(workspace.MustNewContext(root).DataPath("walkthroughs"), 0755)
 	_ = os.WriteFile(taskWalkthrough, data, 0644)
 
 	// Return the successfully synced temporary walkthrough path
@@ -193,10 +192,10 @@ func findLatestBrainArtifact(matches []string, taskId string) string {
 // if no artifact could be automatically matched with the current state.
 func syncWalkthroughFile(root string, taskId string) (string, error) {
 	// Priority 1: Check legacy or standard location for walkthrough in .nomos/walkthroughs/<taskId>.md
-	localWalkthrough := filepath.Join(config.GlobalDataDir(root), "walkthroughs", taskId+".md")
-	walkthroughPath := filepath.Join(config.WalkthroughsDir(root), taskId+".md")
+	localWalkthrough := filepath.Join(workspace.MustNewContext(root).DataDir(), "walkthroughs", taskId+".md")
+	walkthroughPath := filepath.Join(workspace.MustNewContext(root).DataPath("walkthroughs"), taskId+".md")
 	// Canonical task walkthrough file path in workspace SSoT storage
-	taskWalkthrough := filepath.Join(config.WalkthroughsDir(root), fmt.Sprintf("%s.md", taskId))
+	taskWalkthrough := filepath.Join(workspace.MustNewContext(root).DataPath("walkthroughs"), fmt.Sprintf("%s.md", taskId))
 
 	// Priority 1: Check active task walkthrough locally
 	if data, errRead := os.ReadFile(localWalkthrough); errRead == nil && len(data) > 0 {
@@ -266,7 +265,7 @@ func fetchTaskDetails(root string, id string) (*task.Task, error) {
 	if strings.Contains(root, "/worktrees/") {
 		parts := strings.Split(root, "/worktrees/")
 		parentRepo := parts[0]
-		if _, statErr := os.Stat(config.ResolveGraphDbPath(parentRepo)); statErr == nil {
+		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).DbPath("graph.db")); statErr == nil {
 			primaryRoot = parentRepo
 		}
 	}

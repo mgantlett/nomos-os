@@ -8,7 +8,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
@@ -19,7 +18,7 @@ import (
 // and filtering out debt linked to closed tasks.
 func readQualityDebtManifest(repoRoot string) (QualityDebtManifest, error) {
 	var manifest QualityDebtManifest
-	manifestPath := filepath.Join(config.GlobalDataDir(repoRoot), "state", "quality_debt.json")
+	manifestPath := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "state", "quality_debt.json")
 
 	// Check if the manifest file exists before attempting to read it
 	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
@@ -86,7 +85,7 @@ func readQualityDebtManifest(repoRoot string) (QualityDebtManifest, error) {
 
 // writeQualityDebtManifest commits the updated manifest array back to disk after deduplicating items.
 func writeQualityDebtManifest(repoRoot string, activeDebt []QualityDebtItem) {
-	manifestPath := filepath.Join(config.GlobalDataDir(repoRoot), "state", "quality_debt.json")
+	manifestPath := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "state", "quality_debt.json")
 	_ = os.Chmod(manifestPath, 0644)
 
 	// Deduplicate active debt entries by (File, Gate) to prevent file bloating

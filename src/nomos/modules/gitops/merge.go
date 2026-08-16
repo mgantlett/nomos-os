@@ -174,7 +174,7 @@ func teardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 		remoteDelCmd.Run()
 
 		if taskID != "" && taskID != "UNKNOWN" {
-			wtDir := config.WorktreesDir(repoRoot)
+			wtDir := workspace.MustNewContext(repoRoot).WorktreesDir()
 			entries, err := os.ReadDir(wtDir)
 			if err == nil {
 				for _, entry := range entries {
@@ -257,7 +257,7 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 	if mergeFile != "" {
 		data, err := os.ReadFile(mergeFile)
 		if err == nil {
-			tmpFile := filepath.Join(config.TmpDir(wt), "nomos_commit_in_flight.md")
+			tmpFile := filepath.Join(workspace.MustNewContext(wt).TmpDir(), "nomos_commit_in_flight.md")
 			synapse.Info("Writing mergeFile to %s\n", tmpFile)
 			os.WriteFile(tmpFile, data, 0644)
 			defer os.Remove(tmpFile)
@@ -307,7 +307,7 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 
 			if title != newTitle {
 				commitMsg = strings.Replace(commitMsg, title, newTitle, 1)
-				tmpCommitFile := filepath.Join(config.TmpDir(wt), "nomos_commit_in_flight.md")
+				tmpCommitFile := filepath.Join(workspace.MustNewContext(wt).TmpDir(), "nomos_commit_in_flight.md")
 				os.WriteFile(tmpCommitFile, []byte(commitMsg), 0644)
 				defer os.Remove(tmpCommitFile)
 				commitCmd = exec.Command("git", "commit", "-F", tmpCommitFile)

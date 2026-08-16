@@ -9,14 +9,13 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	nexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 )
 
 // ensurePM2Sync reconciles the in-memory PM2 daemon version with the local CLI binary.
 // This prevents version mismatch warnings and daemon freezes across environment runs.
 func ensurePM2Sync(repoRoot string) {
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 	_, _ = nexec.RunCommand(dbPath, repoRoot, "npx", "--prefer-offline", "pm2", "update")
 }
 
@@ -29,7 +28,7 @@ func ensurePM2Sync(repoRoot string) {
 // orphan regenerated configs.
 func writeScript(ctx *workspace.WorkspaceContext, name, cmdStr string) (string, error) {
 	repoRoot := ctx.RepoRoot
-	stateDir := config.EnvScriptsDir(repoRoot)
+	stateDir := workspace.MustNewContext(repoRoot).DataPath("env")
 	if err := os.MkdirAll(stateDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create state directory %s: %w", stateDir, err)
 	}
@@ -55,7 +54,7 @@ func Start(ctx *workspace.WorkspaceContext, name, logFile, cmdStr, cwd string) e
 		return fmt.Errorf("failed to create log directory %s: %w", filepath.Dir(logFile), err)
 	}
 
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 	if err := reconcileRegistration(dbPath, ctx, name, cmdStr, logFile, cwd); err != nil {
 		return err
 	}
@@ -73,7 +72,7 @@ func Start(ctx *workspace.WorkspaceContext, name, logFile, cmdStr, cwd string) e
 // Stop terminates a background daemon via PM2.
 func Stop(ctx *workspace.WorkspaceContext, name string) error {
 	repoRoot := ctx.RepoRoot
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 	out, err := nexec.RunCommand(dbPath, repoRoot, "npx", "--prefer-offline", "pm2", "stop", name)
 	if err != nil {
 		return fmt.Errorf("pm2 stop failed: %w, output: %s", err, out)
@@ -91,7 +90,7 @@ func Stop(ctx *workspace.WorkspaceContext, name string) error {
 // re-register via `pm2 delete` + `pm2 start` so the regenerated script is actually used.
 func Restart(ctx *workspace.WorkspaceContext, name string) error {
 	repoRoot := ctx.RepoRoot
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 
 	if name == "all" {
 		for _, s := range GetAllServices() {
@@ -145,7 +144,7 @@ func ensureRegisteredScriptPath(dbPath string, ctx *workspace.WorkspaceContext, 
 // `pm2 delete` + `pm2 start`, preserving the original log file and cwd.
 func reconcileRegistration(dbPath string, ctx *workspace.WorkspaceContext, name, cmdStr, logFile, cwd string) error {
 	repoRoot := ctx.RepoRoot
-	canonicalPath := filepath.Join(config.EnvScriptsDir(repoRoot), name+".sh")
+	canonicalPath := filepath.Join(workspace.MustNewContext(repoRoot).DataPath("env"), name+".sh")
 
 	registeredPath, registeredLogFile, registeredCwd, err := resolveRegisteredPM2Process(ctx, name)
 	if err != nil {
@@ -198,7 +197,7 @@ func reconcileRegistration(dbPath string, ctx *workspace.WorkspaceContext, name,
 // that PM2 has registered for the named daemon, or empty strings if not registered.
 func resolveRegisteredPM2Process(ctx *workspace.WorkspaceContext, name string) (string, string, string, error) {
 	repoRoot := ctx.RepoRoot
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 	out, err := nexec.RunCommand(dbPath, repoRoot, "npx", "--prefer-offline", "pm2", "jlist")
 	if err != nil {
 		return "", "", "", fmt.Errorf("pm2 jlist failed: %w", err)
@@ -227,7 +226,7 @@ func resolveRegisteredPM2Process(ctx *workspace.WorkspaceContext, name string) (
 // List returns the telemetry of all PM2 daemons. If asJSON is true, returns raw `pm2 jlist` output.
 func List(ctx *workspace.WorkspaceContext, asJSON bool) (string, error) {
 	repoRoot := ctx.RepoRoot
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 	cmd := "list"
 	if asJSON {
 		cmd = "jlist"
@@ -243,7 +242,7 @@ func List(ctx *workspace.WorkspaceContext, asJSON bool) (string, error) {
 // It returns the output string containing the recent logs.
 func Logs(ctx *workspace.WorkspaceContext, name string) (string, error) {
 	repoRoot := ctx.RepoRoot
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 	// We run `pm2 logs --nostream` to just fetch and return, rather than hang.
 	// If the user expects streaming in the CLI, we could exec differently, but this is fine for now.
 	out, err := nexec.RunCommand(dbPath, repoRoot, "npx", "--prefer-offline", "pm2", "logs", name, "--nostream")

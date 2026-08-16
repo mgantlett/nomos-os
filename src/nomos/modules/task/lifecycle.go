@@ -13,7 +13,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
@@ -183,15 +182,15 @@ func syncArtifactType(repoRoot string, homeDir string, name string, dir string, 
 		data, err := os.ReadFile(latest)
 		if err == nil {
 			// Destination storage path within repository state tree
-			targetDir := filepath.Join(config.GlobalDataDir(repoRoot), dir)
+			targetDir := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), dir)
 			_ = os.MkdirAll(targetDir, 0755)
 			_ = os.WriteFile(filepath.Join(targetDir, filename), data, 0644)
 
 			// Duplicate walkthrough file to temporary directory for parity validation
-			if name == config.WalkthroughFileName {
+			if name == workspace.WalkthroughFileName {
 				// We also keep a cached working copy of the walkthrough in the local tmp dir
 				// for instantaneous commits without re-polling the brain
-				stagingPath := config.WalkthroughStagingPath(repoRoot)
+				stagingPath := workspace.MustNewContext(repoRoot).WalkthroughStagingPath()
 				_ = os.MkdirAll(filepath.Dir(stagingPath), 0755)
 				_ = os.WriteFile(stagingPath, data, 0644)
 			}
@@ -220,7 +219,7 @@ func SyncWorkspaceArtifacts(repoRoot string, taskID string) {
 		// Architectural design and implementation strategy document
 		{"implementation_plan.md", "plans", fmt.Sprintf("%s.md", taskID)},
 		// Execution summary and verification results artifact
-		{config.WalkthroughFileName, "walkthroughs", fmt.Sprintf("%s.md", taskID)},
+		{workspace.WalkthroughFileName, "walkthroughs", fmt.Sprintf("%s.md", taskID)},
 		// Educational deep-dive explaining technical decisions
 		{"explainer.md", "explainers", fmt.Sprintf("%s.md", taskID)},
 		// Self-assessment comprehension testing questions

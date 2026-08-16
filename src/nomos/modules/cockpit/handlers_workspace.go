@@ -15,7 +15,6 @@ import (
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 
 	"github.com/go-playground/form/v4"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
@@ -23,8 +22,8 @@ import (
 
 var formDecoder = form.NewDecoder()
 
-// GitFile represents the status details of a single modified file.
-type GitFile struct {
+// gitFile represents the status details of a single modified file.
+type gitFile struct {
 	File   string `json:"file"`
 	Status string `json:"status"`
 }
@@ -43,23 +42,23 @@ func parseGitStatusLine(line string) (string, string, bool) {
 		}
 	}
 
-	if config.IsInternalSystemDir(fileStr) {
+	if workspace.IsInternalSystemDir(fileStr) {
 		return "", "", false
 	}
 
 	return fileStr, statusSymbol, true
 }
 
-func classifyAndAppend(fileStr, statusSymbol string, staged, unstaged, untracked *[]GitFile) {
+func classifyAndAppend(fileStr, statusSymbol string, staged, unstaged, untracked *[]gitFile) {
 	if statusSymbol == "??" {
-		*untracked = append(*untracked, GitFile{File: fileStr, Status: "untracked"})
+		*untracked = append(*untracked, gitFile{File: fileStr, Status: "untracked"})
 		return
 	}
 	if statusSymbol[0] != ' ' && statusSymbol[0] != '?' {
-		*staged = append(*staged, GitFile{File: fileStr, Status: string(statusSymbol[0])})
+		*staged = append(*staged, gitFile{File: fileStr, Status: string(statusSymbol[0])})
 	}
 	if statusSymbol[1] != ' ' && statusSymbol[1] != '?' {
-		*unstaged = append(*unstaged, GitFile{File: fileStr, Status: string(statusSymbol[1])})
+		*unstaged = append(*unstaged, gitFile{File: fileStr, Status: string(statusSymbol[1])})
 	}
 }
 
@@ -84,9 +83,9 @@ func HandleGitStatusRoute(w http.ResponseWriter, r *http.Request, defaultRepoRoo
 		return
 	}
 
-	staged := []GitFile{}
-	unstaged := []GitFile{}
-	untracked := []GitFile{}
+	staged := []gitFile{}
+	unstaged := []gitFile{}
+	untracked := []gitFile{}
 
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
@@ -220,9 +219,9 @@ func HandleApiTaskTransition(w http.ResponseWriter, r *http.Request, repoRoot st
 	}
 
 	taskID = strings.TrimPrefix(taskID, "#")
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 
-	if err := validateTransitionTask(config.PhaseStatePath(repoRoot), taskID); err != nil {
+	if err := validateTransitionTask(workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json"), taskID); err != nil {
 		http.Error(w, fmt.Sprintf(`{"success":false,"error":"%v"}`, err), http.StatusBadRequest)
 		return
 	}
@@ -252,7 +251,7 @@ func HandleApiTaskReset(w http.ResponseWriter, r *http.Request, repoRoot string)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 
 	var req struct {
 		ID string `form:"id"`
@@ -268,9 +267,9 @@ func HandleApiTaskReset(w http.ResponseWriter, r *http.Request, repoRoot string)
 	}
 
 	taskID = strings.TrimPrefix(taskID, "#")
-	wtDir := filepath.Join(config.WorktreesDir(repoRoot), "task-"+taskID)
+	wtDir := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), "task-"+taskID)
 
-	PerformTaskReset(repoRoot, dbPath, taskID, wtDir)
+	performTaskReset(repoRoot, dbPath, taskID, wtDir)
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
@@ -294,7 +293,7 @@ func HandleApiWorktreesPrune(w http.ResponseWriter, r *http.Request, repoRoot st
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 
 	var pruned []string
 	if req.Path != "" {
@@ -441,12 +440,12 @@ func deleteBranches(dbPath, taskID, branchToDelete string) {
 // by checking out the current state, cleaning all untracked files,
 // and transitioning the system state back to IDLE.
 func cleanMainRepository(repoRoot, dbPath, taskID string) {
-	if bytes, err := os.ReadFile(config.StateTaskIdPath(repoRoot)); err == nil {
+	if bytes, err := os.ReadFile(workspace.MustNewContext(repoRoot).NomosStatePath(".state_task_id")); err == nil {
 		if strings.TrimSpace(string(bytes)) == taskID {
 			_, _ = nomosexec.RunCommand(dbPath, "git", "checkout", ".")
-			_, _ = nomosexec.RunCommand(dbPath, "git", "clean", "-fd", "-e", "*.db", "-e", ".nomos/data/*")
+			_, _ = nomosexec.RunCommand(dbPath, "git", "clean", "-fd", "-e", "*.db", "-e", "."+"nomos/data/*")
 			_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "IDLE")
-			_ = os.WriteFile(config.StateTaskIdPath(repoRoot), []byte(""), 0644)
+			_ = os.WriteFile(workspace.MustNewContext(repoRoot).NomosStatePath(".state_task_id"), []byte(""), 0644)
 		}
 	}
 }
@@ -463,9 +462,9 @@ func ensureWritableAndRemove(targetPath string) error {
 	return os.RemoveAll(targetPath)
 }
 
-// PerformTaskReset executes the complete teardown sequence for a task:
+// performTaskReset executes the complete teardown sequence for a task:
 // killing processes, removing worktrees, pruning branches, and cleaning the workspace.
-func PerformTaskReset(repoRoot, dbPath, taskID, wtDir string) {
+func performTaskReset(repoRoot, dbPath, taskID, wtDir string) {
 	killTaskProcesses(dbPath, taskID)
 	branchToDelete := getBranchToDelete(dbPath, taskID)
 

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -52,8 +51,8 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to marshal state: %v", err)
 		}
-		_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-		statePath := config.PhaseStatePath(tempDir)
+		_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+		statePath := workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json")
 		if err := os.WriteFile(statePath, data, 0644); err != nil {
 			t.Fatalf("failed to write phase state file: %v", err)
 		}
@@ -158,8 +157,8 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 	writePhaseState("EDIT", "false")
 	// Manually overwrite phase state json without updating DB signature
 	tamperedData := []byte(`{"current_phase": "PLAN", "commit_approved": "false", "tampered": "true"}`)
-	_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-	statePath := config.PhaseStatePath(tempDir)
+	_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+	statePath := workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json")
 	if err := os.WriteFile(statePath, tamperedData, 0644); err != nil {
 		t.Fatalf("failed to write tampered phase state file: %v", err)
 	}
@@ -253,8 +252,8 @@ func TestCheckPOCommitApprovalIdle(t *testing.T) {
 		"current_phase": "IDLE",
 	}
 	data, _ := json.Marshal(state)
-	_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-	_ = os.WriteFile(config.PhaseStatePath(tempDir), data, 0644)
+	_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+	_ = os.WriteFile(workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json"), data, 0644)
 
 	// Create planning metadata file
 	planningFile := filepath.Join(tempDir, "walkthrough.md")

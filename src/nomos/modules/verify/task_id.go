@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // GetActiveTaskId attempts to detect the active Task ID from local files or git branch.
@@ -33,7 +33,7 @@ func GetActiveTaskId(root string) string {
 
 // getTaskIdFromState reads the active task ID from the .agent/state/.state_task_id cache.
 func getTaskIdFromState(root string) string {
-	stateTaskIdPath := config.StateTaskIdPath(root)
+	stateTaskIdPath := workspace.MustNewContext(root).NomosStatePath(".state_task_id")
 	if content, err := os.ReadFile(stateTaskIdPath); err == nil {
 		return strings.TrimSpace(string(content))
 	}
@@ -51,7 +51,7 @@ func getTaskIdFromParentTask(root string) string {
 
 // getTaskIdFromTaskMd parses the temporary task markdown file to extract the issue code.
 func getTaskIdFromTaskMd(root string) string {
-	taskMdPath := filepath.Join(config.TmpDir(root), "task.md")
+	taskMdPath := filepath.Join(workspace.MustNewContext(root).TmpDir(), "task.md")
 	if content, err := os.ReadFile(taskMdPath); err == nil {
 		rx := regexp.MustCompile(`([A-Z0-9]+-\d+)`)
 		if match := rx.FindString(string(content)); match != "" {
@@ -84,7 +84,7 @@ func getTaskIdFromGitBranch(root string) string {
 // getTaskIdFromPhaseState parses the internal phase state JSON document to extract
 // the formally recorded task ID, acting as the absolute last resort fallback.
 func getTaskIdFromPhaseState(root string) string {
-	phaseStatePath := config.PhaseStatePath(root)
+	phaseStatePath := workspace.MustNewContext(root).NomosStatePath(".phase_state.json")
 	if content, err := os.ReadFile(phaseStatePath); err == nil {
 		rxState := regexp.MustCompile(`"task_id":\s*"([^"]+)"`)
 		if match := rxState.FindStringSubmatch(string(content)); len(match) > 1 && match[1] != "" {

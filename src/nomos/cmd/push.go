@@ -15,7 +15,6 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/gitops"
@@ -105,7 +104,7 @@ var pushCmd = &cobra.Command{
 					continue
 				}
 				// Ignore modifications to task JSON files
-				if config.IsNomosTaskFile(line) {
+				if workspace.IsNomosTaskFile(line) {
 					continue
 				}
 				dirty = true
@@ -366,15 +365,15 @@ var pushCmd = &cobra.Command{
 
 						// Try parsing walkthrough summary
 						walkthroughContent := ""
-						walkthroughPath := filepath.Join(config.GlobalDataDir(repoRoot), "walkthroughs", key+".md")
+						walkthroughPath := filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "walkthroughs", key+".md")
 						if data, err := os.ReadFile(walkthroughPath); err == nil {
 							walkthroughContent = string(data)
 						} else {
 							// fallback check
-							files, _ := os.ReadDir(filepath.Join(config.GlobalDataDir(repoRoot), "walkthroughs"))
+							files, _ := os.ReadDir(filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "walkthroughs"))
 							for _, f := range files {
 								if f.IsDir() && strings.Contains(f.Name(), key) {
-									if data, err := os.ReadFile(filepath.Join(config.GlobalDataDir(repoRoot), "walkthroughs", f.Name()+".md")); err == nil {
+									if data, err := os.ReadFile(filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "walkthroughs", f.Name()+".md")); err == nil {
 										walkthroughContent = string(data)
 										break
 									}
@@ -469,7 +468,7 @@ var pushCmd = &cobra.Command{
 		}
 
 		// 5. Clean up active workspace state and transitions
-		_ = os.Remove(config.StateTaskIdPath(repoRoot))
+		_ = os.Remove(workspace.MustNewContext(repoRoot).NomosStatePath(".state_task_id"))
 		_ = os.Remove(filepath.Join(repoRoot, ".agent", ".state_dod_failure_count"))
 		_ = os.Remove(filepath.Join(repoRoot, ".agent", ".state_commit_approved"))
 		_ = os.Remove(filepath.Join(repoRoot, ".agent", ".state_plan_approved"))

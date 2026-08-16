@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -22,7 +22,7 @@ import (
 // It ensures that an active task ID is set, the implementation plan is approved,
 // and the workspace phase is transitioned to EDIT or REVIEW mode.
 func VerifyDoR(root string) error {
-	phaseStatePath := config.PhaseStatePath(root)
+	phaseStatePath := workspace.MustNewContext(root).NomosStatePath(".phase_state.json")
 	content, err := os.ReadFile(phaseStatePath)
 	if err != nil {
 		return fmt.Errorf("failed to read phase state: %w", err)
@@ -62,7 +62,7 @@ func verifyAgentDeepReview(root string, state task.PhaseState) error {
 	if state.Agent != "antigravity" && state.Agent != "aider" && !strings.HasPrefix(state.Agent, "swarm:") {
 		return nil
 	}
-	taskMdPath := filepath.Join(config.GlobalDataDir(root), "tmp", "task.md")
+	taskMdPath := filepath.Join(workspace.MustNewContext(root).DataDir(), "tmp", "task.md")
 	content, err := os.ReadFile(taskMdPath)
 	if err != nil {
 		return nil

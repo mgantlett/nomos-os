@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/assets"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
@@ -177,7 +177,7 @@ func autoConfigureIDEs() {
 	if _, err := os.Stat(geminiConfigDir); err == nil {
 		synapse.Info(" 🤖 Antigravity IDE detected. Auto-configuring global customizations...")
 
-		globalConfigDir := config.GlobalAgentConfigDir()
+		globalConfigDir := workspace.GlobalAgentConfigDir()
 
 		// Symlink AGENTS.md
 		agentsSrc := filepath.Join(globalConfigDir, "AGENTS.md")
@@ -202,7 +202,7 @@ func autoConfigureIDEs() {
 		// Fallback for unknown IDEs
 		synapse.Info(" 💡 IDE SETUP REQUIRED for Tier 1 UX (Slash Commands & Global Rules)")
 		synapse.Info("    Ensure your AI coding agent has mapped its global customizations root to:")
-		synapse.Info("    %s", config.GlobalAgentConfigDir())
+		synapse.Info("    %s", workspace.GlobalAgentConfigDir())
 	}
 	synapse.Info("")
 }
@@ -214,7 +214,7 @@ func scaffoldNixEnvironment(repoRoot string) {
 	shellNixPath := filepath.Join(repoRoot, "shell.nix")
 	envrcPath := filepath.Join(repoRoot, ".envrc")
 
-	nomosBinPath := config.NomosCommonsBinPath(repoRoot)
+	nomosBinPath := workspace.MustNewContext(repoRoot).NomosCommonsBinPath()
 
 	// 1. Scaffold or Parse shell.nix
 	if _, err := os.Stat(shellNixPath); os.IsNotExist(err) {

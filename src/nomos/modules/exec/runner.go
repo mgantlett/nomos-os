@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // RunCommand executes a command, registers its PID and command string in the
@@ -65,7 +65,7 @@ func StartCommand(dbPath string, cmdDir string, name string, args ...string) (*o
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 
 	// Redirect stdout and stderr directly to nomos.jsonl to capture native daemon telemetry
-	logPath := filepath.Join(config.LogsDir(cmdDir), "nomos.jsonl")
+	logPath := filepath.Join(workspace.MustNewContext(cmdDir).LogsDir(), "nomos.jsonl")
 	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err == nil {
 		cmd.Stdout = logFile

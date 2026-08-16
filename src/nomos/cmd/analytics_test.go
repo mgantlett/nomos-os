@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 var nomosBinPath string
@@ -430,8 +430,8 @@ func TestAnalyticsJSONDeterministicOutput(t *testing.T) {
 			}
 		}
 	}`
-	_ = os.MkdirAll(config.StateDir(tmpDir), 0755)
-	err = os.WriteFile(config.PhaseStatePath(tmpDir), []byte(phaseStateContent), 0644)
+	_ = os.MkdirAll(workspace.MustNewContext(tmpDir).StateDir(), 0755)
+	err = os.WriteFile(workspace.MustNewContext(tmpDir).NomosStatePath(".phase_state.json"), []byte(phaseStateContent), 0644)
 	require.NoError(err)
 
 	out1, err := runNomosCmd(t, "analytics", "--json", tmpDir)
@@ -464,7 +464,7 @@ func TestAnalyticsJSONTextOutputUnchanged(t *testing.T) {
 	git("commit", "--allow-empty", "-m", "fix: patch")
 
 	// Create dummy telemetry and phase state so all sections get rendered
-	err = os.MkdirAll(config.NomosStatePath(tmpDir, "logs"), 0755)
+	err = os.MkdirAll(workspace.MustNewContext(tmpDir).NomosStatePath("logs"), 0755)
 	if err != nil {
 		t.Fatalf("Failed to create log dir: %v", err)
 	}
@@ -472,7 +472,7 @@ func TestAnalyticsJSONTextOutputUnchanged(t *testing.T) {
 	telemetryContent := `{"event_type": "phase_transition", "detail": "init"}
 `
 
-	err = os.WriteFile(filepath.Join(config.NomosStatePath(tmpDir, "logs"), "telemetry.jsonl"), []byte(telemetryContent), 0644)
+	err = os.WriteFile(filepath.Join(workspace.MustNewContext(tmpDir).NomosStatePath("logs"), "telemetry.jsonl"), []byte(telemetryContent), 0644)
 	require.NoError(err)
 
 	phaseStateContent := `{
@@ -484,8 +484,8 @@ func TestAnalyticsJSONTextOutputUnchanged(t *testing.T) {
 			}
 		}
 	}`
-	_ = os.MkdirAll(config.StateDir(tmpDir), 0755)
-	err = os.WriteFile(config.PhaseStatePath(tmpDir), []byte(phaseStateContent), 0644)
+	_ = os.MkdirAll(workspace.MustNewContext(tmpDir).StateDir(), 0755)
+	err = os.WriteFile(workspace.MustNewContext(tmpDir).NomosStatePath(".phase_state.json"), []byte(phaseStateContent), 0644)
 	require.NoError(err)
 
 	out, err := runNomosCmd(t, "analytics", tmpDir)

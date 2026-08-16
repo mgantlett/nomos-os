@@ -8,7 +8,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/env"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
@@ -74,7 +73,7 @@ var devCmd = &cobra.Command{
 		}
 		defer os.Chdir(origDir)
 
-		dbPath := config.ResolveCacheDbPath(config.GlobalDataDir(repoRoot))
+		dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 
 		// Execute interactive foreground command
 		if err := exec.RunCommandInteractive(dbPath, cwd, binName, binArgs...); err != nil {

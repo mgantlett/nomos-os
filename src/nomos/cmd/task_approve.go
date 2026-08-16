@@ -13,7 +13,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
@@ -40,7 +39,7 @@ var taskApproveCmd = &cobra.Command{
 			return err
 		}
 
-		phaseStatePath := config.PhaseStatePath(repoRoot)
+		phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 
 		// Handle phase transition logic according to current workspace state machine
 		if state.CurrentPhase == statepkg.PhasePlan {
@@ -48,7 +47,7 @@ var taskApproveCmd = &cobra.Command{
 			state.PlanApproved = "true"
 		} else if state.CurrentPhase == statepkg.PhaseEdit {
 			// In EDIT phase: enforce walkthrough artifact existence before entering REVIEW
-			walkthroughPath := filepath.Join(config.WalkthroughsDir(repoRoot), state.TaskId+".md")
+			walkthroughPath := filepath.Join(workspace.MustNewContext(repoRoot).DataPath("walkthroughs"), state.TaskId+".md")
 			if _, err := os.Stat(walkthroughPath); os.IsNotExist(err) {
 				return fmt.Errorf("task approval rejected: global walkthroughs/%s.md is missing. Generate walkthrough artifact before transitioning to REVIEW", state.TaskId)
 			}

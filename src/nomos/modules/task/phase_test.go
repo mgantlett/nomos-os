@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
@@ -43,8 +42,8 @@ func TestTransitionPhaseAndHooks(t *testing.T) {
 		WaitingOnHuman:   "true",
 	}
 	initialBytes, _ := json.MarshalIndent(initialState, "", "  ")
-	_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-	if err := os.WriteFile(config.PhaseStatePath(tempDir), initialBytes, 0644); err != nil {
+	_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+	if err := os.WriteFile(workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json"), initialBytes, 0644); err != nil {
 		t.Fatalf("failed to write initial phase state: %v", err)
 	}
 
@@ -71,7 +70,7 @@ echo "task=$NOMOS_ACTIVE_TASK phase=$NOMOS_CURRENT_PHASE" > "%s"
 	}
 
 	// 1. Verify JSON file changes
-	data, err := os.ReadFile(config.PhaseStatePath(tempDir))
+	data, err := os.ReadFile(workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json"))
 	if err != nil {
 		t.Fatalf("failed to read modified state: %v", err)
 	}
@@ -171,8 +170,8 @@ func TestGetPhaseStateValidation(t *testing.T) {
 			}
 
 			phaseBytes, _ := json.Marshal(tc.state)
-			_ = os.MkdirAll(config.StateDir(tempDir), 0755)
-			if err := os.WriteFile(config.PhaseStatePath(tempDir), phaseBytes, 0644); err != nil {
+			_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
+			if err := os.WriteFile(workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json"), phaseBytes, 0644); err != nil {
 				t.Fatalf("failed to write test phase state: %v", err)
 			}
 

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 func TestParseSpecFiles(t *testing.T) {
@@ -65,7 +65,7 @@ func TestGetActiveTaskId(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	tmpDir := config.TmpDir(tempDir)
+	tmpDir := workspace.MustNewContext(tempDir).TmpDir()
 	if err := os.MkdirAll(tmpDir, 0755); err != nil {
 		t.Fatalf("failed to create task.md dir: %v", err)
 	}
@@ -81,9 +81,9 @@ func TestGetActiveTaskId(t *testing.T) {
 
 	os.Remove(taskMdPath)
 
-	_ = os.MkdirAll(config.StateDir(tempDir), 0755)
+	_ = os.MkdirAll(workspace.MustNewContext(tempDir).StateDir(), 0755)
 	stateContent := `{"task_id": "347"}`
-	if err := os.WriteFile(config.PhaseStatePath(tempDir), []byte(stateContent), 0644); err != nil {
+	if err := os.WriteFile(workspace.MustNewContext(tempDir).NomosStatePath(".phase_state.json"), []byte(stateContent), 0644); err != nil {
 		t.Fatalf("failed to write phase state: %v", err)
 	}
 
@@ -100,7 +100,7 @@ func TestCheckSpecParity(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	specsDir := filepath.Join(config.PlansDir(tempDir), "347")
+	specsDir := filepath.Join(workspace.MustNewContext(tempDir).DataPath("plans"), "347")
 	if err := os.MkdirAll(specsDir, 0755); err != nil {
 		t.Fatalf("failed to create specs dir: %v", err)
 	}

@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
@@ -221,15 +220,15 @@ func resolveProviderConfig(name string) (provider.ProviderConfig, error) {
 	repoRoot := findRepoRoot(wd)
 
 	// Load provider details from models.yaml
-	return LoadProviderConfig(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), name)
+	return loadProviderConfig(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), name)
 }
 
-// LoadProviderConfig parses models.yaml configuration and retrieves a provider by name.
-func LoadProviderConfig(ctx *workspace.WorkspaceContext, providerName string) (provider.ProviderConfig, error) {
+// loadProviderConfig parses models.yaml configuration and retrieves a provider by name.
+func loadProviderConfig(ctx *workspace.WorkspaceContext, providerName string) (provider.ProviderConfig, error) {
 	repoRoot := ctx.RepoRoot
 	// Initialize custom viper configuration parser
 	v := viper.New()
-	v.SetConfigFile(config.ModelsPath(repoRoot))
+	v.SetConfigFile(workspace.MustNewContext(repoRoot).DataPath("models.yaml"))
 	if err := v.ReadInConfig(); err != nil {
 		return provider.ProviderConfig{}, fmt.Errorf("failed to read models.yaml config: %w", err)
 	}

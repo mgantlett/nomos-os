@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -107,7 +106,7 @@ func sweepZombieTasks(root string, ctx context.Context, tracker task.Tracker, ta
 
 // checkCircuitBreaker scans the telemetry log to see if the active agent is in a hallucination loop.
 func checkCircuitBreaker(root, activeTask string) bool {
-	logPath := filepath.Join(config.LogsDir(root), "nomos.jsonl")
+	logPath := filepath.Join(workspace.MustNewContext(root).LogsDir(), "nomos.jsonl")
 	f, err := os.Open(logPath)
 	if err != nil {
 		return false

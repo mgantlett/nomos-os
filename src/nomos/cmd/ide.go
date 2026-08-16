@@ -14,7 +14,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
@@ -97,7 +96,7 @@ var ideColorCmd = &cobra.Command{
 		chosen := palette[rand.Intn(len(palette))]
 
 		// Persist the randomly chosen color override in the .nomos/state directory to avoid git pollution.
-		colorPath := filepath.Join(config.StateDir(repoRoot), ".repo_color")
+		colorPath := filepath.Join(workspace.MustNewContext(repoRoot).StateDir(), ".repo_color")
 		_ = os.MkdirAll(filepath.Dir(colorPath), 0755)
 		if err := os.WriteFile(colorPath, []byte(chosen), 0644); err != nil {
 			return fmt.Errorf("failed to save color override: %w", err)

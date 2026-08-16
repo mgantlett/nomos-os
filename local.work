@@ -2,5 +2,5 @@ go 1.26.5
 
 use (
 	.
-	../nomos-commons-COM-1017
+	../nomos-commons-NOM-2
 )

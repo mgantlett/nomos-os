@@ -18,7 +18,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
@@ -28,14 +27,14 @@ import (
 func RunHygieneCleanups(ctx *workspace.WorkspaceContext) error {
 	repoRoot := ctx.RepoRoot
 	// 1. Unset any stale PO approval locks to prevent ghost approvals from lingering.
-	poApprovalPath := filepath.Join(config.TmpDir(repoRoot), ".po_approval_granted")
+	poApprovalPath := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), ".po_approval_granted")
 	_ = os.Remove(poApprovalPath)
 	return nil
 }
 
 func writePhaseState(ctx *workspace.WorkspaceContext, key, assignee, agentFlag string) error {
 	repoRoot := ctx.RepoRoot
-	phaseStatePath := config.PhaseStatePath(repoRoot)
+	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 	agentType := "ide"
 	if agentFlag == "aider" || assignee == "aider" {
 		agentType = "swarm"
@@ -110,7 +109,7 @@ func StartTask(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tr
 		}
 	}
 
-	taskMdPath := filepath.Join(config.TmpDir(repoRoot), "task.md")
+	taskMdPath := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), "task.md")
 	taskContent := fmt.Sprintf("# Task %s: %s\n\n%s\n\n%s\n", key, t.Title, schema.DeepReviewChecklistItem, t.Description)
 
 	// Similar to the phase state path above, the temporary data directory
@@ -120,11 +119,11 @@ func StartTask(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tr
 	_ = os.MkdirAll(filepath.Dir(taskMdPath), 0755)
 	_ = os.WriteFile(taskMdPath, []byte(taskContent), 0644)
 
-	if err := os.MkdirAll(config.StateDir(repoRoot), 0755); err != nil {
+	if err := os.MkdirAll(workspace.MustNewContext(repoRoot).StateDir(), 0755); err != nil {
 		return "", "", err
 	}
 
-	stateTaskIdPath := config.StateTaskIdPath(repoRoot)
+	stateTaskIdPath := workspace.MustNewContext(repoRoot).NomosStatePath(".state_task_id")
 	if err := os.WriteFile(stateTaskIdPath, []byte(key), 0644); err != nil {
 		return "", "", err
 	}
@@ -135,7 +134,7 @@ func StartTask(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tr
 		return "", "", err
 	}
 
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 	if out, err := nomosexec.GitStashPopByName(dbPath, repoRoot, "nomos-park-task-"+key); err == nil && out != "" {
 		fmt.Printf("Restored parked uncommitted changes for task %s from git stash.\n", key)
 	}
@@ -148,10 +147,10 @@ func StartTask(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tr
 // and transitioning phase to IDLE.
 func ResetTask(ctx *workspace.WorkspaceContext, wd string, stash bool) error {
 	repoRoot := ctx.RepoRoot
-	dbPath := config.ResolveCacheDbPath(repoRoot)
+	dbPath := workspace.MustNewContext(repoRoot).DbPath("cache.db")
 
 	// Resolve the active task ID from the local state file cache within this workspace directory.
-	stateTaskIdPath := config.StateTaskIdPath(wd)
+	stateTaskIdPath := workspace.MustNewContext(wd).NomosStatePath(".state_task_id")
 	bytes, err := os.ReadFile(stateTaskIdPath)
 	if err != nil {
 		return fmt.Errorf("no active task found in this workspace context: %w", err)
@@ -169,7 +168,7 @@ func ResetTask(ctx *workspace.WorkspaceContext, wd string, stash bool) error {
 		// Resetting changes: discard local modifications completely via git checkout and clean.
 		fmt.Printf("Resetting task %s inside workspace %s...\n", taskID, wd)
 		_, _ = nomosexec.RunCommand(dbPath, "git", "-C", wd, "checkout", ".")
-		_, _ = nomosexec.RunCommand(dbPath, "git", "-C", wd, "clean", "-fd", "-e", "*.db", "-e", ".nomos/data/*")
+		_, _ = nomosexec.RunCommand(dbPath, "git", "-C", wd, "clean", "-fd", "-e", "*.db", "-e", "."+"nomos/data/*")
 	}
 
 	// Transition the workspace phase state locally to IDLE using unified executor helper.

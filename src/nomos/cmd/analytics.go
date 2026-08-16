@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,19 +14,18 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
 
-type WeeklyVelocityEntry struct {
+type weeklyVelocityEntry struct {
 	Week    int `json:"week"`
 	Commits int `json:"commits"`
 }
 
-type CommitTypes map[string]int
+type commitTypes map[string]int
 
-type TelemetryData struct {
+type telemetryData struct {
 	TotalEvents int    `json:"total_events"`
 	Transitions int    `json:"transitions"`
 	Failures    int    `json:"failures"`
@@ -36,7 +34,7 @@ type TelemetryData struct {
 	BypassRatio string `json:"bypass_ratio"`
 }
 
-type ModuleRating struct {
+type moduleRating struct {
 	Module           string  `json:"module"`
 	Grade            string  `json:"grade"`
 	Successes        float64 `json:"successes"`
@@ -44,13 +42,13 @@ type ModuleRating struct {
 	ConsecutiveFails float64 `json:"consecutive_fails"`
 }
 
-type AnalyticsData struct {
+type analyticsData struct {
 	Period          string                `json:"period"`
 	TotalCommits    int                   `json:"total_commits"`
-	WeeklyVelocity  []WeeklyVelocityEntry `json:"weekly_velocity"`
-	CommitTypes     CommitTypes           `json:"commit_types"`
-	Telemetry       TelemetryData         `json:"telemetry"`
-	ModuleRatings   []ModuleRating        `json:"module_ratings"`
+	WeeklyVelocity  []weeklyVelocityEntry `json:"weekly_velocity"`
+	CommitTypes     map[string]int        `json:"commit_types"`
+	Telemetry       telemetryData         `json:"telemetry"`
+	ModuleRatings   []moduleRating        `json:"module_ratings"`
 	LayerAverages   map[string]float64    `json:"layer_averages"`
 	EpicProjections map[string]float64    `json:"epic_projections"`
 }
@@ -90,17 +88,17 @@ var (
 				return err
 			}
 
-			commitTypes, maxTypeVal, err := collectCommitTypes(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), since)
+			CommitTypes, maxTypeVal, err := collectCommitTypes(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), since)
 			if err != nil {
 				return err
 			}
 
-			telemetryData, err := collectTelemetry(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), totalCommits)
+			TelemetryData, err := collectTelemetry(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), totalCommits)
 			if err != nil {
 				return err
 			}
 
-			moduleRatings, err := collectModuleRatings(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
+			ModuleRatings, err := collectModuleRatings(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 			if err != nil {
 				return err
 			}
@@ -126,13 +124,13 @@ var (
 				}
 			}
 
-			data := &AnalyticsData{
+			data := &analyticsData{
 				Period:          "30d",
 				TotalCommits:    totalCommits,
 				WeeklyVelocity:  weeklyVelocity,
-				CommitTypes:     commitTypes,
-				Telemetry:       telemetryData,
-				ModuleRatings:   moduleRatings,
+				CommitTypes:     CommitTypes,
+				Telemetry:       TelemetryData,
+				ModuleRatings:   ModuleRatings,
 				LayerAverages:   averages,
 				EpicProjections: epicProjections,
 			}
@@ -142,13 +140,13 @@ var (
 			}
 
 			// For text output, determine if files exist to show sections
-			telemetryPath := filepath.Join(config.NomosStatePath(repoRoot, "logs", "telemetry.jsonl"))
+			telemetryPath := workspace.MustNewContext(repoRoot).NomosStatePath("logs", "telemetry.jsonl")
 			_, errTelemetry := os.Stat(telemetryPath)
 			hasTelemetry := errTelemetry == nil
 
-			phaseStatePath := config.PhaseStatePath(repoRoot)
+			phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 			_, errPhaseState := os.Stat(phaseStatePath)
-			hasModuleRatings := errPhaseState == nil && len(moduleRatings) > 0
+			hasModuleRatings := errPhaseState == nil && len(ModuleRatings) > 0
 
 			renderText(data, maxWeeklyVal, maxTypeVal, hasTelemetry, hasModuleRatings)
 			return nil
@@ -164,16 +162,16 @@ func runGitCommand(ctx *workspace.WorkspaceContext, args ...string) (string, err
 	return strings.TrimSpace(string(out)), err
 }
 
-func collectWeeklyVelocity(ctx *workspace.WorkspaceContext) ([]WeeklyVelocityEntry, int, error) {
+func collectWeeklyVelocity(ctx *workspace.WorkspaceContext) ([]weeklyVelocityEntry, int, error) {
 	repoRoot := ctx.RepoRoot
-	weeklyVelocity := make([]WeeklyVelocityEntry, 0, 4)
+	weeklyVelocity := make([]weeklyVelocityEntry, 0, 4)
 	maxVal := 1
 	for i := 4; i >= 1; i-- {
 		wStart := fmt.Sprintf("%d days ago", i*7)
 		wEnd := fmt.Sprintf("%d days ago", (i-1)*7)
 		cStr, _ := runGitCommand(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "rev-list", "--count", "--since="+wStart, "--until="+wEnd, "HEAD")
 		c, _ := strconv.Atoi(cStr)
-		weeklyVelocity = append(weeklyVelocity, WeeklyVelocityEntry{
+		weeklyVelocity = append(weeklyVelocity, weeklyVelocityEntry{
 			Week:    5 - i,
 			Commits: c,
 		})
@@ -184,10 +182,10 @@ func collectWeeklyVelocity(ctx *workspace.WorkspaceContext) ([]WeeklyVelocityEnt
 	return weeklyVelocity, maxVal, nil
 }
 
-func collectCommitTypes(ctx *workspace.WorkspaceContext, since string) (CommitTypes, int, error) {
+func collectCommitTypes(ctx *workspace.WorkspaceContext, since string) (commitTypes, int, error) {
 	repoRoot := ctx.RepoRoot
 	types := []string{"feat", "fix", "docs", "refactor", "chore"}
-	commitTypes := make(CommitTypes)
+	commitTypesMap := make(commitTypes)
 	maxTypeVal := 1
 	for _, t := range types {
 		cStr, _ := runGitCommand(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "log", "--since="+since, "--oneline", "--grep=^[^ ]* "+t)
@@ -198,19 +196,19 @@ func collectCommitTypes(ctx *workspace.WorkspaceContext, since string) (CommitTy
 				count++
 			}
 		}
-		commitTypes[t] = count
+		commitTypesMap[t] = count
 		if count > maxTypeVal {
 			maxTypeVal = count
 		}
 	}
-	return commitTypes, maxTypeVal, nil
+	return commitTypesMap, maxTypeVal, nil
 }
 
-func collectTelemetry(ctx *workspace.WorkspaceContext, totalCommits int) (TelemetryData, error) {
+func collectTelemetry(ctx *workspace.WorkspaceContext, totalCommits int) (telemetryData, error) {
 	repoRoot := ctx.RepoRoot
-	telemetryPath := filepath.Join(config.NomosStatePath(repoRoot, "logs", "telemetry.jsonl"))
+	telemetryPath := workspace.MustNewContext(repoRoot).NomosStatePath("logs", "telemetry.jsonl")
 	if fi, err := os.Stat(telemetryPath); err != nil || fi.IsDir() {
-		return TelemetryData{
+		return telemetryData{
 			TotalEvents: 0,
 			Transitions: 0,
 			Failures:    0,
@@ -222,7 +220,7 @@ func collectTelemetry(ctx *workspace.WorkspaceContext, totalCommits int) (Teleme
 
 	file, err := os.Open(telemetryPath)
 	if err != nil {
-		return TelemetryData{
+		return telemetryData{
 			TotalEvents: 0,
 			Transitions: 0,
 			Failures:    0,
@@ -257,7 +255,7 @@ func collectTelemetry(ctx *workspace.WorkspaceContext, totalCommits int) (Teleme
 		bypassRatio = fmt.Sprintf("%.1f%%", float64(bypasses*100)/float64(totalCommits))
 	}
 
-	return TelemetryData{
+	return telemetryData{
 		TotalEvents: totalEvents,
 		Transitions: transitions,
 		Failures:    failures,
@@ -285,23 +283,23 @@ func processTelemetryEvent(event map[string]interface{}, transitions, failures, 
 	}
 }
 
-func collectModuleRatings(ctx *workspace.WorkspaceContext) ([]ModuleRating, error) {
+func collectModuleRatings(ctx *workspace.WorkspaceContext) ([]moduleRating, error) {
 	repoRoot := ctx.RepoRoot
-	moduleRatings := []ModuleRating{}
-	phaseStatePath := config.PhaseStatePath(repoRoot)
+	ModuleRatings := []moduleRating{}
+	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 	data, err := os.ReadFile(phaseStatePath)
 	if err != nil {
-		return moduleRatings, nil
+		return ModuleRatings, nil
 	}
 
 	var phaseData map[string]interface{}
 	if err := json.Unmarshal(data, &phaseData); err != nil {
-		return moduleRatings, nil
+		return ModuleRatings, nil
 	}
 
 	metrics, ok := phaseData["module_metrics"].(map[string]interface{})
 	if !ok || len(metrics) == 0 {
-		return moduleRatings, nil
+		return ModuleRatings, nil
 	}
 
 	var sortedModules []string
@@ -325,7 +323,7 @@ func collectModuleRatings(ctx *workspace.WorkspaceContext) ([]ModuleRating, erro
 				grade = "Competent"
 			}
 
-			moduleRatings = append(moduleRatings, ModuleRating{
+			ModuleRatings = append(ModuleRatings, moduleRating{
 				Module:           mod,
 				Grade:            grade,
 				Successes:        success,
@@ -335,16 +333,16 @@ func collectModuleRatings(ctx *workspace.WorkspaceContext) ([]ModuleRating, erro
 		}
 	}
 
-	return moduleRatings, nil
+	return ModuleRatings, nil
 }
 
-func renderJSON(data *AnalyticsData) error {
+func renderJSON(data *analyticsData) error {
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(data)
 }
 
-func renderText(data *AnalyticsData, maxWeeklyVal int, maxTypeVal int, hasTelemetry bool, hasModuleRatings bool) {
+func renderText(data *analyticsData, maxWeeklyVal int, maxTypeVal int, hasTelemetry bool, hasModuleRatings bool) {
 	synapse.Info("%s", fmt.Sprint("\x1b[1m\x1b[36m  📊 Nomos Agent Performance Analytics (30d)\x1b[0m"))
 	synapse.Info("")
 
@@ -355,7 +353,7 @@ func renderText(data *AnalyticsData, maxWeeklyVal int, maxTypeVal int, hasTeleme
 	renderCPM(data)
 }
 
-func renderWeeklyVelocity(data *AnalyticsData, maxWeeklyVal int) {
+func renderWeeklyVelocity(data *analyticsData, maxWeeklyVal int) {
 	synapse.Info("%s", fmt.Sprint("  \x1b[1m─── Weekly Velocity Trend ──────────────────────────────\x1b[0m"))
 	for _, entry := range data.WeeklyVelocity {
 		barLen := (entry.Commits * 40) / maxWeeklyVal
@@ -368,7 +366,7 @@ func renderWeeklyVelocity(data *AnalyticsData, maxWeeklyVal int) {
 	synapse.Info("")
 }
 
-func renderCommitTypes(data *AnalyticsData, maxTypeVal int) {
+func renderCommitTypes(data *analyticsData, maxTypeVal int) {
 	synapse.Info("%s", fmt.Sprint("  \x1b[1m─── Commit Type Distribution ───────────────────────────\x1b[0m"))
 	types := []string{"feat", "fix", "docs", "refactor", "chore"}
 	for _, t := range types {
@@ -383,7 +381,7 @@ func renderCommitTypes(data *AnalyticsData, maxTypeVal int) {
 	synapse.Info("")
 }
 
-func renderTelemetry(data *AnalyticsData, hasTelemetry bool) {
+func renderTelemetry(data *analyticsData, hasTelemetry bool) {
 	if hasTelemetry {
 		synapse.Info("%s", fmt.Sprint("  \x1b[1m─── Telemetric Event Analytics ─────────────────────────\x1b[0m"))
 		t := data.Telemetry
@@ -397,7 +395,7 @@ func renderTelemetry(data *AnalyticsData, hasTelemetry bool) {
 	}
 }
 
-func renderModuleRatings(data *AnalyticsData, hasModuleRatings bool) {
+func renderModuleRatings(data *analyticsData, hasModuleRatings bool) {
 	if hasModuleRatings {
 		synapse.Info("%s", fmt.Sprint("  \x1b[1m─── Codebase Module Competence Ratings ─────────────────\x1b[0m"))
 		for _, r := range data.ModuleRatings {
@@ -412,7 +410,7 @@ func renderModuleRatings(data *AnalyticsData, hasModuleRatings bool) {
 	}
 }
 
-func renderCPM(data *AnalyticsData) {
+func renderCPM(data *analyticsData) {
 	if len(data.LayerAverages) > 0 {
 		synapse.Info("%s", fmt.Sprint("  \x1b[1m─── Critical Path (CPM) Layer Averages ─────────────────\x1b[0m"))
 		for layer, avg := range data.LayerAverages {

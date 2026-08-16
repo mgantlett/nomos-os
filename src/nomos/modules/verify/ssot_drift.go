@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
-
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 // CheckSSOTDrift verifies that the global Single Source of Truth
@@ -29,7 +27,7 @@ func CheckSSOTDrift(ctx *workspace.WorkspaceContext) error {
 	var driftErrors []string
 
 	// Check workspace-level AGENTS.md
-	workspaceAgentsPath := config.WorkspaceAgentConfigPath(repoRoot)
+	workspaceAgentsPath := workspace.MustNewContext(repoRoot).WorkspaceAgentConfigPath()
 	workspaceErrors, err := checkSSOTFile(workspaceAgentsPath)
 	if err != nil {
 		return err
@@ -37,7 +35,7 @@ func CheckSSOTDrift(ctx *workspace.WorkspaceContext) error {
 	driftErrors = append(driftErrors, workspaceErrors...)
 
 	// Check global GEMINI.md
-	globalAgentsPath := config.GlobalAgentsMdPath()
+	globalAgentsPath := workspace.GlobalAgentsMdPath()
 	globalErrors, err := checkSSOTFile(globalAgentsPath)
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +31,7 @@ var configGetCmd = &cobra.Command{
 		}
 		path := cfgFile
 		if path == "" {
-			path = filepath.Join(config.GlobalDataDir(exec.FindRepoRoot(cwd)), "config.yaml")
+			path = filepath.Join(workspace.MustNewContext(exec.FindRepoRoot(cwd)).DataDir(), "config.yaml")
 		}
 
 		cfg, err := config.LoadConfig(path)

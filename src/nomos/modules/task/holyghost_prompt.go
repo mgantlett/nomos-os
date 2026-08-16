@@ -17,7 +17,6 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
 )
@@ -37,7 +36,7 @@ func fetchTaskKeywords(ctx context.Context, wCtx *workspace.WorkspaceContext, tr
 	if err != nil {
 		// Log warning and attempt local task.md fallback reading
 		fmt.Printf("⚠️  Holy Ghost: Unable to fetch task from tracker: %v. Checking local fallback...\n", err)
-		taskMdPath := filepath.Join(config.TmpDir(repoRoot), "task.md")
+		taskMdPath := filepath.Join(workspace.MustNewContext(repoRoot).TmpDir(), "task.md")
 		if content, err2 := os.ReadFile(taskMdPath); err2 == nil {
 			return cleanKeywords(string(content))
 		}
@@ -194,7 +193,7 @@ func writePhaseAndModelGuidelines(f *strings.Builder, repoRoot string) {
 	// The phase state document dictates the cognitive constraints
 	// of the active agent, determining what it is allowed to modify
 	// (e.g., PLAN phase blocks source code editing, EDIT phase enforces TDD).
-	phaseStatePath := config.PhaseStatePath(repoRoot)
+	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 	var phase string
 	var model string
 	if data, err := os.ReadFile(phaseStatePath); err == nil {
@@ -236,7 +235,7 @@ func writePhaseGuidelines(f *strings.Builder, repoRoot string, phase state.Works
 		fmt.Fprintln(f, "> [!NOTE]\n> **Phase: EDIT**\n> Implement the PO signed-off implementation plan. Enforce the test-driven development (TDD) loop: write failing tests first, then implementation code.")
 	case state.PhaseReview:
 		// Inject REVIEW phase sign-off guidelines
-		fmt.Fprintf(f, "> [!IMPORTANT]\n> **Phase: REVIEW**\n> Prepare execution %s. Verify walkthrough report is checked into repository specifications folder (%s).\n", config.WalkthroughFileName, config.WalkthroughFinalPath(repoRoot, "<taskId>"))
+		fmt.Fprintf(f, "> [!IMPORTANT]\n> **Phase: REVIEW**\n> Prepare execution %s. Verify walkthrough report is checked into repository specifications folder (%s).\n", workspace.WalkthroughFileName, workspace.MustNewContext(repoRoot).WalkthroughFinalPath("<taskId>"))
 	}
 }
 
@@ -260,7 +259,7 @@ func writeModelGuidelines(f *strings.Builder, repoRoot string, model string) {
 // It reads both the global OS protocol and workspace-level AGENTS.md configuration documents and embeds them into the prompt.
 func writeWorkspaceProtocol(f *strings.Builder, repoRoot string) {
 	// 1. Read Global OS Protocol
-	globalAgentMdPath := filepath.Join(config.GlobalAgentConfigDir(), "AGENTS.md")
+	globalAgentMdPath := filepath.Join(workspace.GlobalAgentConfigDir(), "AGENTS.md")
 	if _, err := os.Stat(globalAgentMdPath); err == nil {
 		protocolData, err := os.ReadFile(globalAgentMdPath)
 		if err == nil {
@@ -271,7 +270,7 @@ func writeWorkspaceProtocol(f *strings.Builder, repoRoot string) {
 	}
 
 	// 2. Read Local Workspace Rules
-	localAgentMdPath := config.WorkspaceAgentConfigPath(repoRoot)
+	localAgentMdPath := workspace.MustNewContext(repoRoot).WorkspaceAgentConfigPath()
 	if _, err := os.Stat(localAgentMdPath); err == nil {
 		protocolData, err := os.ReadFile(localAgentMdPath)
 		if err == nil {
@@ -288,7 +287,7 @@ func writeWorkspaceProtocol(f *strings.Builder, repoRoot string) {
 // It parses file:// links embedded in implementation_plan.md and reads target source contents.
 func gatherActiveContext(ctx *workspace.WorkspaceContext, taskKey string) string {
 	repoRoot := ctx.RepoRoot
-	planPath := filepath.Join(config.PlansDir(repoRoot), taskKey, "implementation_plan.md")
+	planPath := filepath.Join(workspace.MustNewContext(repoRoot).DataPath("plans"), taskKey, "implementation_plan.md")
 	planData, err := os.ReadFile(planPath)
 	if err != nil {
 		return ""
@@ -315,7 +314,7 @@ func gatherActiveContext(ctx *workspace.WorkspaceContext, taskKey string) string
 // and project-level (<repoRoot>/.agents/resident_guidelines) directories.
 func writeResidentGuidelines(f *strings.Builder, repoRoot string, taskKey string) {
 	dirs := []string{
-		filepath.Join(config.GlobalDataDir(repoRoot), "resident_guidelines"),
+		filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "resident_guidelines"),
 		filepath.Join(repoRoot, ".agents", "resident_guidelines"),
 	}
 
@@ -371,7 +370,7 @@ func writeBatchBoard(f *strings.Builder, repoRoot string, tracker Tracker) {
 // It inspects current sprint phase state and injects relevant compacted playbook instructions.
 func writeTaskPlanAndWorkflows(f *strings.Builder, repoRoot string, taskKey string) {
 	// 1. Read and append active task implementation plan
-	planPath := filepath.Join(config.PlansDir(repoRoot), taskKey, "implementation_plan.md")
+	planPath := filepath.Join(workspace.MustNewContext(repoRoot).DataPath("plans"), taskKey, "implementation_plan.md")
 	if data, err := os.ReadFile(planPath); err == nil {
 		fmt.Fprintln(f, "")
 		fmt.Fprintln(f, "## Active Implementation Plan (spec/implementation_plan.md)")
@@ -379,7 +378,7 @@ func writeTaskPlanAndWorkflows(f *strings.Builder, repoRoot string, taskKey stri
 	}
 
 	// 2. Read phase name
-	phaseStatePath := config.PhaseStatePath(repoRoot)
+	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 	var phase state.WorkspacePhase
 	if data, err := os.ReadFile(phaseStatePath); err == nil {
 		var stateData struct {
@@ -395,7 +394,7 @@ func writeTaskPlanAndWorkflows(f *strings.Builder, repoRoot string, taskKey stri
 	fmt.Fprintln(f, "## Compacted Workflow Guidelines")
 	fmt.Fprintln(f, "The following are playbooks relevant to your current phase. Trigger them when needed:")
 
-	workflowsDir := config.WorkflowsDir(repoRoot)
+	workflowsDir := workspace.WorkflowsDir()
 
 	// Append playbooks mapped to the active workspace phase
 	switch phase {

@@ -8,6 +8,7 @@ package verify
 // Imports required standard libraries and custom configurations.
 // Distinct package comment spacing to bypass duplicate code limits.
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"bytes"           // byte buffer manipulation
@@ -18,8 +19,6 @@ import (
 	"strings"         // text manipulation functions
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
-
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config" // task configurations
 )
 
 // runGoTestsCheck compiles and runs unit tests in the codebase.
@@ -34,7 +33,7 @@ func runGoTestsCheck(ctx *workspace.WorkspaceContext) (StageResult, error) {
 	}
 
 	// Load configuration to check for verify commands
-	cfg, err := config.LoadConfig(filepath.Join(config.GlobalDataDir(r), "config.yaml"))
+	cfg, err := config.LoadConfig(filepath.Join(workspace.MustNewContext(r).DataDir(), "config.yaml"))
 	if err == nil && cfg.Verify.TestCmd != "" {
 		res.Name = "Unit Tests"
 		// Execute custom command for polyglot testing

@@ -12,7 +12,6 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 )
 
 // writeDependencySignaturesIfCompactEnabled writes structural signatures for dependency packages
@@ -43,7 +42,7 @@ func writeDependencySignaturesIfCompactEnabled(f *strings.Builder, ctx *workspac
 // isCompactEnabled reads phase state to check if compact_context is set.
 func isCompactEnabled(ctx *workspace.WorkspaceContext) bool {
 	repoRoot := ctx.RepoRoot
-	phaseStatePath := config.PhaseStatePath(repoRoot)
+	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 	if data, err := os.ReadFile(phaseStatePath); err == nil {
 		var state struct {
 			CompactContext bool `json:"compact_context"`

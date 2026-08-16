@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // ComplexityFinding represents a cyclomatic complexity, cognitive complexity, maintainability index, or nesting violation.
@@ -73,7 +73,7 @@ func isIgnoredPath(fSlash string) bool {
 // should be included in the complexity analysis.
 func analyzeComplexityFile(root, f string) []ComplexityFinding {
 	fSlash := filepath.ToSlash(f)
-	if config.IsInternalSystemDir(fSlash) || isInternalTestFile(fSlash) || isIgnoredPath(fSlash) {
+	if workspace.IsInternalSystemDir(fSlash) || isInternalTestFile(fSlash) || isIgnoredPath(fSlash) {
 		return nil
 	}
 

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +42,7 @@ var memorySaveCmd = &cobra.Command{
 			repoRoot = wd
 		}
 
-		dbPath := config.ResolveGitBrainDbPath(repoRoot)
+		dbPath := workspace.MustNewContext(repoRoot).DbPath("gitbrain.db")
 		if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 			return fmt.Errorf("failed to create memory db directory: %w", err)
 		}

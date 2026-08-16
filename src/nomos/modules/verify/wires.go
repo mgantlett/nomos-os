@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // wireFinding represents an unwired DOM element, disconnected API endpoint, or missing WS handler.
@@ -198,8 +198,7 @@ func gatherTypeScriptContents(root string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	sovereignTsDir := config.SovereignCockpitUITsDir(root)
+	sovereignTsDir := workspace.MustNewContext(root).SovereignCockpitUITsDir()
 	tsContents += readTypeScriptFiles(sovereignTsDir)
 	return tsContents, nil
 }
