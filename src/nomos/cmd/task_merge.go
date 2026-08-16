@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"path/filepath"
+
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
@@ -33,14 +35,22 @@ var taskMergeCmd = &cobra.Command{
 
 		repoRoot := findRepoRoot(wd)
 
-		if err := enforceWorktreeZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task merge"); err != nil {
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task merge"); err != nil {
 			return err
 		}
 
 		taskID := verify.GetActiveTaskId(repoRoot)
+		if taskID == "" {
+			return fmt.Errorf("no active task found to merge")
+		}
 
-		fmt.Printf("🚀 Natively executing direct merge into %s...\n", targetEnv)
-		if err := gitops.DirectMerge(wd, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv, mergeFile); err != nil {
+		wtPath := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), filepath.Base(repoRoot)+"-"+taskID)
+		if _, err := os.Stat(wtPath); os.IsNotExist(err) {
+			return fmt.Errorf("active task worktree not found at %s", wtPath)
+		}
+
+		fmt.Printf("🚀 Natively executing direct merge from worktree %s into %s...\n", wtPath, targetEnv)
+		if err := gitops.DirectMerge(wtPath, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv, mergeFile); err != nil {
 			return fmt.Errorf("direct merge failed: %w", err)
 		}
 

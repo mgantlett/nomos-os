@@ -113,7 +113,7 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 // across any downstream repository that configures a build artifact.
 func promoteBinary(wt string, repoRoot string) {
 	if repoRoot != "" {
-		settings, err := config.LoadProjectSettings(wt)
+		settings, err := config.LoadProjectSettings(repoRoot)
 		if err == nil && settings.BuildCmd != "" && settings.BinaryPath != "" {
 			synapse.Info("🚀 Executing generic worktree build command...\n")
 			buildCmd := exec.Command("bash", "-c", settings.BuildCmd)
