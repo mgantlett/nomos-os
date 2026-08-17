@@ -3,8 +3,10 @@ package cmd
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
@@ -24,15 +26,22 @@ var (
 			wd, _ := os.Getwd()
 			repoRoot := nomosexec.FindRepoRoot(wd)
 
-			// Try to use enterprise GitBrain for semantic search
-			_, gbErr := exec.LookPath("nomos-gitbrain")
-			if gbErr == nil {
-				synapse.Info("Running semantic search via GitBrain...\n")
-				gbCmd := exec.Command("nomos-gitbrain", "search", query)
-				gbCmd.Stdout = os.Stdout
-				gbCmd.Stderr = os.Stderr
-				gbCmd.Run()
-				return
+			// Try to use enterprise GitBrain for semantic search via Plugin architecture
+			plugins, err := plugin.DiscoverPlugins(repoRoot)
+			if err == nil {
+				for _, p := range plugins {
+					if filepath.Base(p) == "nomos-plugin-gitbrain" {
+						synapse.Info("Running semantic search via GitBrain...\n")
+						out, err := plugin.CallPlugin(p, "search", map[string]string{
+							"query": query,
+						})
+						if err == nil {
+							os.Stdout.Write(out)
+							return
+						}
+						break
+					}
+				}
 			}
 
 			// Fallback to git grep

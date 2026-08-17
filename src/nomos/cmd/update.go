@@ -35,7 +35,7 @@ var ecosystemTools = map[string]toolConfig{
 		RepoURL:     "git@github.com:mgantlett/nomos-gitbrain.git",
 		RepoDirName: "nomos-gitbrain",
 		BuildSubDir: "src/cmd/nomos-gitbrain",
-		BinaryName:  "nomos-gitbrain",
+		BinaryName:  "nomos-plugin-gitbrain",
 		Branch:      "master",
 	},
 	"swarm": {
@@ -67,11 +67,11 @@ func init() {
 // It clones the source repository into the ~/.nomos/src directory if it doesn't exist,
 // or pulls the latest changes if it does. It then invokes the appropriate build system
 // (Nix if available, fallback to bash) to compile the tool and drops the final binary
-// into the user's ~/.local/bin path, making it globally available.
-func updateTool(home string, name string, config toolConfig) error {
+// into the active workspace's bin/ path, maintaining isolation.
+func updateTool(repoRoot string, name string, config toolConfig) error {
 	synapse.Info("🔄 Updating %s...", name)
 
-	srcDir := filepath.Join(home, ".nomos", "src")
+	srcDir := filepath.Join(repoRoot, ".nomos", "data", "src")
 	repoPath := filepath.Join(srcDir, config.RepoDirName)
 
 	if err := os.MkdirAll(srcDir, 0755); err != nil {
@@ -103,8 +103,8 @@ func updateTool(home string, name string, config toolConfig) error {
 	}
 
 	synapse.Info("⚙️  Compiling %s...", name)
-	homeBin := filepath.Join(home, ".local", "bin", config.BinaryName)
-	buildStr := fmt.Sprintf("cd %s && go build -o %s .", config.BuildSubDir, homeBin)
+	repoBin := filepath.Join(repoRoot, "bin", config.BinaryName)
+	buildStr := fmt.Sprintf("cd %s && go build -o %s .", config.BuildSubDir, repoBin)
 
 	var buildCmd *exec.Cmd
 	if _, err := os.Stat(filepath.Join(repoPath, "shell.nix")); err == nil {
@@ -128,9 +128,20 @@ var updateCmd = &cobra.Command{
 	Use:   "update [tools...]",
 	Short: "Update the global Nomos engine binary and workspace links",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		home, err := os.UserHomeDir()
+		wd, err := os.Getwd()
 		if err != nil {
-			return fmt.Errorf("failed to get home directory: %w", err)
+			return fmt.Errorf("failed to get working directory: %w", err)
+		}
+		repoRoot := findRepoRoot(wd)
+		if repoRoot == "" {
+			return fmt.Errorf("must run update from within a Nomos workspace")
+		}
+
+		home, _ := os.UserHomeDir()
+		legacyDir := filepath.Join(home, ".nomos")
+		if _, err := os.Stat(legacyDir); err == nil {
+			synapse.Info("🗑️  Deleting legacy global data directory: %s", legacyDir)
+			os.RemoveAll(legacyDir)
 		}
 
 		var targets []string
@@ -151,35 +162,30 @@ var updateCmd = &cobra.Command{
 					continue
 				}
 
-				if err := updateTool(home, target, config); err != nil {
+				if err := updateTool(repoRoot, target, config); err != nil {
 					return err
 				}
 			}
 		} else {
-			synapse.Info("⚠️  Skipping global binary compilation (--workspace flag active)")
+			synapse.Info("⚠️  Skipping binary compilation (--workspace flag active)")
 		}
 
-		// Fetch current working directory for local workspace updates
-		if wd, err := os.Getwd(); err == nil {
-			repoRoot := findRepoRoot(wd)
-
-			if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "update"); err != nil {
-				return err
-			}
-
-			// Synchronize local workspace protocols, hooks, and schemas
-			if err := runInitSync(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err != nil {
-				synapse.Info("Warning: failed to synchronize workspace: %v\n", err)
-			}
-
-			// Scaffold NixOS plugin configuration structures downstream
-			if err := plugin.ScaffoldNixosPlugin(repoRoot); err != nil {
-				synapse.Info("Warning: failed to scaffold NixOS plugin: %v\n", err)
-			}
-
-			// Run automated workspace hygiene cleanups
-			_ = RunHygieneCleanups(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "update"); err != nil {
+			return err
 		}
+
+		// Synchronize local workspace protocols, hooks, and schemas
+		if err := runInitSync(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err != nil {
+			synapse.Info("Warning: failed to synchronize workspace: %v\n", err)
+		}
+
+		// Scaffold NixOS plugin configuration structures downstream
+		if err := plugin.ScaffoldNixosPlugin(repoRoot); err != nil {
+			synapse.Info("Warning: failed to scaffold NixOS plugin: %v\n", err)
+		}
+
+		// Run automated workspace hygiene cleanups
+		_ = RunHygieneCleanups(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
 
 		synapse.Info("✅ Global update complete for %v!", targets)
 		return nil

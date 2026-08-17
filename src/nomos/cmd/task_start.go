@@ -184,6 +184,31 @@ var taskStartCmd = &cobra.Command{
 
 			if isOrchestratorRoot(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) {
 				_ = scaffoldTaskWorktree(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key)
+				
+				// Auto-discover sibling Nomos repositories if none were explicitly provided
+				if len(crossReposFlag) == 0 {
+					parentDir := filepath.Dir(repoRoot)
+					if entries, err := os.ReadDir(parentDir); err == nil {
+						for _, entry := range entries {
+							if entry.IsDir() {
+								siblingPath := filepath.Join(parentDir, entry.Name())
+								if siblingPath == repoRoot {
+									continue
+								}
+								// Simple heuristic: if it has go.mod and is part of mgantlett
+								if content, err := os.ReadFile(filepath.Join(siblingPath, "go.mod")); err == nil {
+									if strings.Contains(string(content), "module github.com/mgantlett/") {
+										crossReposFlag = append(crossReposFlag, siblingPath)
+									}
+								}
+							}
+						}
+					}
+					if len(crossReposFlag) > 0 {
+						fmt.Printf("🔄 Auto-discovered %d sibling repositories for cross-repo workspace orchestration.\n", len(crossReposFlag))
+					}
+				}
+
 				if len(crossReposFlag) > 0 {
 					scaffoldCrossRepoWorktrees(repoRoot, key, crossReposFlag)
 				}
