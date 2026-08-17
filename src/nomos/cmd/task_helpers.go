@@ -120,17 +120,12 @@ func loadTrackerAndTask(ctx context.Context, key string) (task.Tracker, *task.Ta
 }
 
 // loadTrackerAndListTasks is a DRY helper that loads the tracking backend and retrieves the list of tasks.
-func loadTrackerAndListTasks(ctx context.Context, allProjects bool) (task.Tracker, string, []task.Task, error) {
+func loadTrackerAndListTasks(ctx context.Context) (task.Tracker, string, []task.Task, error) {
 	tracker, root, err := loadTrackerAndRoot()
 	if err != nil {
 		return nil, "", nil, err
 	}
-	var tasks []task.Task
-	if allProjects {
-		tasks, err = tracker.ListAll(ctx)
-	} else {
-		tasks, err = tracker.List(ctx)
-	}
+	tasks, err := tracker.ListAll(ctx)
 	if err != nil {
 		return nil, "", nil, err
 	}

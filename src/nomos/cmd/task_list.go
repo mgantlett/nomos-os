@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -22,9 +21,6 @@ var (
 	// listTierFlag filters tasks by their designated intelligence tier boundary (1 or 2).
 	listTierFlag int
 
-	// listAllProjectsFlag instructs the query to span across all known projects instead of the current one.
-	listAllProjectsFlag bool
-
 	// listShowClosedFlag overrides the default behavior to hide terminal tasks (DONE/CANCELLED).
 	listShowClosedFlag bool
 )
@@ -37,7 +33,7 @@ var taskListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Resolve credentials configuration and construct the tracker object.
 		ctx := context.Background()
-		_, repoRoot, tasks, err := loadTrackerAndListTasks(ctx, listAllProjectsFlag)
+		_, _, tasks, err := loadTrackerAndListTasks(ctx)
 		if err != nil {
 			return err
 		}
@@ -112,10 +108,7 @@ var taskListCmd = &cobra.Command{
 			tasks = filtered
 		}
 
-		// Filter by project
-		if !listAllProjectsFlag {
-			tasks = FilterTasksByProject(tasks, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
-		}
+		// Remove Project filtering since tasks are fully global
 
 		// Sort by CLI if --sort-cli flag is provided
 		if listSortCLIFlag {
@@ -204,7 +197,6 @@ func init() {
 	taskListCmd.Flags().BoolVar(&listJSONFlag, "json", false, "Output list of tasks in JSON format")
 	taskListCmd.Flags().BoolVar(&listSortCLIFlag, "sort-cli", false, "Sort tasks by Cognitive Load Index (LOW -> MED -> HIGH)")
 	taskListCmd.Flags().IntVar(&listTierFlag, "tier", 0, "Filter tasks by intelligence tier (1 or 2)")
-	taskListCmd.Flags().BoolVar(&listAllProjectsFlag, "all", false, "Show tasks for all projects in the workspace")
 	taskListCmd.Flags().BoolVarP(&listShowClosedFlag, "show-closed", "c", false, "Include closed and canceled tasks in the output")
 	taskCmd.AddCommand(taskListCmd)
 }

@@ -29,7 +29,7 @@ var taskStashAuditCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Retrieve all active and closed tasks from the repository database.
 		ctx := context.Background()
-		_, repoRoot, tasks, err := loadTrackerAndListTasks(ctx, false)
+		_, repoRoot, tasks, err := loadTrackerAndListTasks(ctx)
 		if err != nil {
 			return err
 		}

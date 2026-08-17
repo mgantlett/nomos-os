@@ -255,10 +255,6 @@ func (lt *LocalTracker) SaveTask(t Task) error {
 // This guarantees that any existing task with the same key is overwritten entirely.
 func (lt *LocalTracker) saveTask(t Task) error {
 	dbPath := workspace.MustNewContext(lt.repoRoot).GraphDbPath()
-	if t.Project != "" && filepath.Base(filepath.Clean(lt.repoRoot)) != t.Project && !strings.Contains(lt.repoRoot, "tmp") && !strings.Contains(lt.repoRoot, "Test") {
-		dataRoot := filepath.Dir(workspace.MustNewContext(lt.repoRoot).DataDir())
-		dbPath = filepath.Join(dataRoot, t.Project, "state", "graph.db")
-	}
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 		return err
 	}
@@ -397,10 +393,6 @@ func (lt *LocalTracker) Transition(ctx context.Context, key string, status TaskS
 func (lt *LocalTracker) Create(ctx context.Context, title string, body string, labels []string, parentKey string, project string, taskType TaskType, isSpike bool, initialStatus TaskStatus) (string, error) {
 	// First, fetch existing tasks in target project database to find max ID for prefix
 	targetDbPath := workspace.MustNewContext(lt.repoRoot).GraphDbPath()
-	if project != "" && filepath.Base(filepath.Clean(lt.repoRoot)) != project {
-		dataRoot := filepath.Dir(workspace.MustNewContext(lt.repoRoot).DataDir())
-		targetDbPath = filepath.Join(dataRoot, project, "state", "graph.db")
-	}
 
 	tasks, err := fetchTasksFromDB(targetDbPath)
 	if err != nil && !os.IsNotExist(err) && !strings.Contains(err.Error(), "no such table") {
