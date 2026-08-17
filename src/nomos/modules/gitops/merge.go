@@ -111,7 +111,7 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 				if entry.IsDir() && strings.HasSuffix(entry.Name(), "-"+taskID) {
 					siblingWtPath := filepath.Join(wtDir, entry.Name())
 					if siblingWtPath != wt {
-						siblingRoot := parseParentRepoFromGitFile(siblingWtPath)
+						siblingRoot := ParseParentRepoFromGitFile(siblingWtPath)
 						if siblingRoot != "" {
 							synapse.Info("🔄 Merging cross-repo sibling worktree %s...\n", siblingWtPath)
 							if _, err := mergeSingleWorktree(siblingWtPath, siblingRoot, targetEnv, taskID, mergeFile, noMerge); err != nil {
@@ -156,8 +156,8 @@ func promoteBinary(wt string, repoRoot string) {
 	}
 }
 
-// parseParentRepoFromGitFile reads the worktree's .git file and traverses up to find the true root repository.
-func parseParentRepoFromGitFile(wtPath string) string {
+// ParseParentRepoFromGitFile reads the worktree's .git file and traverses up to find the true root repository.
+func ParseParentRepoFromGitFile(wtPath string) string {
 	gitFile := filepath.Join(wtPath, ".git")
 	data, err := os.ReadFile(gitFile)
 	if err != nil {
@@ -205,7 +205,7 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string, noMerge bo
 				for _, entry := range entries {
 					if entry.IsDir() && strings.HasSuffix(entry.Name(), "-"+taskID) && filepath.Join(wtDir, entry.Name()) != wt {
 						siblingWtPath := filepath.Join(wtDir, entry.Name())
-						siblingRoot := parseParentRepoFromGitFile(siblingWtPath)
+						siblingRoot := ParseParentRepoFromGitFile(siblingWtPath)
 						if siblingRoot != "" {
 							// Determine sibling branch for cleanup
 							branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")

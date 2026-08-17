@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
@@ -34,12 +36,23 @@ var taskCancelCmd = &cobra.Command{
 
 		// Transition back to IDLE if the active task was cancelled
 		if state, _ := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); state != nil && state.TaskId == key {
-			_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), statepkg.PhaseIdle)
+			wCtx := workspace.MustNewContext(repoRoot)
+			_ = task.TransitionPhase(wCtx, statepkg.PhaseIdle)
 			
 			// Teardown orphaned transient worktrees for the cancelled task
-			wtPath := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), filepath.Base(filepath.Clean(repoRoot))+"-"+key)
-			branch := "feature/" + key
-			gitops.TeardownWorktree(wtPath, branch, "develop", repoRoot, key, false)
+			wtDir := wCtx.WorktreesDir()
+			if entries, err := os.ReadDir(wtDir); err == nil {
+				for _, entry := range entries {
+					if entry.IsDir() && strings.HasSuffix(entry.Name(), "-"+key) {
+						wtPath := filepath.Join(wtDir, entry.Name())
+						siblingRoot := gitops.ParseParentRepoFromGitFile(wtPath)
+						if siblingRoot != "" {
+							branch := "feature/" + key
+							gitops.TeardownWorktree(wtPath, branch, "develop", siblingRoot, key, false)
+						}
+					}
+				}
+			}
 			
 			fmt.Printf("✅ Active task %s cancelled. Workspace reset to %s phase.\n", key, statepkg.PhaseIdle)
 		}
