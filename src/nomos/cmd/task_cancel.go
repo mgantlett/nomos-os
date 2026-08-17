@@ -6,8 +6,10 @@ import (
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
+	"path/filepath"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+	"github.com/mgantlett/nomos-os/src/nomos/modules/gitops"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
@@ -33,6 +35,12 @@ var taskCancelCmd = &cobra.Command{
 		// Transition back to IDLE if the active task was cancelled
 		if state, _ := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); state != nil && state.TaskId == key {
 			_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), statepkg.PhaseIdle)
+			
+			// Teardown orphaned transient worktrees for the cancelled task
+			wtPath := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), filepath.Base(filepath.Clean(repoRoot))+"-"+key)
+			branch := "feature/" + key
+			gitops.TeardownWorktree(wtPath, branch, "develop", repoRoot, key)
+			
 			fmt.Printf("✅ Active task %s cancelled. Workspace reset to %s phase.\n", key, statepkg.PhaseIdle)
 		}
 

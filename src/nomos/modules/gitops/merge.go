@@ -103,7 +103,7 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 
 	// 3. Teardown Worktree
 	// Safely unlinks the worktree and prunes the stale feature branches locally and remotely.
-	teardownWorktree(wt, branch, targetEnv, repoRoot, taskID)
+	TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID)
 
 	return nil
 }
@@ -151,9 +151,9 @@ func parseParentRepoFromGitFile(wtPath string) string {
 	return ""
 }
 
-// teardownWorktree removes the transient worktree and prunes the feature branches.
+// TeardownWorktree removes the transient worktree and prunes the feature branches.
 // It executes git worktree remove and forcefully deletes the branches via git branch -D and git push --delete.
-func teardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
+func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 	synapse.Info("🧹 Tearing down transient worktree %s...\n", wt)
 	if repoRoot != "" {
 		removeCmd := exec.Command("git", "worktree", "remove", "--force", wt)

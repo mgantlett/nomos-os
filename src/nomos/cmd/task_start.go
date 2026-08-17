@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -31,39 +32,19 @@ var taskStartCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		assignee := "antigravity"
 
+		// Pre-evaluate cross-repo paths to absolute paths before any context switching
+		for i, p := range crossReposFlag {
+			absPath, err := filepath.Abs(p)
+			if err == nil {
+				crossReposFlag[i] = absPath
+			}
+		}
+
 		// Load the configured task tracker and locate the repository root.
 		tracker, repoRoot, err := loadTrackerAndRoot()
 		if err != nil {
 			return err
 		}
-
-		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task start"); err != nil {
-			return err
-		}
-
-		if pState, err := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err == nil {
-			// Tier 2 agents (e.g. Swarm agents) run as stateless execution daemons.
-			// They are forbidden from starting tasks because they don't have interactive IDE states.
-			if pState.AgentTier == statepkg.Tier2 {
-				return fmt.Errorf("Tier 2 atomic rigidity violation: agents are explicitly forbidden from starting new tasks")
-			}
-
-			// If TasksCompletedInSession > 0, it means the Orchestrator AI has already
-			// completed a full task lifecycle within this active session.
-			// To maintain a clean context and avoid hallucinations, we warn the user.
-			if pState.TasksCompletedInSession > 0 {
-				fmt.Println("\n⚠️  [SESSION WARNING] This workspace has already completed a task during the active session.")
-				fmt.Println("To prevent context pollution and state leaks, it is highly recommended to start a clean session and run '/Nomos Handshake' before proceeding.")
-				fmt.Println("Proceeding anyway, but be warned.")
-			}
-		}
-
-		if !isGitTreeClean(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) && !forceStartFlag {
-			return fmt.Errorf("workspace contains uncommitted changes. Please stash or commit your dirty files before starting a new task, or pass --force (-f) to bind task to current uncommitted work.")
-		}
-
-		// Rotate telemetry logs for the new task session
-		telemetry.RotateSessionLogs(filepath.Join(workspace.MustNewContext(repoRoot).LogsDir(), "nomos.jsonl"), 20)
 
 		ctx := context.Background()
 		// Initialize empty slice to hold the target task keys to start
@@ -111,6 +92,52 @@ var taskStartCmd = &cobra.Command{
 			fmt.Printf("🎯 Auto-selected highest priority task: %s\n", autoKey)
 			keys = []string{autoKey}
 		}
+
+		// Perform Auto-Context Switching if the primary task belongs to a sibling project
+		if len(keys) > 0 {
+			firstTaskKey := keys[0]
+			if tObj, errView := tracker.View(ctx, firstTaskKey); errView == nil {
+				currentProjectBase := filepath.Base(filepath.Clean(repoRoot))
+				if !strings.EqualFold(currentProjectBase, tObj.Project) {
+					fmt.Printf("🔄 Auto-switching context to target project root: %s...\n", tObj.Project)
+					if resolvedRoot := workspace.ResolveProjectRoot(repoRoot, tObj.Project); resolvedRoot != "" {
+						if errChdir := os.Chdir(resolvedRoot); errChdir == nil {
+							repoRoot = resolvedRoot
+						} else {
+							fmt.Printf("⚠️  Warning: Failed to switch directory to %s: %v\n", resolvedRoot, errChdir)
+						}
+					}
+				}
+			}
+		}
+
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task start"); err != nil {
+			return err
+		}
+
+		if pState, err := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err == nil {
+			// Tier 2 agents (e.g. Swarm agents) run as stateless execution daemons.
+			// They are forbidden from starting tasks because they don't have interactive IDE states.
+			if pState.AgentTier == statepkg.Tier2 {
+				return fmt.Errorf("Tier 2 atomic rigidity violation: agents are explicitly forbidden from starting new tasks")
+			}
+
+			// If TasksCompletedInSession > 0, it means the Orchestrator AI has already
+			// completed a full task lifecycle within this active session.
+			// To maintain a clean context and avoid hallucinations, we warn the user.
+			if pState.TasksCompletedInSession > 0 {
+				fmt.Println("\n⚠️  [SESSION WARNING] This workspace has already completed a task during the active session.")
+				fmt.Println("To prevent context pollution and state leaks, it is highly recommended to start a clean session and run '/Nomos Handshake' before proceeding.")
+				fmt.Println("Proceeding anyway, but be warned.")
+			}
+		}
+
+		if !isGitTreeClean(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) && !forceStartFlag {
+			return fmt.Errorf("workspace contains uncommitted changes. Please stash or commit your dirty files before starting a new task, or pass --force (-f) to bind task to current uncommitted work.")
+		}
+
+		// Rotate telemetry logs for the new task session
+		telemetry.RotateSessionLogs(filepath.Join(workspace.MustNewContext(repoRoot).LogsDir(), "nomos.jsonl"), 20)
 
 		for _, key := range keys {
 			// Ensure the target task can be successfully viewed and parsed from the local JSON backend store.
