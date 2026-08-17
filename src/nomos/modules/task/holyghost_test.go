@@ -35,11 +35,12 @@ func (m *mockTracker) List(ctx context.Context) ([]Task, error) {
 }
 
 func TestGenerateHolyGhostContext(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-holyghost-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	agentDir := workspace.MustNewContext(tempDir).TmpDir()
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
@@ -82,11 +83,12 @@ func TestGenerateHolyGhostContext(t *testing.T) {
 }
 
 func TestGenerateHolyGhostContextTemplates(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-holyghost-tmpl-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	if err := os.MkdirAll(workspace.MustNewContext(tempDir).TmpDir(), 0755); err != nil {
 		t.Fatalf("failed to create agent tmp dir: %v", err)
@@ -136,11 +138,12 @@ func TestGenerateHolyGhostContextTemplates(t *testing.T) {
 }
 
 func TestGenerateHolyGhostContextCompact(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-holyghost-compact-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	agentDir := filepath.Join(tempDir, ".agent")
 	if err := os.MkdirAll(workspace.MustNewContext(tempDir).TmpDir(), 0755); err != nil {

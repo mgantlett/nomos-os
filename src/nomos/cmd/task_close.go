@@ -54,7 +54,7 @@ var taskCloseCmd = &cobra.Command{
 			// Teardown orphaned transient worktrees for the closed task
 			wtPath := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), filepath.Base(filepath.Clean(repoRoot))+"-"+key)
 			branch := "feature/" + key
-			gitops.TeardownWorktree(wtPath, branch, "develop", repoRoot, key)
+			gitops.TeardownWorktree(wtPath, branch, "develop", repoRoot, key, false)
 			
 			fmt.Printf("✅ Active task %s closed. Workspace reset to %s phase.\n", key, statepkg.PhaseIdle)
 		}

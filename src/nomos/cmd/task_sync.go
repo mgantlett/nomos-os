@@ -16,11 +16,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var mergeFile string
+var syncFile string
+var noMerge bool
 
-var taskMergeCmd = &cobra.Command{
-	Use:   "merge [targetEnv]",
-	Short: "Natively execute AI-AI DDP Direct Merge",
+var taskSyncCmd = &cobra.Command{
+	Use:   "sync [targetEnv]",
+	Short: "Natively execute AI-AI DDP Direct Sync",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		targetEnv := "develop"
@@ -35,13 +36,13 @@ var taskMergeCmd = &cobra.Command{
 
 		repoRoot := findRepoRoot(wd)
 
-		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task merge"); err != nil {
+		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "task sync"); err != nil {
 			return err
 		}
 
 		taskID := verify.GetActiveTaskId(repoRoot)
 		if taskID == "" {
-			return fmt.Errorf("no active task found to merge")
+			return fmt.Errorf("no active task found to sync")
 		}
 
 		wtPath := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), filepath.Base(repoRoot)+"-"+taskID)
@@ -49,9 +50,9 @@ var taskMergeCmd = &cobra.Command{
 			return fmt.Errorf("active task worktree not found at %s", wtPath)
 		}
 
-		fmt.Printf("🚀 Natively executing direct merge from worktree %s into %s...\n", wtPath, targetEnv)
-		if err := gitops.DirectMerge(wtPath, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv, mergeFile); err != nil {
-			return fmt.Errorf("direct merge failed: %w", err)
+		fmt.Printf("🚀 Natively executing direct sync from worktree %s into %s...\n", wtPath, targetEnv)
+		if err := gitops.DirectMerge(wtPath, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv, syncFile, noMerge); err != nil {
+			return fmt.Errorf("direct sync failed: %w", err)
 		}
 
 		if taskID != "" {
@@ -60,7 +61,7 @@ var taskMergeCmd = &cobra.Command{
 				fmt.Printf("⚠️  Warning: Failed to load task tracker to close task %s: %v\n", taskID, err)
 			} else {
 				ctx := context.Background()
-				comment := "Merged natively via nomos task merge"
+				comment := "Synced natively via nomos task sync"
 				fmt.Printf("Closing task %s...\n", taskID)
 				if err := tracker.Close(ctx, taskID, comment); err != nil {
 					fmt.Printf("⚠️  Warning: Failed to close task %s: %v\n", taskID, err)
@@ -81,6 +82,7 @@ var taskMergeCmd = &cobra.Command{
 }
 
 func init() {
-	taskMergeCmd.Flags().StringVarP(&mergeFile, "file", "F", "", "Path to walkthrough markdown file to use as commit message")
-	taskCmd.AddCommand(taskMergeCmd)
+	taskSyncCmd.Flags().StringVarP(&syncFile, "file", "F", "", "Path to walkthrough markdown file to use as commit message")
+	taskSyncCmd.Flags().BoolVar(&noMerge, "no-merge", false, "Skip the final target branch merge and teardown, pushing feature branch for PR review instead")
+	taskCmd.AddCommand(taskSyncCmd)
 }

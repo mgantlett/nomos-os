@@ -22,11 +22,12 @@ func (m *mockLifecycleTracker) Comment(ctx context.Context, key string, comment 
 }
 
 func TestPostPhaseComment(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-lifecycle-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// Set up config
 	agentPluginsDir := filepath.Join(tempDir, ".nomos_test_state")
@@ -66,11 +67,12 @@ func TestPostPhaseComment(t *testing.T) {
 }
 
 func TestPostDoDFailure(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-lifecycle-fail-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// Set up config env
 	agentPluginsDir := filepath.Join(tempDir, ".nomos_test_state")

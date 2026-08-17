@@ -62,7 +62,7 @@ func PushWorktreeBranch(wt string) (string, error) {
 // It verifies the worktree, stages, commits, pushes, merges into the target branch,
 // promotes the local binary to the root hollow shell, and finally tears down the transient worktree.
 // This is the atomic entry point for merging a task branch into a stable environment like develop.
-func mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile string) (string, error) {
+func mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile string, noMerge bool) (string, error) {
 	synapse.Info("🔄 AI-AI DDP Merge: Processing transient worktree %s...\n", wt)
 
 	if err := commitDirectChanges(wt, taskID, mergeFile); err != nil {
@@ -74,7 +74,7 @@ func mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile string) (str
 		return "", err
 	}
 
-	if branch != targetEnv {
+	if branch != targetEnv && !noMerge {
 		if err := PerformGitFlowMerge(wt, branch, targetEnv, taskID); err != nil {
 			return "", err
 		}
@@ -84,7 +84,7 @@ func mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile string) (str
 	return branch, nil
 }
 
-func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, mergeFile string) error {
+func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, mergeFile string, noMerge bool) error {
 	repoRoot := ctx.RepoRoot
 
 	taskID := verify.GetActiveTaskId(wt)
@@ -98,7 +98,7 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 		taskID = "UNKNOWN"
 	}
 
-	branch, err := mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile)
+	branch, err := mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile, noMerge)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 						siblingRoot := parseParentRepoFromGitFile(siblingWtPath)
 						if siblingRoot != "" {
 							synapse.Info("🔄 Merging cross-repo sibling worktree %s...\n", siblingWtPath)
-							if _, err := mergeSingleWorktree(siblingWtPath, siblingRoot, targetEnv, taskID, mergeFile); err != nil {
+							if _, err := mergeSingleWorktree(siblingWtPath, siblingRoot, targetEnv, taskID, mergeFile, noMerge); err != nil {
 								synapse.Info("⚠️ Warning: Failed to merge sibling worktree %s: %v\n", siblingWtPath, err)
 							}
 						}
@@ -124,7 +124,7 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 		}
 	}
 
-	TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID)
+	TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID, noMerge)
 
 	return nil
 }
@@ -174,7 +174,7 @@ func parseParentRepoFromGitFile(wtPath string) string {
 
 // TeardownWorktree removes the transient worktree and prunes the feature branches.
 // It executes git worktree remove and forcefully deletes the branches via git branch -D and git push --delete.
-func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
+func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string, noMerge bool) {
 	synapse.Info("🧹 Tearing down transient worktree %s...\n", wt)
 	if repoRoot != "" {
 		removeCmd := exec.Command("git", "worktree", "remove", "--force", wt)
@@ -185,14 +185,18 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 		pruneCmd.Dir = repoRoot
 		pruneCmd.Run()
 
-		synapse.Info("🧹 Pruning merged feature branch '%s' locally and remotely...\n", branch)
-		branchDelCmd := exec.Command("git", "branch", "-D", branch)
-		branchDelCmd.Dir = repoRoot
-		branchDelCmd.Run()
+		if !noMerge {
+			synapse.Info("🧹 Pruning merged feature branch '%s' locally and remotely...\n", branch)
+			branchDelCmd := exec.Command("git", "branch", "-D", branch)
+			branchDelCmd.Dir = repoRoot
+			branchDelCmd.Run()
 
-		remoteDelCmd := exec.Command("git", "push", "origin", "--delete", branch, "--no-verify")
-		remoteDelCmd.Dir = repoRoot
-		remoteDelCmd.Run()
+			remoteDelCmd := exec.Command("git", "push", "origin", "--delete", branch, "--no-verify")
+			remoteDelCmd.Dir = repoRoot
+			remoteDelCmd.Run()
+		} else {
+			synapse.Info("📌 Retaining feature branch '%s' locally and remotely for review...\n", branch)
+		}
 
 		if taskID != "" && taskID != "UNKNOWN" {
 			wtDir := workspace.MustNewContext(repoRoot).WorktreesDir()
@@ -218,7 +222,7 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 							siblingPrune.Dir = siblingRoot
 							siblingPrune.Run()
 
-							if siblingBranch != "" {
+							if siblingBranch != "" && !noMerge {
 								siblingBranchDel := exec.Command("git", "branch", "-D", siblingBranch)
 								siblingBranchDel.Dir = siblingRoot
 								siblingBranchDel.Run()
@@ -226,6 +230,8 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 								siblingRemoteDel := exec.Command("git", "push", "origin", "--delete", siblingBranch, "--no-verify")
 								siblingRemoteDel.Dir = siblingRoot
 								siblingRemoteDel.Run()
+							} else if siblingBranch != "" && noMerge {
+								synapse.Info("📌 Retaining sibling feature branch '%s' locally and remotely for review...\n", siblingBranch)
 							}
 
 							syncLocalTarget(siblingRoot, targetEnv)
