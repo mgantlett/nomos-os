@@ -76,10 +76,11 @@ var maintenanceCmd = &cobra.Command{
 			branches := strings.Split(string(out), "\n")
 			for _, b := range branches {
 				b = strings.TrimSpace(b)
+				b = strings.TrimPrefix(b, "+ ")
 				if b == "" || strings.HasPrefix(b, "*") {
 					continue
 				}
-				if b == "master" || b == "main" || b == "develop" {
+				if b == "master" || b == "main" || b == "develop" || b == "explorer-sync" {
 					continue
 				}
 				rootMergedBranches = append(rootMergedBranches, b)
@@ -128,7 +129,8 @@ var maintenanceCmd = &cobra.Command{
 									branches := strings.Split(string(out), "\n")
 									for _, b := range branches {
 										b = strings.TrimSpace(b)
-										if b == "" || strings.HasPrefix(b, "*") || b == "master" || b == "main" || b == "develop" {
+										b = strings.TrimPrefix(b, "+ ")
+										if b == "" || strings.HasPrefix(b, "*") || b == "master" || b == "main" || b == "develop" || b == "explorer-sync" {
 											continue
 										}
 										mergedBranches = append(mergedBranches, b)
@@ -212,25 +214,30 @@ func aggressivelyPruneWorktrees(repoRoot string, localMergedBranches []string, r
 				branchName := strings.TrimPrefix(branchRef, "refs/heads/")
 
 				shouldPrune := false
-				if mergedSet[branchName] && currentWT != repoRoot {
-					shouldPrune = true
-				} else if currentWT != repoRoot {
-					// Check if branch still exists
-					chkCmd := exec.Command("git", "show-ref", "--verify", "--quiet", branchRef)
-					chkCmd.Dir = repoRoot
-					if err := chkCmd.Run(); err != nil {
-						// Branch doesn't exist anymore, it's an orphaned worktree!
-						shouldPrune = true
-					}
-				}
-
-				// Check if the parent task is closed
-				if !shouldPrune && currentWT != repoRoot {
+				isTaskOpen := false
+				if currentWT != repoRoot {
 					if parentTaskBytes, err := os.ReadFile(filepath.Join(currentWT, ".nomos_parent_task")); err == nil {
 						taskID := strings.TrimSpace(string(parentTaskBytes))
-						if closedTasks[taskID] {
-							shouldPrune = true
+						// If the task is open, we NEVER prune the worktree, even if it is "merged"
+						if !closedTasks[taskID] {
+							isTaskOpen = true
+						} else {
 							synapse.Info("      🔥 Task %s is closed. Pruning its worktree...", taskID)
+							shouldPrune = true
+						}
+					}
+
+					if !isTaskOpen && !shouldPrune {
+						if mergedSet[branchName] {
+							shouldPrune = true
+						} else {
+							// Check if branch still exists
+							chkCmd := exec.Command("git", "show-ref", "--verify", "--quiet", branchRef)
+							chkCmd.Dir = repoRoot
+							if err := chkCmd.Run(); err != nil {
+								// Branch doesn't exist anymore, it's an orphaned worktree!
+								shouldPrune = true
+							}
 						}
 					}
 				}

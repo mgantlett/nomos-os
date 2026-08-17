@@ -211,13 +211,13 @@ func autoConfigureIDEs() {
 }
 
 // scaffoldNixEnvironment ensures that the downstream repository has a valid
-// shell.nix and .envrc configured to native resolve the nomos-commons binary
+// shell.nix and .envrc configured to native resolve the nomos-os binary
 // instead of relying on a global zsh/bash alias hack.
 func scaffoldNixEnvironment(repoRoot string) {
 	shellNixPath := filepath.Join(repoRoot, "shell.nix")
 	envrcPath := filepath.Join(repoRoot, ".envrc")
 
-	nomosBinPath := workspace.MustNewContext(repoRoot).NomosCommonsBinPath()
+	nomosBinPath := workspace.MustNewContext(repoRoot).NomosOSBinPath()
 
 	// 1. Scaffold or Parse shell.nix
 	if _, err := os.Stat(shellNixPath); os.IsNotExist(err) {
@@ -232,7 +232,7 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    # Add nomos-commons to path
+    # Add nomos-os to path
     export PATH="` + nomosBinPath + `:$PATH"
   '';
 }

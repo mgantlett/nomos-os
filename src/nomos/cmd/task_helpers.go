@@ -414,7 +414,8 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 	}
 
 	// Create .envrc for direnv to properly inherit environment and paths
-	envrcContent := fmt.Sprintf("use nix\nPATH_add bin\nPATH_add %s/bin\n", repoRoot)
+	nomosBinPath := workspace.MustNewContext(repoRoot).NomosOSBinPath()
+	envrcContent := fmt.Sprintf("use nix\nPATH_add bin\nPATH_add %s\n", nomosBinPath)
 	os.WriteFile(filepath.Join(worktreeDir, ".envrc"), []byte(envrcContent), 0644)
 
 	// go work init

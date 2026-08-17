@@ -285,6 +285,18 @@ func syncLocalTarget(repoRoot, targetEnv string) {
 			synapse.Info("    ✅ Branch '%s' natively synchronized with origin.", targetEnv)
 		}
 	}
+
+	// Also sync the .explorer worktree if it exists
+	explorerDir := filepath.Join(repoRoot, "worktrees", ".explorer")
+	if _, err := os.Stat(explorerDir); err == nil {
+		synapse.Info("   🔭 Synchronizing .explorer worktree...")
+		
+		cmdFetch := exec.Command("git", "-C", explorerDir, "fetch", "origin", targetEnv)
+		_ = cmdFetch.Run()
+		
+		cmdReset := exec.Command("git", "-C", explorerDir, "reset", "--hard", "origin/"+targetEnv)
+		_ = cmdReset.Run()
+	}
 }
 
 func commitDirectChanges(wt, taskID, mergeFile string) error {

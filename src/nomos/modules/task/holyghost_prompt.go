@@ -407,7 +407,7 @@ func writeTaskPlanAndWorkflows(f *strings.Builder, repoRoot string, taskKey stri
 		appendWorkflowToFile(f, workflowsDir, "nomos-refactor")
 	case state.PhaseReview:
 		appendWorkflowToFile(f, workflowsDir, "nomos-close")
-		appendWorkflowToFile(f, workflowsDir, "nomos-push")
+		appendWorkflowToFile(f, workflowsDir, "nomos-sync")
 	default:
 		appendWorkflowToFile(f, workflowsDir, "nomos-verify")
 	}
