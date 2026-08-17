@@ -305,20 +305,23 @@ func DetectStashForTask(ctx *workspace.WorkspaceContext, taskKey string) (string
 
 // isOrchestratorRoot checks if the git repo is a hollow shell root (not a worktree).
 func isOrchestratorRoot(ctx *workspace.WorkspaceContext) bool {
-	repoRoot := ctx.RepoRoot
-	// If .git is a directory, it's the root repository (hollow shell). If it's a file, it's a worktree.
-	info, err := os.Stat(filepath.Join(repoRoot, ".git"))
-	if err == nil && info.IsDir() {
-		return true
+	wd, err := os.Getwd()
+	if err != nil {
+		return false
 	}
-
-	cmd := exec.Command("git", "rev-parse", "--is-bare-repository")
-	cmd.Dir = repoRoot
+	cmd := exec.Command("git", "rev-parse", "--git-dir")
+	cmd.Dir = wd
 	out, err := cmd.Output()
 	if err != nil {
 		return false
 	}
-	return strings.TrimSpace(string(out)) == "true"
+	gitDir := strings.TrimSpace(string(out))
+	// In a worktree, the git dir is typically .git/worktrees/<name>
+	// In the hollow shell root, it is exactly .git (or an absolute path ending in /.git)
+	if strings.Contains(gitDir, ".git/worktrees/") {
+		return false
+	}
+	return true
 }
 
 // doGitWorktreeSetup handles the raw execution of git worktree add and applies
