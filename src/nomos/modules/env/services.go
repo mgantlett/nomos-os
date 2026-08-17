@@ -102,7 +102,11 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 		}, nil
 
 	case "cockpit":
-		cmdStr := "nomos cockpit"
+		nomosBin, err := os.Executable()
+		if err != nil {
+			nomosBin = "nomos" // fallback
+		}
+		cmdStr := fmt.Sprintf("%s cockpit daemon", nomosBin)
 		buildCmd := "echo 'Cockpit is built centrally with nomos'"
 
 		// Return resolved ServiceConfig instance for environment substrate
@@ -144,7 +148,7 @@ func GetAllServices() []string {
 	return []string{
 		"llama-coder",
 		"llama-embed",
-		"datasette",
+		// "datasette", // Temporarily bypassed due to python nixpkgs failure
 		"cockpit",
 		"vitepress",
 	}

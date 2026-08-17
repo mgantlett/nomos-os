@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-os/src/nomos/modules/cockpit"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
 )
@@ -59,6 +60,19 @@ func executeNomosEnvStart(ctx *workspace.WorkspaceContext, service string) error
 	return execCmd.Run()
 }
 
+var cockpitDaemonCmd = &cobra.Command{
+	Use:    "daemon",
+	Hidden: true,
+	Short:  "Runs the actual cockpit server synchronously (for PM2)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		wd, _ := os.Getwd()
+		repoRoot := nomosexec.FindRepoRoot(wd)
+		ctx, _ := workspace.NewContext(repoRoot)
+		server := cockpit.NewServer(ctx, cockpitPort, nil)
+		return server.Start()
+	},
+}
+
 // init registers the cockpit subcommand and flag definitions under RootCmd.
 func init() {
 	// Register port flag definition with default 8089 listener
@@ -69,4 +83,5 @@ func init() {
 	cockpitCmd.Flags().BoolVarP(&cockpitDevFlag, "dev", "d", false, "Launch in hot-reloading development mode (air + tsc -w)")
 	// Add cockpit command to root Cobra command hierarchy
 	RootCmd.AddCommand(cockpitCmd)
+	cockpitCmd.AddCommand(cockpitDaemonCmd)
 }
