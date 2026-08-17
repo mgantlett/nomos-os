@@ -13,11 +13,12 @@ import (
 )
 
 func TestRunPhaseDisciplineCheck(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_phase_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// Set up a mock git repo
 	runGitCmd := func(dir string, args ...string) {
@@ -175,11 +176,12 @@ func TestRunPhaseDisciplineCheck(t *testing.T) {
 }
 
 func TestIsMetadataOnly(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_metadata_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	runGitCmd := func(dir string, args ...string) {
 		cmd := exec.Command("git", args...)
@@ -225,11 +227,12 @@ func TestIsMetadataOnly(t *testing.T) {
 }
 
 func TestCheckPOCommitApprovalIdle(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_idle_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	runGitCmd := func(dir string, args ...string) {
 		cmd := exec.Command("git", args...)

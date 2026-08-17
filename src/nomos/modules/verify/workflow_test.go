@@ -8,11 +8,12 @@ import (
 
 func TestAuditWorkflows(t *testing.T) {
 	// Create a temporary workspace root
-	tempRoot, err := os.MkdirTemp("", "nomos-test-workflows-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempRoot := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempRoot, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempRoot)
 
 	workflowsDir := filepath.Join(tempRoot, ".agent", "workflows")
 	if err := os.MkdirAll(workflowsDir, 0755); err != nil {
@@ -71,4 +72,19 @@ func TestAuditWorkflows(t *testing.T) {
 		}
 	})
 
+	t.Run("Raw Shell Command", func(t *testing.T) {
+		rawShellMd := "```bash\ngit commit -m 'bypass'\n```"
+		if err := os.WriteFile(filepath.Join(workflowsDir, "raw_shell.md"), []byte(rawShellMd), 0644); err != nil {
+			t.Fatalf("failed to write raw_shell.md: %v", err)
+		}
+		discrepancies, err := auditFile(schema, realRoot, filepath.Join(workflowsDir, "raw_shell.md"))
+		if err != nil {
+			t.Fatalf("auditFile failed: %v", err)
+		}
+		if len(discrepancies) == 0 {
+			t.Errorf("expected discrepancy for raw shell command, got 0")
+		} else if discrepancies[0].Message != "Workflow execution bypass: Only nomos commands are permitted inside execution blocks to enforce Cognitive Firewall determinism." {
+			t.Errorf("unexpected message: %s", discrepancies[0].Message)
+		}
+	})
 }

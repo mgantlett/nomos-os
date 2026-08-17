@@ -12,11 +12,12 @@ import (
 )
 
 func TestParseSpecFiles(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_spec_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// Dynamically build the plan content with paths matching tempDir
 	planContent := fmt.Sprintf(`
@@ -59,11 +60,12 @@ func TestParseSpecFiles(t *testing.T) {
 }
 
 func TestGetActiveTaskId(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_task_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	tmpDir := workspace.MustNewContext(tempDir).TmpDir()
 	if err := os.MkdirAll(tmpDir, 0755); err != nil {
@@ -94,11 +96,12 @@ func TestGetActiveTaskId(t *testing.T) {
 }
 
 func TestCheckSpecParity(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_parity_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	specsDir := filepath.Join(workspace.MustNewContext(tempDir).DataPath("plans"), "347")
 	if err := os.MkdirAll(specsDir, 0755); err != nil {
@@ -164,11 +167,12 @@ func TestCheckSpecParity(t *testing.T) {
 }
 
 func TestParseSpecFilesProposedChanges(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_parse_spec_test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	planContent := fmt.Sprintf(`
 # Some Plan
@@ -231,11 +235,12 @@ func execGit(dir string, args ...string) *exec.Cmd {
 }
 
 func TestASTSymbolParityVerification(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_ast_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// 1. Create a dummy implementation plan with tokenized details
 	planContent := `

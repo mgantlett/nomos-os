@@ -18,11 +18,12 @@ func execCommand(dir string, name string, args ...string) *exec.Cmd {
 }
 
 func TestCheckQualityDebtBypass(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "bypass_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
@@ -95,11 +96,12 @@ func TestCheckQualityDebtBypass(t *testing.T) {
 }
 
 func TestStageAutoDebtTask(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "stage_debt_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	// Stub out git init so git add works inside the temp repo
 	gitCmd := execCommand(tmpDir, "git", "init")
@@ -145,11 +147,12 @@ func TestStageAutoDebtTask(t *testing.T) {
 }
 
 func TestStageAutoDebtTask_AgentTierHigh(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "stage_debt_high_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
@@ -172,11 +175,12 @@ func TestStageAutoDebtTask_AgentTierHigh(t *testing.T) {
 }
 
 func TestStageAutoDebtTask_AgentTierLow(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "stage_debt_low_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	agentDir := filepath.Join(workspace.MustNewContext(tmpDir).DataDir(), "state")
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
@@ -199,11 +203,12 @@ func TestStageAutoDebtTask_AgentTierLow(t *testing.T) {
 }
 
 func TestSyncQualityDebtManifest(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "sync_debt_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	// Stub git init
 	_ = execCommand(tmpDir, "git", "init").Run()
@@ -272,11 +277,12 @@ func TestSyncQualityDebtManifest(t *testing.T) {
 }
 
 func TestPruneQualityDebtForTask(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "prune_debt_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	_ = execCommand(tmpDir, "git", "init").Run()
 
@@ -326,11 +332,12 @@ func TestPruneQualityDebtForTask(t *testing.T) {
 }
 
 func TestSyncQualityDebtManifest_AutoClear(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "autoclear_debt_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	_ = execCommand(tmpDir, "git", "init").Run()
 

@@ -11,11 +11,12 @@ import (
 
 func TestOrchestrateSwarm(t *testing.T) {
 	// Create mock git target repo
-	tmpDir, err := os.MkdirTemp("", "orchestrate_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	execCmd := func(dir string, name string, args ...string) error {
 		if name == "git" {

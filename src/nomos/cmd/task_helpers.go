@@ -434,6 +434,13 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 	orchestratorWtDir := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), fmt.Sprintf("%s-%s", filepath.Base(repoRoot), taskKey))
 
+	// Initialize isolated go.work if missing to prevent polluting the global one
+	if _, err := os.Stat(filepath.Join(orchestratorWtDir, "go.work")); os.IsNotExist(err) {
+		cmdGoInit := exec.Command("go", "work", "init", ".")
+		cmdGoInit.Dir = orchestratorWtDir
+		_ = cmdGoInit.Run()
+	}
+
 	for _, crossRepoPath := range crossRepos {
 		// Resolve the absolute path of the sibling repository
 		absCrossRepoPath, err := filepath.Abs(crossRepoPath)

@@ -142,6 +142,14 @@ func auditFile(cliSchema *schema.CliSchema, root, path string) ([]workflowDiscre
 			argsString := matches[1]
 			discs := checkNomosCommand(cliSchema, root, path, lineNum, trimmed, argsString)
 			discrepancies = append(discrepancies, discs...)
+		} else if inBashBlock && trimmed != "" && !strings.HasPrefix(trimmed, "#") {
+			relPath, _ := filepath.Rel(root, path)
+			discrepancies = append(discrepancies, workflowDiscrepancy{
+				File:    relPath,
+				Line:    lineNum,
+				Command: trimmed,
+				Message: "Workflow execution bypass: Only nomos commands are permitted inside execution blocks to enforce Cognitive Firewall determinism.",
+			})
 		}
 	}
 

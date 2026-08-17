@@ -172,12 +172,25 @@ func LookPath(file string) (string, error) {
 
 // Command wraps os/exec.Command
 func Command(name string, arg ...string) *exec.Cmd {
-	return exec.Command(name, arg...)
+	if isUnauthorizedCommand(name, arg) {
+		panic(fmt.Sprintf("Security Violation: manual command executions containing 'chmod' or 'chown' are strictly prohibited by Nomos security policy"))
+	}
+	return buildExecCmd("", name, arg...)
 }
 
 // CommandContext wraps os/exec.CommandContext
 func CommandContext(ctx context.Context, name string, arg ...string) *exec.Cmd {
-	return exec.CommandContext(ctx, name, arg...)
+	if isUnauthorizedCommand(name, arg) {
+		panic(fmt.Sprintf("Security Violation: manual command executions containing 'chmod' or 'chown' are strictly prohibited by Nomos security policy"))
+	}
+	if os.Getenv("IN_NIX_SHELL") != "" || !shouldWrapInNixShell("", name) {
+		return exec.CommandContext(ctx, name, arg...)
+	}
+	runCmdStr := name
+	if len(arg) > 0 {
+		runCmdStr = ShellEscapeArgs(name, arg)
+	}
+	return exec.CommandContext(ctx, "nix-shell", "--run", runCmdStr)
 }
 
 // Cmd is an alias for os/exec.Cmd

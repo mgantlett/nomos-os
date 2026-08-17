@@ -15,6 +15,7 @@ import (
 func TestVerifyWalkthroughParityExtended(t *testing.T) {
 	// Create mock workspace
 	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, ".nomos", "data"), 0755)
 
 	// Mock task data in backend
 	lt := task.NewLocalTracker(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(root); return c }())

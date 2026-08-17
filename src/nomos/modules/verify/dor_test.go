@@ -78,11 +78,12 @@ func TestVerifyDoR(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tempDir, err := os.MkdirTemp("", "nomos-dor-test-*")
-			if err != nil {
-				t.Fatalf("failed to create temp dir: %v", err)
-			}
-			defer os.RemoveAll(tempDir)
+			tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
+	}
 
 			agentDir := filepath.Join(tempDir, ".agent")
 			if err := os.MkdirAll(agentDir, 0755); err != nil {

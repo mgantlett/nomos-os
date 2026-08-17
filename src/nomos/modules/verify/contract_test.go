@@ -9,11 +9,12 @@ import (
 )
 
 func TestVerifyGoContract(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-go-contract-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	srcCode := `package testpkg
 
@@ -141,11 +142,12 @@ func StandardFunction(name string, count int) (bool, error) {
 }
 
 func TestVerifyPolyglotContract(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-polyglot-contract-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	polyglotCode := `
 export interface ITracker {
@@ -287,11 +289,12 @@ contracts:
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tempDir, err := os.MkdirTemp("", "nomos-contracts-yaml-*")
-			if err != nil {
-				t.Fatalf("failed to create temp dir: %v", err)
-			}
-			defer os.RemoveAll(tempDir)
+			tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
+	}
 
 			// Write contracts.yaml spec file.
 			specPath := workspace.MustNewContext(tempDir).DataPath("contracts.yaml")

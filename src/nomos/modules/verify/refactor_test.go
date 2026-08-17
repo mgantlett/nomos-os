@@ -149,11 +149,12 @@ func executeStep(action string) {
 }
 
 func TestCheckDuplicateStructs(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "duplicate_structs_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	// 1. Initially no duplicates, should pass
 	_, err = CheckDuplicateStructs(tmpDir)

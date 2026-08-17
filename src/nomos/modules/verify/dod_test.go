@@ -25,6 +25,7 @@ func TestVerifyDoD(t *testing.T) {
 
 	// Write basic files to pass formatting, vetting, and unit tests
 	goModContent := "module testrepo\n\ngo 1.22\n"
+	os.WriteFile(filepath.Join(tempDir, "go.work"), []byte("go 1.22\n\nuse .\n"), 0644)
 	if err := os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte(goModContent), 0644); err != nil {
 		t.Fatalf("failed to write go.mod: %v", err)
 	}

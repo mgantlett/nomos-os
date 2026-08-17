@@ -11,11 +11,12 @@ import (
 )
 
 func TestVerifyDoDCommitApproval(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_dod_po_test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	agentDir := filepath.Join(tempDir, ".agent")
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
@@ -164,11 +165,12 @@ func assertErrorContains(t *testing.T, err error, expectError bool, errContains 
 }
 
 func TestVerifyDoDWalkthroughGate(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-dod-walkthrough-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	agentDir := filepath.Join(tempDir, ".agent")
 	if err := os.MkdirAll(agentDir, 0755); err != nil {

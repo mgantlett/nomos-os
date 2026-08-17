@@ -8,11 +8,12 @@ import (
 )
 
 func TestAnalyzeComplexityGo(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_complexity_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// Initialize Git repository
 	if _, err := runGit(tempDir, "init"); err != nil {
@@ -87,11 +88,12 @@ func veryComplex() {
 }
 
 func TestAnalyzeComplexityNesting(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_nesting_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// Initialize Git repository
 	if _, err := runGit(tempDir, "init"); err != nil {
@@ -103,6 +105,7 @@ func TestAnalyzeComplexityNesting(t *testing.T) {
 		t.Fatalf("failed to create src dir: %v", err)
 	}
 
+	err = os.WriteFile(filepath.Join(tempDir, "go.work"), []byte("go 1.22\n\nuse .\n"), 0644)
 	err = os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte("module testrepo\n\ngo 1.22\n"), 0644)
 	if err != nil {
 		t.Fatalf("failed to write go.mod: %v", err)
@@ -152,11 +155,12 @@ func TestAnalyzeComplexityNesting(t *testing.T) {
 }
 
 func TestScopeAwareComplexity(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_scope_aware_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	if _, err := runGit(tempDir, "init"); err != nil {
 		t.Fatalf("failed to init git: %v", err)
@@ -164,6 +168,7 @@ func TestScopeAwareComplexity(t *testing.T) {
 	runGit(tempDir, "config", "user.name", "Test User")
 	runGit(tempDir, "config", "user.email", "test@example.com")
 
+	err = os.WriteFile(filepath.Join(tempDir, "go.work"), []byte("go 1.22\n\nuse .\n"), 0644)
 	err = os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte("module testrepo\n\ngo 1.22\n"), 0644)
 	if err != nil {
 		t.Fatalf("failed to write go.mod: %v", err)

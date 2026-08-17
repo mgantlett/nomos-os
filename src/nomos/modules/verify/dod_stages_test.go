@@ -17,11 +17,12 @@ func TestDoDStagesGuidance(t *testing.T) {
 }
 
 func TestVerifyDoDTDDCheck(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-dod-tdd-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	runGit := func(dir string, args ...string) {
 		cmd := execGit(dir, args...)
@@ -53,11 +54,12 @@ func TestVerifyDoDTDDCheck(t *testing.T) {
 }
 
 func TestVerifyDoDBoyScoutCheck(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-dod-doc-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	runGit := func(dir string, args ...string) {
 		cmd := execGit(dir, args...)
@@ -107,11 +109,12 @@ func privateFunction() {}
 }
 
 func TestVerifyDoDDocDriftCheck(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-dod-drift-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	runGit := func(dir string, args ...string) {
 		cmd := execGit(dir, args...)
@@ -151,11 +154,12 @@ func TestVerifyDoDDocDriftCheck(t *testing.T) {
 }
 
 func TestVerifyDoDGeneratedCodeBlocker(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos-dod-gen-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	runGit := func(dir string, args ...string) {
 		cmd := execGit(dir, args...)

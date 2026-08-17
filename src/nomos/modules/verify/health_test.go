@@ -2,16 +2,18 @@ package verify
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
 
 func TestHealthCache(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_health_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// Initial cache read should return false
 	_, found := readCachedHealth(tempDir)

@@ -62,14 +62,33 @@ func PushWorktreeBranch(wt string) (string, error) {
 // It verifies the worktree, stages, commits, pushes, merges into the target branch,
 // promotes the local binary to the root hollow shell, and finally tears down the transient worktree.
 // This is the atomic entry point for merging a task branch into a stable environment like develop.
-func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, mergeFile string) error {
-	repoRoot := ctx.RepoRoot
+func mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile string) (string, error) {
 	synapse.Info("🔄 AI-AI DDP Merge: Processing transient worktree %s...\n", wt)
 
-	// Identify task ID for the commit message
+	if err := commitDirectChanges(wt, taskID, mergeFile); err != nil {
+		return "", err
+	}
+
+	branch, err := PushWorktreeBranch(wt)
+	if err != nil {
+		return "", err
+	}
+
+	if branch != targetEnv {
+		if err := PerformGitFlowMerge(wt, branch, targetEnv, taskID); err != nil {
+			return "", err
+		}
+	}
+
+	promoteBinary(wt, repoRoot)
+	return branch, nil
+}
+
+func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, mergeFile string) error {
+	repoRoot := ctx.RepoRoot
+
 	taskID := verify.GetActiveTaskId(wt)
 	if taskID == "" {
-		// Fallback to parent task if this is a delegated swarm worktree
 		parentTaskPath := filepath.Join(wt, ".nomos_parent_task")
 		if data, err := os.ReadFile(parentTaskPath); err == nil {
 			taskID = strings.TrimSpace(string(data))
@@ -79,30 +98,32 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 		taskID = "UNKNOWN"
 	}
 
-	// 1. Commit Worktree Changes
-	// This step runs the DoD gates, stages all files, and creates the AI-AI dual-layer commit.
-	if err := commitDirectChanges(wt, taskID, mergeFile); err != nil {
-		return err
-	}
-
-	// 2. Push and Merge
-	// Pushes the local feature branch to the remote, and then executes the remote-first merge logic.
-	branch, err := PushWorktreeBranch(wt)
+	branch, err := mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile)
 	if err != nil {
 		return err
 	}
 
-	if branch != targetEnv {
-		if err := PerformGitFlowMerge(wt, branch, targetEnv, taskID); err != nil {
-			return err
+	if taskID != "UNKNOWN" {
+		wtDir := ctx.WorktreesDir()
+		entries, err := os.ReadDir(wtDir)
+		if err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() && strings.HasSuffix(entry.Name(), "-"+taskID) {
+					siblingWtPath := filepath.Join(wtDir, entry.Name())
+					if siblingWtPath != wt {
+						siblingRoot := parseParentRepoFromGitFile(siblingWtPath)
+						if siblingRoot != "" {
+							synapse.Info("🔄 Merging cross-repo sibling worktree %s...\n", siblingWtPath)
+							if _, err := mergeSingleWorktree(siblingWtPath, siblingRoot, targetEnv, taskID, mergeFile); err != nil {
+								synapse.Info("⚠️ Warning: Failed to merge sibling worktree %s: %v\n", siblingWtPath, err)
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
-	// Promote the newly compiled binary from the worktree to the root repository
-	promoteBinary(wt, repoRoot)
-
-	// 3. Teardown Worktree
-	// Safely unlinks the worktree and prunes the stale feature branches locally and remotely.
 	TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID)
 
 	return nil
@@ -178,11 +199,16 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 			entries, err := os.ReadDir(wtDir)
 			if err == nil {
 				for _, entry := range entries {
-					// Detect sibling worktrees belonging to the same task
 					if entry.IsDir() && strings.HasSuffix(entry.Name(), "-"+taskID) && filepath.Join(wtDir, entry.Name()) != wt {
 						siblingWtPath := filepath.Join(wtDir, entry.Name())
 						siblingRoot := parseParentRepoFromGitFile(siblingWtPath)
 						if siblingRoot != "" {
+							// Determine sibling branch for cleanup
+							branchCmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+							branchCmd.Dir = siblingWtPath
+							branchOut, _ := branchCmd.CombinedOutput()
+							siblingBranch := strings.TrimSpace(string(branchOut))
+
 							synapse.Info("🧹 Tearing down cross-repo sibling worktree %s...\n", siblingWtPath)
 							siblingRemove := exec.Command("git", "worktree", "remove", "--force", siblingWtPath)
 							siblingRemove.Dir = siblingRoot
@@ -192,13 +218,15 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 							siblingPrune.Dir = siblingRoot
 							siblingPrune.Run()
 
-							siblingBranchDel := exec.Command("git", "branch", "-D", branch)
-							siblingBranchDel.Dir = siblingRoot
-							siblingBranchDel.Run()
+							if siblingBranch != "" {
+								siblingBranchDel := exec.Command("git", "branch", "-D", siblingBranch)
+								siblingBranchDel.Dir = siblingRoot
+								siblingBranchDel.Run()
 
-							siblingRemoteDel := exec.Command("git", "push", "origin", "--delete", branch, "--no-verify")
-							siblingRemoteDel.Dir = siblingRoot
-							siblingRemoteDel.Run()
+								siblingRemoteDel := exec.Command("git", "push", "origin", "--delete", siblingBranch, "--no-verify")
+								siblingRemoteDel.Dir = siblingRoot
+								siblingRemoteDel.Run()
+							}
 
 							syncLocalTarget(siblingRoot, targetEnv)
 						}

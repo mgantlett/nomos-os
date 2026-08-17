@@ -88,7 +88,7 @@ func rehydrateProtocol(ctx *workspace.WorkspaceContext, embeddedFS fs.FS, cliSch
 
 	protocolContent, err := fs.ReadFile(embeddedFS, "protocol/AGENTS.md")
 	if err != nil {
-		return nil // Graceful skip if missing
+		return fmt.Errorf("FATAL: missing AGENTS.md in execution substrate")
 	}
 
 	protocolPath := filepath.Join(protocolDir, "AGENTS.md")
@@ -138,7 +138,7 @@ func rehydrateWorkflows(ctx *workspace.WorkspaceContext, embeddedFS fs.FS) error
 	// Read the workflows directory from embedded FS
 	entries, err := fs.ReadDir(embeddedFS, "workflows")
 	if err != nil {
-		return nil // Graceful skip if missing
+		return fmt.Errorf("FATAL: missing workflows in execution substrate")
 	}
 
 	embeddedMap := make(map[string]bool)

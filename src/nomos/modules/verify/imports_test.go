@@ -9,11 +9,12 @@ import (
 )
 
 func TestAuditImports(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "nomos_import_test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+	tempDir := t.TempDir()
+	var err error
+	_ = err
+	if err := os.MkdirAll(filepath.Join(tempDir, ".nomos"), 0755); err != nil {
+		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	// Create a dummy .agent/rules/banned_imports.json configuration
 	agentDir := filepath.Join(tempDir, ".agent", "rules")
