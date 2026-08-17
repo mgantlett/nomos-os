@@ -148,7 +148,10 @@ func promoteBinary(wt string, repoRoot string) {
 			rootBinPath := filepath.Join(repoRoot, settings.BinaryPath)
 			if data, err := os.ReadFile(wtBinPath); err == nil {
 				os.MkdirAll(filepath.Dir(rootBinPath), 0755)
-				os.WriteFile(rootBinPath, data, 0755)
+				os.Remove(rootBinPath) // Unlink the running binary to prevent 'text file busy' errors
+				if err := os.WriteFile(rootBinPath, data, 0755); err != nil {
+					synapse.Info("⚠️ Warning: Failed to promote binary: %v\n", err)
+				}
 			} else {
 				synapse.Info("⚠️ Warning: Could not find compiled binary at %s\n", wtBinPath)
 			}
