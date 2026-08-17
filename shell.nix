@@ -24,6 +24,7 @@ pkgs.mkShell {
     opencode
     python3Packages.pymupdf
     ripgrep
+    cudaPackages.cudatoolkit
   ];
 
   shellHook = ''

@@ -92,7 +92,7 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 		// Example defaults for datasette, used to explore SQLite state databases.
 		// Exposes the cache db on port 8001 by default.
 		// Configures background command to serve the local SQLite cache database.
-		cmdStr := "datasette serve <repoRoot>/.nomos/data/cache.db --host 0.0.0.0 --port 8001"
+		cmdStr := fmt.Sprintf("datasette serve %s/.nomos/data/cache.db --host 0.0.0.0 --port 8001", repoRoot)
 		return &ServiceConfig{
 			Name:         "datasette",
 			Command:      cmdStr,
@@ -102,15 +102,15 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 		}, nil
 
 	case "cockpit":
-		cmdStr := "bin/nomos cockpit"
-		buildCmd := "go build -o bin/nomos ./src/nomos/main.go"
+		cmdStr := "nomos cockpit"
+		buildCmd := "echo 'Cockpit is built centrally with nomos'"
 
 		// Return resolved ServiceConfig instance for environment substrate
 		return &ServiceConfig{
 			Name:         "cockpit",
 			Command:      cmdStr,
 			BuildCommand: buildCmd,
-			DevCommand:   `npx -y concurrently -k "cd src/nomos/modules/cockpit/ui && tsc -w" "bin/nomos cockpit"`,
+			DevCommand:   `npx -y concurrently -k "cd src/nomos/modules/cockpit/ui && tsc -w" "nomos cockpit"`,
 			LogFile:      logFile,
 			Cwd:          repoRoot,
 			Port:         8089,
