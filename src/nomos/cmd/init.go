@@ -80,6 +80,9 @@ func runInitSync(ctx *workspace.WorkspaceContext) error {
 	// Ensure the base clone is a hollow shell so stale files don't break verification gates
 	autoConfigureHollowShell(repoRoot)
 
+	// Scaffold the .explorer deterministic read-only worktree
+	autoConfigureExplorerWorktree(repoRoot)
+
 	synapse.Info(" ✅ Synchronization complete")
 	synapse.Info("")
 	autoConfigureIDEs()
@@ -299,6 +302,9 @@ func autoConfigureHollowShell(repoRoot string) {
 		for _, exclude := range settings.SparseExclude {
 			sparseLines = append(sparseLines, fmt.Sprintf("!/%s/", strings.Trim(exclude, "/")))
 		}
+	} else {
+		// Fallback
+		sparseLines = append(sparseLines, "!/src/", "!/docs/")
 	}
 	sparseLines = append(sparseLines, "")
 	sparseContent := []byte(strings.Join(sparseLines, "\n"))
@@ -319,5 +325,56 @@ func autoConfigureHollowShell(repoRoot string) {
 		synapse.Info("    ⚠️  Failed to reapply sparse-checkout: %v", err)
 	} else {
 		synapse.Info("    ✅ Successfully configured Hollow Shell using generic sparse exclusions.")
+	}
+}
+
+// autoConfigureExplorerWorktree scaffolds a deterministic .explorer read-only worktree
+// configured with reverse sparse checkout to ONLY show the files hidden in the root workspace.
+func autoConfigureExplorerWorktree(repoRoot string) {
+	explorerDir := filepath.Join(repoRoot, "worktrees", ".explorer")
+	synapse.Info(" 🔭 Scaffolding Deterministic Explorer Worktree...")
+
+	// 1. Create the explorer-sync branch if it doesn't exist
+	cmdBranch := exec.Command("git", "-C", repoRoot, "branch", "explorer-sync", "origin/develop")
+	_ = cmdBranch.Run()
+
+	// 2. Create the worktree if it doesn't exist
+	if _, err := os.Stat(explorerDir); os.IsNotExist(err) {
+		cmdWt := exec.Command("git", "-C", repoRoot, "worktree", "add", explorerDir, "explorer-sync")
+		if errWt := cmdWt.Run(); errWt != nil {
+			synapse.Info("    ⚠️  Failed to create .explorer worktree: %v", errWt)
+			return
+		}
+	} else {
+		// Fast-forward existing worktree
+		cmdPull := exec.Command("git", "-C", explorerDir, "pull", "origin", "develop")
+		_ = cmdPull.Run()
+	}
+
+	// 3. Isolate worktree config
+	cmdCfg := exec.Command("git", "-C", explorerDir, "config", "--worktree", "core.sparseCheckout", "true")
+	_ = cmdCfg.Run()
+
+	// 4. Configure reverse sparse checkout patterns based on config.yaml
+	settings, err := config.LoadProjectSettings(repoRoot)
+	sparseLines := []string{}
+	if err == nil && len(settings.SparseExclude) > 0 {
+		for _, exclude := range settings.SparseExclude {
+			sparseLines = append(sparseLines, fmt.Sprintf("/%s/", strings.Trim(exclude, "/")))
+		}
+	} else {
+		// Fallback
+		sparseLines = []string{"/src/", "/docs/"}
+	}
+
+	initCmd := exec.Command("git", "-C", explorerDir, "sparse-checkout", "init", "--no-cone")
+	_ = initCmd.Run()
+
+	setCmd := exec.Command("git", "-C", explorerDir, "sparse-checkout", "set", "--no-cone", "--stdin")
+	setCmd.Stdin = strings.NewReader(strings.Join(sparseLines, "\n"))
+	if err := setCmd.Run(); err != nil {
+		synapse.Info("    ⚠️  Failed to configure explorer sparse checkout: %v", err)
+	} else {
+		synapse.Info("    ✅ Successfully configured .explorer worktree with reverse sparse checkout.")
 	}
 }
