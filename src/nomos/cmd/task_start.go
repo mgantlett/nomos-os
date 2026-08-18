@@ -32,13 +32,7 @@ var taskStartCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		assignee := "antigravity"
 
-		// Pre-evaluate cross-repo paths to absolute paths before any context switching
-		for i, p := range crossReposFlag {
-			absPath, err := filepath.Abs(p)
-			if err == nil {
-				crossReposFlag[i] = absPath
-			}
-		}
+
 
 		// Load the configured task tracker and locate the repository root.
 		tracker, repoRoot, err := loadTrackerAndRoot()

@@ -9,8 +9,9 @@ import "strings"
 // WalkthroughSchema represents the structural schema of a Task Walkthrough
 type WalkthroughSchema struct {
 	ChangesMade       string
-	WhatWasTested     string
-	ValidationResults string
+	ArchitecturalContext string
+	ImpactList           string
+	ResolutionDetails    string
 }
 
 func (s *WalkthroughSchema) GenerateMarkdown() string {
@@ -25,18 +26,25 @@ func (s *WalkthroughSchema) GenerateMarkdown() string {
 		sb.WriteString("<Summarize what was changed>\n\n")
 	}
 
-	sb.WriteString("## 🛡️ What was Tested\n")
-	if s.WhatWasTested != "" {
-		sb.WriteString(s.WhatWasTested + "\n\n")
+	sb.WriteString("## **Architectural Context:**\n")
+	if s.ArchitecturalContext != "" {
+		sb.WriteString("- " + s.ArchitecturalContext + "\n\n")
 	} else {
-		sb.WriteString("<List the tests run>\n\n")
+		sb.WriteString("- <Describe architectural reasoning here>\n\n")
 	}
 
-	sb.WriteString("## ✅ Validation Results\n")
-	if s.ValidationResults != "" {
-		sb.WriteString(s.ValidationResults + "\n\n")
+	sb.WriteString("## **Impact List:**\n")
+	if s.ImpactList != "" {
+		sb.WriteString("- " + s.ImpactList + "\n\n")
 	} else {
-		sb.WriteString("<Describe the outcome of verification>\n")
+		sb.WriteString("- <List files or components changed>\n\n")
+	}
+
+	sb.WriteString("## **Resolution Details:**\n")
+	if s.ResolutionDetails != "" {
+		sb.WriteString("- " + s.ResolutionDetails + "\n")
+	} else {
+		sb.WriteString("- <Describe exactly how the issue was resolved>\n")
 	}
 
 	return sb.String()

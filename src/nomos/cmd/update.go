@@ -55,12 +55,12 @@ var ecosystemTools = map[string]toolConfig{
 }
 
 var updateAll bool
-var workspaceOnly bool
+var globalInstall bool
 
 func init() {
 	// Add CLI flags to control update targets and scoping
 	updateCmd.Flags().BoolVar(&updateAll, "all", false, "Update all ecosystem tools (nomos, gitbrain, swarm, cockpit)")
-	updateCmd.Flags().BoolVarP(&workspaceOnly, "workspace", "w", false, "Only synchronize local workspace protocols and hygiene (skip global binary compilation)")
+	updateCmd.Flags().BoolVarP(&globalInstall, "install", "i", false, "Compile and install global binaries from pristine remote source")
 }
 
 // updateTool handles the compilation and installation of a specific ecosystem tool.
@@ -153,7 +153,7 @@ var updateCmd = &cobra.Command{
 			targets = []string{"nomos"}
 		}
 
-		if !workspaceOnly {
+		if globalInstall {
 			for _, target := range targets {
 				target = strings.ToLower(target)
 				config, exists := ecosystemTools[target]
@@ -167,7 +167,7 @@ var updateCmd = &cobra.Command{
 				}
 			}
 		} else {
-			synapse.Info("⚠️  Skipping binary compilation (--workspace flag active)")
+			synapse.Info("⚠️  Skipping binary compilation (--install flag not active)")
 		}
 
 		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "update"); err != nil {
