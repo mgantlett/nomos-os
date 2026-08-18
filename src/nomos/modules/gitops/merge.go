@@ -341,21 +341,38 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		if mergeFile != "" {
 			if data, err := os.ReadFile(mergeFile); err == nil {
 				commitMsg = string(data)
-			}
 
-			// Auto-inject the task ID prefix into the commit message
-			re := regexp.MustCompile(fmt.Sprintf(`(?i)^(\[Task\s+%s\]\s*)?(Task\s+%s\b[^:]*:\s*)?`, taskID, taskID))
-			lines := strings.Split(commitMsg, "\n")
-			title := lines[0]
-			cleanTitle := re.ReplaceAllString(title, "")
-			cleanTitle = strings.TrimSpace(cleanTitle)
-			newTitle := fmt.Sprintf("[Task %s] %s", taskID, cleanTitle)
-			if strings.HasPrefix(cleanTitle, "**Impact") || strings.HasPrefix(cleanTitle, "**Resolution") {
-				newTitle = fmt.Sprintf("[Task %s]\n\n%s", taskID, cleanTitle)
-			}
+				// Strip YAML frontmatter
+				if strings.HasPrefix(commitMsg, "---") {
+					endIdx := strings.Index(commitMsg[3:], "---")
+					if endIdx != -1 {
+						commitMsg = commitMsg[3+endIdx+3:]
+						commitMsg = strings.TrimLeft(commitMsg, " \r\n")
+					}
+				}
 
-			if title != newTitle {
-				commitMsg = strings.Replace(commitMsg, title, newTitle, 1)
+				lines := strings.Split(commitMsg, "\n")
+				if len(lines) > 0 {
+					title := strings.TrimSpace(lines[0])
+					if strings.HasPrefix(title, "# ") {
+						title = strings.TrimPrefix(title, "# ")
+						lines = lines[1:]
+					} else if title != "" {
+						if !strings.HasPrefix(title, "**") {
+							lines = lines[1:]
+						} else {
+							title = "Automated AI Sync"
+						}
+					}
+
+					re := regexp.MustCompile(fmt.Sprintf(`(?i)^(\[Task\s+%s\]\s*)?(Task\s+%s\b[^:]*:\s*)?`, taskID, taskID))
+					cleanTitle := re.ReplaceAllString(title, "")
+					cleanTitle = strings.TrimSpace(cleanTitle)
+
+					newTitle := fmt.Sprintf("[Task %s] (nomos://task/%s) %s", taskID, taskID, cleanTitle)
+					commitMsg = newTitle + "\n\n" + strings.TrimSpace(strings.Join(lines, "\n"))
+				}
+
 				tmpCommitFile := filepath.Join(workspace.MustNewContext(wt).TmpDir(), "nomos_commit_in_flight.md")
 				os.WriteFile(tmpCommitFile, []byte(commitMsg), 0644)
 				defer os.Remove(tmpCommitFile)
