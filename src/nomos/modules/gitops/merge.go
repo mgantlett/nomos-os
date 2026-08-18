@@ -140,8 +140,22 @@ func promoteBinary(wt string, repoRoot string, taskID string) {
 			buildCmd := exec.Command("bash", "-c", settings.BuildCmd)
 			buildCmd.Dir = wt
 			if taskID != "" && taskID != "UNKNOWN" {
-				goWorkPath := filepath.Join(filepath.Dir(wt), fmt.Sprintf("nomos-commons-%s", taskID), "go.work")
-				if _, err := os.Stat(goWorkPath); err == nil {
+				// Find the orchestrator worktree that contains the go.work file
+				goWorkPath := ""
+				wtDir := filepath.Dir(wt)
+				if entries, err := os.ReadDir(wtDir); err == nil {
+					for _, entry := range entries {
+						if entry.IsDir() && strings.HasSuffix(entry.Name(), "-"+taskID) {
+							candidate := filepath.Join(wtDir, entry.Name(), "go.work")
+							if _, err := os.Stat(candidate); err == nil {
+								goWorkPath = candidate
+								break
+							}
+						}
+					}
+				}
+
+				if goWorkPath != "" {
 					buildCmd.Env = append(os.Environ(), fmt.Sprintf("GOWORK=%s", goWorkPath))
 				} else {
 					buildCmd.Env = append(os.Environ(), "GOWORK=off")

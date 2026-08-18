@@ -428,11 +428,7 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 	cmdGoUse.Dir = worktreeDir
 	_ = cmdGoUse.Run()
 
-	// Auto-inject replace directive for the primary orchestrator module
-	replaceArg := fmt.Sprintf("github.com/mgantlett/%s@v0.0.0=.", repoName)
-	cmdGoReplace := exec.Command("go", "work", "edit", "-replace", replaceArg)
-	cmdGoReplace.Dir = worktreeDir
-	_ = cmdGoReplace.Run()
+
 
 	fmt.Printf("\n🔨 Scaffolded transient worktree at: %s\n", worktreeDir)
 	return nil
@@ -447,6 +443,11 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 		cmdGoInit := exec.Command("go", "work", "init", ".")
 		cmdGoInit.Dir = orchestratorWtDir
 		_ = cmdGoInit.Run()
+
+		replaceArg := fmt.Sprintf("github.com/mgantlett/%s@v0.0.0=.", filepath.Base(repoRoot))
+		cmdGoReplace := exec.Command("go", "work", "edit", "-replace", replaceArg)
+		cmdGoReplace.Dir = orchestratorWtDir
+		_ = cmdGoReplace.Run()
 	}
 
 	for _, crossRepoPath := range crossRepos {
@@ -478,11 +479,13 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 		cmdGoUse.Dir = orchestratorWtDir
 		_ = cmdGoUse.Run()
 
-		// Auto-inject explicit replace directive into go.work to override remote v0.0.0 fetches
 		replaceArg := fmt.Sprintf("github.com/mgantlett/%s@v0.0.0=%s", repoName, crossWorktreeDir)
 		cmdGoReplace := exec.Command("go", "work", "edit", "-replace", replaceArg)
 		cmdGoReplace.Dir = orchestratorWtDir
 		_ = cmdGoReplace.Run()
+
+		// Write .nomos_parent_task to allow siblings to know the orchestrator task
+		os.WriteFile(filepath.Join(crossWorktreeDir, ".nomos_parent_task"), []byte(taskKey), 0644)
 
 		fmt.Printf("🔗 Linked cross-repo worktree at: %s\n", crossWorktreeDir)
 	}
