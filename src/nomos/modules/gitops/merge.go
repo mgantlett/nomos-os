@@ -115,7 +115,8 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 						if siblingRoot != "" {
 							synapse.Info("🔄 Merging cross-repo sibling worktree %s...\n", siblingWtPath)
 							if _, err := mergeSingleWorktree(siblingWtPath, siblingRoot, targetEnv, taskID, mergeFile, noMerge); err != nil {
-								synapse.Info("⚠️ Warning: Failed to merge sibling worktree %s: %v\n", siblingWtPath, err)
+								synapse.Info("❌ FATAL: Failed to merge sibling worktree %s: %v\n", siblingWtPath, err)
+								return fmt.Errorf("failed to merge sibling worktree %s: %w", siblingWtPath, err)
 							}
 						}
 					}
