@@ -15,12 +15,18 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/state"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 )
 
 // EscalationEvaluatorFunc is a pluggable callback hook for evaluating closed-loop Swarm escalation.
 // This decouples the task lifecycle package from the engine package to prevent Go import cycles.
 var EscalationEvaluatorFunc func(ctx *workspace.WorkspaceContext, key string, failCount int, detail string) (bool, string, error)
+
+// SwarmTelemetryRecorderFunc is a pluggable callback hook for recording Swarm DoD failures.
+// This decouples the task lifecycle package from proprietary Swarm dependencies to maintain open-source boundaries.
+var SwarmTelemetryRecorderFunc func(key string, source string, detailStr string) int
+
+// SwarmShouldEscalateFunc is a pluggable callback hook for evaluating Swarm threshold escalations.
+var SwarmShouldEscalateFunc func(key string) (bool, string)
 
 // PostPhaseComment posts a comment to the issue tracker when local phase transitions occur.
 // It formats markdown updates for PLAN, EDIT, and REVIEW phases and submits them to the tracker.
@@ -112,8 +118,11 @@ func PostDoDFailure(ctx *workspace.WorkspaceContext, key string, failMsgs []stri
 			continue
 		}
 
-		// Record failure count in GlobalSwarmAggregator telemetry instance
-		failCount := telemetry.GlobalSwarmAggregator.RecordDoDFailure(k, "swarm", detailStr)
+		// Record failure count via decoupled callback hook (if registered)
+		failCount := 0
+		if SwarmTelemetryRecorderFunc != nil {
+			failCount = SwarmTelemetryRecorderFunc(k, "swarm", detailStr)
+		}
 
 		// Evaluate closed-loop auto-escalation via pluggable callback hook
 		if EscalationEvaluatorFunc != nil {

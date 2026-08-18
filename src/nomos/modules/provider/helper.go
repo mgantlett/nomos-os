@@ -4,7 +4,6 @@
 package provider
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,9 +12,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
-	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
-	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/viper"
 )
 

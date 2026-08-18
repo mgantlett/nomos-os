@@ -10,7 +10,6 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
@@ -21,7 +20,11 @@ func init() {
 
 func evaluateEscalation(ctx *workspace.WorkspaceContext, key string, failCount int, detail string) (bool, string, error) {
 	repoRoot := ctx.RepoRoot
-	escalate, reason := telemetry.GlobalSwarmAggregator.ShouldEscalate(key)
+	var escalate bool
+	var reason string
+	if task.SwarmShouldEscalateFunc != nil {
+		escalate, reason = task.SwarmShouldEscalateFunc(key)
+	}
 	if !escalate {
 		return false, "", nil
 	}
