@@ -139,6 +139,7 @@ func promoteBinary(wt string, repoRoot string) {
 			synapse.Info("🚀 Executing generic worktree build command...\n")
 			buildCmd := exec.Command("bash", "-c", settings.BuildCmd)
 			buildCmd.Dir = wt
+			buildCmd.Env = append(os.Environ(), "GOWORK=off")
 			if out, err := buildCmd.CombinedOutput(); err != nil {
 				synapse.Info("⚠️ Warning: Failed to execute build command '%s': %v\nOutput: %s\n", settings.BuildCmd, err, string(out))
 			}
