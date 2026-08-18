@@ -80,7 +80,7 @@ func mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile string, noMe
 		}
 	}
 
-	promoteBinary(wt, repoRoot)
+	promoteBinary(wt, repoRoot, taskID)
 	return branch, nil
 }
 
@@ -132,14 +132,23 @@ func DirectMerge(wt string, ctx *workspace.WorkspaceContext, targetEnv string, m
 // promoteBinary compiles and copies a contextual binary from the worktree into the hollow shell root.
 // It is fully data-driven via ProjectSettings (build_cmd and binary_path) so it functions generically
 // across any downstream repository that configures a build artifact.
-func promoteBinary(wt string, repoRoot string) {
+func promoteBinary(wt string, repoRoot string, taskID string) {
 	if repoRoot != "" {
 		settings, err := config.LoadProjectSettings(repoRoot)
 		if err == nil && settings.BuildCmd != "" && settings.BinaryPath != "" {
 			synapse.Info("🚀 Executing generic worktree build command...\n")
 			buildCmd := exec.Command("bash", "-c", settings.BuildCmd)
 			buildCmd.Dir = wt
-			buildCmd.Env = append(os.Environ(), "GOWORK=off")
+			if taskID != "" && taskID != "UNKNOWN" {
+				goWorkPath := filepath.Join(filepath.Dir(wt), fmt.Sprintf("nomos-commons-%s", taskID), "go.work")
+				if _, err := os.Stat(goWorkPath); err == nil {
+					buildCmd.Env = append(os.Environ(), fmt.Sprintf("GOWORK=%s", goWorkPath))
+				} else {
+					buildCmd.Env = append(os.Environ(), "GOWORK=off")
+				}
+			} else {
+				buildCmd.Env = append(os.Environ(), "GOWORK=off")
+			}
 			if out, err := buildCmd.CombinedOutput(); err != nil {
 				synapse.Info("⚠️ Warning: Failed to execute build command '%s': %v\nOutput: %s\n", settings.BuildCmd, err, string(out))
 			}
