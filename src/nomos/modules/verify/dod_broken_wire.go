@@ -79,7 +79,7 @@ func generateBrokenWireError(findings []wireFinding) (StageResult, error) {
 }
 
 // sweepZombieTasks iterates over tasks and transitions stale IN_PROGRESS tasks to BACKLOG.
-func sweepZombieTasks(root string, ctx context.Context, tracker task.Tracker, tasks []task.Task) int {
+func sweepZombieTasks(root string, ctx context.Context, tracker *task.LocalTracker, tasks []task.Task) int {
 	zombieCount := 0
 	now := time.Now()
 	for _, t := range tasks {

@@ -44,7 +44,7 @@ func RunHygieneCleanups(ctx *workspace.WorkspaceContext) error {
 
 	// Resolve active task tracker config.
 	cfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(repoRoot); return task.LoadConfig(c) }()
-	var tracker task.Tracker
+	var tracker *task.LocalTracker
 	if err == nil {
 		tracker, _ = task.NewTracker(cfg)
 	}
@@ -92,7 +92,7 @@ func vacuumDatabases(dbFiles []string) {
 }
 
 // cleanupWorktrees audits the local worktrees directory and prunes closed tasks.
-func cleanupWorktrees(repoRoot string, tracker task.Tracker) {
+func cleanupWorktrees(repoRoot string, tracker *task.LocalTracker) {
 	if tracker == nil {
 		return
 	}
@@ -143,7 +143,7 @@ func cleanupWorktrees(repoRoot string, tracker task.Tracker) {
 // a network request with a context timeout, and determining if the task's status
 // satisfies the criteria for closure. Stale network calls are aggressively timed out
 // to ensure that bulk pruning operations do not hang the developer's terminal.
-func isTaskClosed(tracker task.Tracker, taskID string) bool {
+func isTaskClosed(tracker *task.LocalTracker, taskID string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -241,7 +241,7 @@ func isDebtExpired(item verify.QualityDebtItem) bool {
 // a retention policy to each file. Temporary files that have exceeded their
 // time-to-live (e.g. 3 days for logs, 7 days for stories) are forcefully removed
 // to maintain a pristine directory structure.
-func pruneTempFiles(repoRoot string, tracker task.Tracker) {
+func pruneTempFiles(repoRoot string, tracker *task.LocalTracker) {
 	tmpDir := workspace.MustNewContext(repoRoot).TmpDir()
 	entries, err := os.ReadDir(tmpDir)
 	if err != nil {
@@ -260,7 +260,7 @@ func pruneTempFiles(repoRoot string, tracker task.Tracker) {
 }
 
 // shouldPruneFile decides if a temporary log or story file should be deleted.
-func shouldPruneFile(name string, path string, tracker task.Tracker) bool {
+func shouldPruneFile(name string, path string, tracker *task.LocalTracker) bool {
 	// Delete old commit message logs.
 	if strings.HasPrefix(name, "commit_msg_") && (strings.HasSuffix(name, ".txt") || strings.HasSuffix(name, ".md")) {
 		return true
@@ -282,7 +282,7 @@ func shouldPruneFile(name string, path string, tracker task.Tracker) bool {
 }
 
 // shouldPruneStoryFile decides if a story file belongs to a closed task or is stale.
-func shouldPruneStoryFile(name string, path string, tracker task.Tracker) bool {
+func shouldPruneStoryFile(name string, path string, tracker *task.LocalTracker) bool {
 	if !strings.HasPrefix(name, "story_") || !strings.HasSuffix(name, ".md") {
 		return false
 	}

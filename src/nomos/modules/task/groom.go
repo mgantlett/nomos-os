@@ -10,7 +10,7 @@ import (
 
 // GroomBacklog orchestrates the backlog grooming process, detecting dependency cycles,
 // flagging duplicate tasks using cosine similarity, and automatically bundling them.
-func GroomBacklog(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, capacity int, projectFilter string, autoApprove bool) error {
+func GroomBacklog(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker *LocalTracker, capacity int, projectFilter string, autoApprove bool) error {
 	allTasks, err := tracker.List(ctx)
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func filterTasks(allTasks []Task, projectFilter string) []Task {
 // threshold of 5, it prints an Orchestrator Directive so the LLM can
 // semantically split it. It also automatically tags the task with 'needs-split'
 // to ensure it is not incorrectly bundled before the split occurs.
-func detectAndTagMonolithicTasks(ctx context.Context, tracker Tracker, tasks []Task) {
+func detectAndTagMonolithicTasks(ctx context.Context, tracker *LocalTracker, tasks []Task) {
 	for _, t := range tasks {
 		if t.ContextBurden+t.LogicDepth > 5 {
 			fmt.Printf("⚠️  [ORCHESTRATOR DIRECTIVE] Task %s is monolithic (Size: %d). You must invoke cognitive splitting. Read the task and spawn micro-tasks.\n", t.Key, t.ContextBurden+t.LogicDepth)

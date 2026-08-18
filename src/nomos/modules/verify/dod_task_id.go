@@ -115,7 +115,7 @@ func resolveTargetTaskID(ctx *workspace.WorkspaceContext) string {
 // resolvePrimaryTracker determines if the given root is a transient worktree
 // and attempts to locate the primary graph database in the parent repository.
 // It returns a tracker connected to the correct database.
-func resolvePrimaryTracker(root string, wCtx *workspace.WorkspaceContext) task.Tracker {
+func resolvePrimaryTracker(root string, wCtx *workspace.WorkspaceContext) *task.LocalTracker {
 	tracker := task.NewLocalTracker(wCtx)
 	primaryRoot := root
 

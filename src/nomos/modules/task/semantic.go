@@ -237,7 +237,7 @@ func computeDuplicatesTextFallback(newText string, activeTasks []Task) []string 
 
 // CheckDuplicateNewTask checks if a new task description is highly similar to any existing active tasks.
 // It prioritizes the Nomic embeddings API (port 8081) and falls back to text cosine similarity if unavailable.
-func CheckDuplicateNewTask(ctx context.Context, tracker Tracker, title, description, project string) ([]string, error) {
+func CheckDuplicateNewTask(ctx context.Context, tracker *LocalTracker, title, description, project string) ([]string, error) {
 	// Fetch all tasks from current project tracker
 	allTasks, err := tracker.List(ctx)
 	if err != nil {

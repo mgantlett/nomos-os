@@ -271,6 +271,9 @@ func (lt *LocalTracker) saveTask(t Task) error {
 		return err
 	}
 	_, err = conn.Exec(`INSERT OR REPLACE INTO nomos_dag_nodes (id, type, properties) VALUES (?, 'task', ?)`, t.Key, string(data))
+	if err == nil {
+		HashAsync(workspace.MustNewContext(lt.repoRoot))
+	}
 	return err
 }
 

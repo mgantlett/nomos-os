@@ -96,7 +96,7 @@ func RemediateASTCycle(root string, cycleSignature string) {
 
 	// Wrap the tracker with the Data Integrity state hashing middleware.
 	// This ensures our autonomous actions cryptographically seal the workspace.
-	tracker = task.WrapWithStateHash(tracker, wCtx)
+	// Tracker updates hash asynchronously via saveTask now.
 
 	// Create the remediation task in the tracking system.
 	// It is created in the Backlog status, unassigned, waiting for Swarm assignment.

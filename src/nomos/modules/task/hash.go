@@ -8,7 +8,6 @@ manually bypass the deterministic task mutations.
 package task
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -153,76 +152,12 @@ func WaitAsyncCommits() {
 	asyncCommitsWg.Wait()
 }
 
-// StateHashTracker wraps a Tracker to automatically update the Workspace State Hash upon mutations.
-type StateHashTracker struct {
-	Tracker
-	ctx *workspace.WorkspaceContext
-}
-
-func WrapWithStateHash(t Tracker, ctx *workspace.WorkspaceContext) Tracker {
-	return &StateHashTracker{Tracker: t, ctx: ctx}
-}
-
-func (w *StateHashTracker) updateHash() {
+// HashAsync asynchronously updates the Workspace State Hash.
+// It is intended to be called after mutations to the local task database.
+func HashAsync(ctx *workspace.WorkspaceContext) {
 	asyncCommitsWg.Add(1)
 	go func() {
 		defer asyncCommitsWg.Done()
-		_ = UpdateWorkspaceStateHash(w.ctx)
+		_ = UpdateWorkspaceStateHash(ctx)
 	}()
-}
-
-func (w *StateHashTracker) Start(ctx context.Context, key string, assignee string) error {
-	err := w.Tracker.Start(ctx, key, assignee)
-	if err == nil {
-		w.updateHash()
-	}
-	return err
-}
-
-func (w *StateHashTracker) Close(ctx context.Context, key string, comment string) error {
-	err := w.Tracker.Close(ctx, key, comment)
-	if err == nil {
-		w.updateHash()
-	}
-	return err
-}
-
-func (w *StateHashTracker) Cancel(ctx context.Context, key string, comment string) error {
-	err := w.Tracker.Cancel(ctx, key, comment)
-	if err == nil {
-		w.updateHash()
-	}
-	return err
-}
-
-func (w *StateHashTracker) Comment(ctx context.Context, key string, comment string) error {
-	err := w.Tracker.Comment(ctx, key, comment)
-	if err == nil {
-		w.updateHash()
-	}
-	return err
-}
-
-func (w *StateHashTracker) Transition(ctx context.Context, key string, status TaskStatus) error {
-	err := w.Tracker.Transition(ctx, key, status)
-	if err == nil {
-		w.updateHash()
-	}
-	return err
-}
-
-func (w *StateHashTracker) Create(ctx context.Context, title string, body string, labels []string, parentKey string, project string, taskType TaskType, isSpike bool, initialStatus TaskStatus) (string, error) {
-	key, err := w.Tracker.Create(ctx, title, body, labels, parentKey, project, taskType, isSpike, initialStatus)
-	if err == nil {
-		w.updateHash()
-	}
-	return key, err
-}
-
-func (w *StateHashTracker) Edit(ctx context.Context, key string, title *string, body *string, labels []string, contextBurden *int, logicDepth *int, blockedBy []string, sequence *int, project *string) error {
-	err := w.Tracker.Edit(ctx, key, title, body, labels, contextBurden, logicDepth, blockedBy, sequence, project)
-	if err == nil {
-		w.updateHash()
-	}
-	return err
 }

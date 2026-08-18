@@ -31,7 +31,7 @@ import (
 )
 
 // GenerateHolyGhostContext fetches task details and builds .agent/tmp/.context-prompt.md
-func GenerateHolyGhostContext(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, taskKey string) error {
+func GenerateHolyGhostContext(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker *LocalTracker, taskKey string) error {
 	repoRoot := wCtx.RepoRoot
 	fmt.Printf("👻 Holy Ghost: Generating context for Task %s...\n", taskKey)
 

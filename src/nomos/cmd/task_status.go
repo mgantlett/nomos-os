@@ -73,7 +73,7 @@ func getActivePhase(root string) string {
 
 // getActiveTaskTitle fetches the title of the active task.
 // If the task cannot be loaded, it returns the task ID instead.
-func getActiveTaskTitle(root string, tracker task.Tracker) string {
+func getActiveTaskTitle(root string, tracker *task.LocalTracker) string {
 	taskTitle := "None"
 	taskIdPath := workspace.MustNewContext(root).NomosStatePath(".state_task_id")
 	if idData, err := os.ReadFile(taskIdPath); err == nil {

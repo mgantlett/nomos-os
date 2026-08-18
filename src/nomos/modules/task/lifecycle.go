@@ -141,7 +141,7 @@ func PostDoDFailure(ctx *workspace.WorkspaceContext, key string, failMsgs []stri
 }
 
 // getTracker resolves credentials configuration and constructs the tracker object for a repo root.
-func getTracker(ctx *workspace.WorkspaceContext) (Tracker, error) {
+func getTracker(ctx *workspace.WorkspaceContext) (*LocalTracker, error) {
 	// Load configuration settings for active repository workspace
 	cfg, err := LoadConfig(ctx)
 	if err != nil {

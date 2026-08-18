@@ -141,6 +141,11 @@ var DoDStages = []VerificationStage{
 		Run:      skipIfNotGo("Doc Drift Check", runDocDriftCheck),
 	},
 	{
+		Name:     "Anti-OOP Abstraction Check",
+		Guidance: "Remove single-implementation interfaces. Abstract interfaces must have >= 2 concrete implementations to justify the architectural complexity.",
+		Run:      skipIfNotGo("Anti-OOP Abstraction Check", runAntiOOPCheck),
+	},
+	{
 		Name:     "Refactor Checks",
 		Guidance: "Run 'bin/nomos verify' locally to check duplication report. Consolidate duplicate blocks or use quality_debt bypasses.",
 		Run:      runRefactorChecksStage,

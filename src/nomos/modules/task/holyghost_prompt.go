@@ -29,7 +29,7 @@ type CodeSnippet struct {
 
 // fetchTaskKeywords views task tracker and falls back to task.md to obtain clean keywords.
 // It extracts descriptive key terms from task titles and bodies for vector semantic searches.
-func fetchTaskKeywords(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, taskKey string) string {
+func fetchTaskKeywords(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker *LocalTracker, taskKey string) string {
 	repoRoot := wCtx.RepoRoot
 	// Attempt to view task record from local tracker store
 	t, err := tracker.View(ctx, taskKey)
@@ -346,7 +346,7 @@ func writeResidentGuidelines(f *strings.Builder, repoRoot string, taskKey string
 
 // writeBatchBoard appends the current Active Context Batch (DAG) context.
 // It queries the task tracker to identify unblocked tasks in the active execution batch.
-func writeBatchBoard(f *strings.Builder, repoRoot string, tracker Tracker) {
+func writeBatchBoard(f *strings.Builder, repoRoot string, tracker *LocalTracker) {
 	ctx := context.Background()
 	tasks, err := tracker.List(ctx)
 	if err != nil {

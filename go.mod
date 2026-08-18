@@ -45,4 +45,4 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-
+replace github.com/mgantlett/nomos-commons => ../nomos-commons-NOM-67

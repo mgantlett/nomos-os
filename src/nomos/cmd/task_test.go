@@ -10,31 +10,7 @@ import (
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
-type mockTracker struct {
-	task.Tracker
-	created bool
-	title   string
-	body    string
-	labels  []string
-}
-
-func (m *mockTracker) Cancel(ctx context.Context, key string, comment string) error { return nil }
-func (m *mockTracker) Transition(ctx context.Context, key string, status task.TaskStatus) error {
-	return nil
-}
-func (m *mockTracker) Create(ctx context.Context, title string, body string, labels []string, parentKey string, project string, taskType task.TaskType, isSpike bool, initialStatus task.TaskStatus) (string, error) {
-	m.created = true
-	m.title = title
-	m.body = body
-	m.labels = labels
-	return "TEST-999", nil
-}
-func (m *mockTracker) Edit(ctx context.Context, key string, title *string, body *string, labels []string, contextBurden *int, logicDepth *int, blockedBy []string, sequence *int, project *string) error {
-	return nil
-}
-func (m *mockTracker) List(ctx context.Context) ([]task.Task, error) {
-	return nil, nil
-}
+// Removed mockTracker since we no longer use interfaces for mocking
 
 func TestTaskCommandsRegistered(t *testing.T) {
 	// Verify task subcommands are registered in Cobra
@@ -58,9 +34,14 @@ func TestTaskCommandsRegistered(t *testing.T) {
 }
 
 func TestTaskCreatePriorityValidation(t *testing.T) {
-	mock := &mockTracker{}
-	task.NewTrackerOverride = func(cfg *task.Config) (task.Tracker, error) {
-		return mock, nil
+	tmpDir := t.TempDir()
+	
+	// Create a real tracker pointing to the temp dir
+	ctx, _ := workspace.NewContext(tmpDir)
+	realTracker := task.NewLocalTracker(ctx)
+	
+	task.NewTrackerOverride = func(cfg *task.Config) (*task.LocalTracker, error) {
+		return realTracker, nil
 	}
 	defer func() { task.NewTrackerOverride = nil }()
 
@@ -90,8 +71,9 @@ func TestTaskCreatePriorityValidation(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected success with priority label in flags, but got error: %v", err)
 	}
-	if !mock.created {
-		t.Error("expected tracker.Create to be called")
+	tasks, _ := realTracker.List(context.Background())
+	if len(tasks) == 0 {
+		t.Error("expected tracker.Create to be called and a task to exist")
 	}
 
 	// Test Case 3: Priority parsed from markdown body should succeed
@@ -110,12 +92,13 @@ func TestTaskCreatePriorityValidation(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected success with priority in body, but got error: %v", err)
 	}
-	if !mock.created {
-		t.Error("expected tracker.Create to be called")
+	tasks, _ = realTracker.List(context.Background())
+	if len(tasks) < 2 {
+		t.Error("expected tracker.Create to be called again")
 	}
 
 	foundPrio := false
-	for _, l := range mock.labels {
+	for _, l := range tasks[1].Labels {
 		if l == "priority:critical" {
 			foundPrio = true
 		}

@@ -10,7 +10,7 @@ import (
 
 // AutoBundleTasks scans the backlog and dynamically bundles related tasks
 // into Epics up to the provided capacity cap to reduce context exhaustion.
-func AutoBundleTasks(ctx context.Context, tracker Tracker, capacity int) error {
+func AutoBundleTasks(ctx context.Context, tracker *LocalTracker, capacity int) error {
 	tasks, err := tracker.List(ctx)
 	if err != nil {
 		return err

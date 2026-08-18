@@ -21,7 +21,7 @@ import (
 // - Markdown body content
 // - Context burden and logic depth
 // - Associated labels
-// It relies on the active task.Tracker implementation to persist changes.
+// It relies on the active *task.LocalTracker implementation to persist changes.
 var taskEditCmd = &cobra.Command{
 	Use:   "edit [task-key]",
 	Short: "Edit metadata and body of an existing task",

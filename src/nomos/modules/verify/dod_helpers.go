@@ -166,7 +166,7 @@ func checkActiveDebts(root string, activeTaskId string) (autos []string, invalid
 		return nil, nil
 	}
 
-	var tracker task.Tracker
+	var tracker *task.LocalTracker
 	var trackerLoaded bool
 
 	for _, item := range manifest.ActiveDebt {
@@ -186,7 +186,7 @@ func checkActiveDebts(root string, activeTaskId string) (autos []string, invalid
 }
 
 // checkSingleDebtLink wraps task description verification if tracker is loaded.
-func checkSingleDebtLink(tracker task.Tracker, item QualityDebtItem) error {
+func checkSingleDebtLink(tracker *task.LocalTracker, item QualityDebtItem) error {
 	if tracker == nil {
 		return nil
 	}
@@ -194,7 +194,7 @@ func checkSingleDebtLink(tracker task.Tracker, item QualityDebtItem) error {
 }
 
 // loadTracker loads config and returns the task tracker client.
-func loadTracker(root string) (task.Tracker, bool) {
+func loadTracker(root string) (*task.LocalTracker, bool) {
 	tCfg, err := func() (*task.Config, error) { c, _ := workspace.NewContext(root); return task.LoadConfig(c) }()
 	if err != nil {
 		return nil, true
@@ -207,7 +207,7 @@ func loadTracker(root string) (task.Tracker, bool) {
 }
 
 // validateDebtLink queries the task tracker and verifies that the task matches the file path.
-func validateDebtLink(tracker task.Tracker, item QualityDebtItem) error {
+func validateDebtLink(tracker *task.LocalTracker, item QualityDebtItem) error {
 	if os.Getenv("NOMOS_NO_TRACKER") == "1" {
 		return nil
 	}

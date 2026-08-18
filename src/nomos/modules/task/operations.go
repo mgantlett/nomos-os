@@ -73,7 +73,7 @@ func writePhaseState(ctx *workspace.WorkspaceContext, key, assignee, agentFlag s
 }
 
 // StartTrackerOnly isolates the tracker update and telemetry emitting without mutating local workspace state.
-func StartTrackerOnly(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, key string, assignee string) (*Task, error) {
+func StartTrackerOnly(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker *LocalTracker, key string, assignee string) (*Task, error) {
 	repoRoot := wCtx.RepoRoot
 	t, err := tracker.View(ctx, key)
 	if err != nil {
@@ -93,7 +93,7 @@ func StartTrackerOnly(ctx context.Context, wCtx *workspace.WorkspaceContext, tra
 
 // StartTask centralizes task initialization logic, applying JIT agent routing,
 // workspace transitions, and context generation.
-func StartTask(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker Tracker, key string, assignee string, agentFlag string, injectExemptionsFunc func(string, string) string) (string, string, error) {
+func StartTask(ctx context.Context, wCtx *workspace.WorkspaceContext, tracker *LocalTracker, key string, assignee string, agentFlag string, injectExemptionsFunc func(string, string) string) (string, string, error) {
 	repoRoot := wCtx.RepoRoot
 	_ = RunHygieneCleanups(wCtx)
 

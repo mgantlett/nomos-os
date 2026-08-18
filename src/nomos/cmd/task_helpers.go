@@ -65,7 +65,7 @@ func handlePhaseTransition(ctx *workspace.WorkspaceContext, phase statepkg.Works
 }
 
 // loadTrackerForRoot instantiates the tracking backend using an explicit repository root path.
-func loadTrackerForRoot(root string) (task.Tracker, error) {
+func loadTrackerForRoot(root string) (*task.LocalTracker, error) {
 	primaryRoot := root
 	if strings.Contains(root, "/worktrees/") {
 		parts := strings.Split(root, "/worktrees/")
@@ -85,12 +85,12 @@ func loadTrackerForRoot(root string) (task.Tracker, error) {
 		return nil, fmt.Errorf("failed to initialize task tracker: %w", err)
 	}
 
-	tracker = task.WrapWithStateHash(tracker, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(primaryRoot); return c }())
+	// Hash is now automatically updated by LocalTracker.
 	return tracker, nil
 }
 
 // loadTrackerAndRoot loads configuration file and instantiates tracking backend.
-func loadTrackerAndRoot() (task.Tracker, string, error) {
+func loadTrackerAndRoot() (*task.LocalTracker, string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get working directory: %w", err)
@@ -107,7 +107,7 @@ func loadTrackerAndRoot() (task.Tracker, string, error) {
 
 // loadTrackerAndTask is a DRY helper that loads the tracking backend and retrieves the specific task by key.
 // It helps eliminate repetitive loading and viewing boilerplate across CLI commands.
-func loadTrackerAndTask(ctx context.Context, key string) (task.Tracker, *task.Task, string, error) {
+func loadTrackerAndTask(ctx context.Context, key string) (*task.LocalTracker, *task.Task, string, error) {
 	tracker, root, err := loadTrackerAndRoot()
 	if err != nil {
 		return nil, nil, "", err
@@ -120,7 +120,7 @@ func loadTrackerAndTask(ctx context.Context, key string) (task.Tracker, *task.Ta
 }
 
 // loadTrackerAndListTasks is a DRY helper that loads the tracking backend and retrieves the list of tasks.
-func loadTrackerAndListTasks(ctx context.Context) (task.Tracker, string, []task.Task, error) {
+func loadTrackerAndListTasks(ctx context.Context) (*task.LocalTracker, string, []task.Task, error) {
 	tracker, root, err := loadTrackerAndRoot()
 	if err != nil {
 		return nil, "", nil, err
@@ -133,7 +133,7 @@ func loadTrackerAndListTasks(ctx context.Context) (task.Tracker, string, []task.
 }
 
 // parseTaskArgsAndLoadTracker abstracts argument parsing and backend loading for task closure and cancellation.
-func parseTaskArgsAndLoadTracker(args []string, defaultComment string) (string, string, task.Tracker, string, error) {
+func parseTaskArgsAndLoadTracker(args []string, defaultComment string) (string, string, *task.LocalTracker, string, error) {
 	key := args[0]
 	comment := defaultComment
 	if len(args) > 1 {

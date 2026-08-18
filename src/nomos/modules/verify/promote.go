@@ -98,7 +98,7 @@ func promoteAutoDebtTasks(ctx *workspace.WorkspaceContext, autoByFile map[string
 		return false
 	}
 	modified := false
-	var tracker task.Tracker
+	var tracker *task.LocalTracker
 	if cfg, err := task.LoadConfig(ctx); err == nil {
 		tracker, _ = task.NewTracker(cfg)
 	}
@@ -246,7 +246,7 @@ func SyncQualityDebtStories(repoRoot string) {
 	_ = os.MkdirAll(tmpDir, 0755)
 
 	// Load active task tracker configuration to sync remote task bodies
-	var tracker task.Tracker
+	var tracker *task.LocalTracker
 	ctx, _ := workspace.NewContext(repoRoot)
 	if cfg, err := task.LoadConfig(ctx); err == nil {
 		tracker, _ = task.NewTracker(cfg)
@@ -316,7 +316,7 @@ func isTaskTerminal(ctx *workspace.WorkspaceContext, tID string) bool {
 // into the quality debt generated task body.
 // This preserves the hierarchical Cycle -> Task relationship when auto-syncing
 // markdown descriptions for heavily bundled quality debt tracking tasks.
-func appendBundledTasks(ctx context.Context, tracker task.Tracker, taskID string, content *string) {
+func appendBundledTasks(ctx context.Context, tracker *task.LocalTracker, taskID string, content *string) {
 	if t, err := tracker.View(ctx, taskID); err == nil {
 		if strings.Contains(t.Description, "**Bundled Tasks:**") {
 			parts := strings.Split(t.Description, "**Bundled Tasks:**")

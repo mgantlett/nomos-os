@@ -32,7 +32,7 @@ type Server struct {
 	// repoRoot stores the absolute path to the active workspace repository.
 	repoRoot string
 	// tracker handles local backlog task querying and mutations.
-	tracker task.Tracker
+	tracker *task.LocalTracker
 	// httpServer holds the underlying net/http Server reference.
 	httpServer *http.Server
 	// mu synchronizes access to registered enterprise plugins array.
@@ -58,7 +58,7 @@ type pluginRegistration struct {
 }
 
 // NewServer initializes a new Cockpit HTTP server instance bound to the given repoRoot and port.
-func NewServer(ctx *workspace.WorkspaceContext, port int, tracker task.Tracker) *Server {
+func NewServer(ctx *workspace.WorkspaceContext, port int, tracker *task.LocalTracker) *Server {
 	repoRoot := ctx.RepoRoot
 	if tracker == nil && repoRoot != "" {
 		cfg := &task.Config{TrackerType: "local", RepoRoot: repoRoot}
