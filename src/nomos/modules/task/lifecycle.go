@@ -266,7 +266,12 @@ func ValidateWorkspaceTaskContext(root string, taskKey string, taskProject strin
 	normCurrent := strings.ToLower(strings.TrimSpace(currentProjectBase))
 	normProject := strings.ToLower(strings.TrimSpace(taskProject))
 
-	if normCurrent != normProject {
+	isMatch := normCurrent == normProject
+	if !isMatch && normProject == "nomos" && strings.HasPrefix(normCurrent, "nomos-") {
+		isMatch = true
+	}
+
+	if !isMatch {
 		return fmt.Errorf("Workspace Context Mismatch: task %s belongs to project '%s', but active workspace root is '%s'. Please switch to the '%s' workspace root before initiating this task.", taskKey, taskProject, currentProjectBase, taskProject)
 	}
 

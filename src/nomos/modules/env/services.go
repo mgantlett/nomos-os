@@ -101,7 +101,7 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 			Port:         8001,
 		}, nil
 
-	case "cockpit":
+	case "cockpit", "cockpit-dev":
 		nomosBin, err := os.Executable()
 		if err != nil {
 			nomosBin = "nomos" // fallback
@@ -109,15 +109,88 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 		cmdStr := fmt.Sprintf("%s cockpit daemon", nomosBin)
 		buildCmd := "echo 'Cockpit is built centrally with nomos'"
 
+		var nomosOsRoot string
+		if b, err := os.ReadFile(ctx.StateTaskIdPath()); err == nil {
+			taskId := strings.TrimSpace(string(b))
+			if taskId != "" {
+				wtPath := filepath.Join(repoRoot, "worktrees", "nomos-os-"+taskId)
+				if _, statErr := os.Stat(wtPath); statErr == nil {
+					nomosOsRoot = wtPath
+				}
+			}
+		}
+		if nomosOsRoot == "" {
+			nomosOsRoot = workspace.ResolveProjectRoot(repoRoot, "nomos-os")
+		}
+
 		// Return resolved ServiceConfig instance for environment substrate
 		return &ServiceConfig{
 			Name:         "cockpit",
 			Command:      cmdStr,
 			BuildCommand: buildCmd,
-			DevCommand:   `npx -y concurrently -k "cd src/nomos/modules/cockpit/ui && tsc -w" "nomos cockpit"`,
+			DevCommand:   fmt.Sprintf(`npx -y concurrently -k "cd %s/src/nomos/modules/cockpit/ui && tsc -w" "%s"`, nomosOsRoot, cmdStr),
 			LogFile:      logFile,
 			Cwd:          repoRoot,
 			Port:         8089,
+		}, nil
+
+	case "cockpit-sovereign", "cockpit-sovereign-dev":
+		var sovereignRoot string
+		
+		// Attempt to resolve via active task ID first
+		if b, err := os.ReadFile(ctx.StateTaskIdPath()); err == nil {
+			taskId := strings.TrimSpace(string(b))
+			if taskId != "" {
+				wtPath := filepath.Join(repoRoot, "worktrees", "nomos-sovereign-"+taskId)
+				if _, statErr := os.Stat(wtPath); statErr == nil {
+					sovereignRoot = wtPath
+				}
+			}
+		}
+
+		if sovereignRoot == "" {
+			sovereignRoot = workspace.ResolveProjectRoot(repoRoot, "nomos-sovereign")
+		}
+		if sovereignRoot == "" {
+			return nil, fmt.Errorf("nomos-sovereign workspace not found")
+		}
+		cmdStr := "go run github.com/mgantlett/nomos-sovereign/src/nomos-cockpit/src/cmd/cockpitd --port 8090"
+		buildCmd := fmt.Sprintf("go build -o %s/bin/cockpitd github.com/mgantlett/nomos-sovereign/src/nomos-cockpit/src/cmd/cockpitd", sovereignRoot)
+
+		var cwdRoot string = ctx.PrimaryWorktree
+		if b, err := os.ReadFile(ctx.StateTaskIdPath()); err == nil {
+			taskId := strings.TrimSpace(string(b))
+			if taskId != "" {
+				// Reconstruct Cwd to orchestrator worktree which has go.work
+				wtPath := filepath.Join(repoRoot, "worktrees", "nomos-commons-"+taskId)
+				if _, statErr := os.Stat(wtPath); statErr == nil {
+					cwdRoot = wtPath
+				}
+			}
+		}
+
+		var nomosOsRoot string
+		if b, err := os.ReadFile(ctx.StateTaskIdPath()); err == nil {
+			taskId := strings.TrimSpace(string(b))
+			if taskId != "" {
+				wtPath := filepath.Join(repoRoot, "worktrees", "nomos-os-"+taskId)
+				if _, statErr := os.Stat(wtPath); statErr == nil {
+					nomosOsRoot = wtPath
+				}
+			}
+		}
+		if nomosOsRoot == "" {
+			nomosOsRoot = workspace.ResolveProjectRoot(repoRoot, "nomos-os")
+		}
+
+		return &ServiceConfig{
+			Name:         "cockpit-sovereign",
+			Command:      cmdStr,
+			BuildCommand: buildCmd,
+			DevCommand:   fmt.Sprintf(`npx -y concurrently -k "cd %s/src/nomos/modules/cockpit/ui && tsc -w" "%s"`, nomosOsRoot, cmdStr),
+			LogFile:      logFile,
+			Cwd:          cwdRoot,
+			Port:         8090,
 		}, nil
 
 	case "vitepress":

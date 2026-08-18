@@ -92,7 +92,11 @@ var taskStartCmd = &cobra.Command{
 			firstTaskKey := keys[0]
 			if tObj, errView := tracker.View(ctx, firstTaskKey); errView == nil {
 				currentProjectBase := filepath.Base(filepath.Clean(repoRoot))
-				if !strings.EqualFold(currentProjectBase, tObj.Project) {
+				isMatch := strings.EqualFold(currentProjectBase, tObj.Project)
+				if !isMatch && strings.EqualFold(tObj.Project, "nomos") && strings.HasPrefix(strings.ToLower(currentProjectBase), "nomos-") {
+					isMatch = true
+				}
+				if !isMatch {
 					fmt.Printf("🔄 Auto-switching context to target project root: %s...\n", tObj.Project)
 					if resolvedRoot := workspace.ResolveProjectRoot(repoRoot, tObj.Project); resolvedRoot != "" {
 						if errChdir := os.Chdir(resolvedRoot); errChdir == nil {

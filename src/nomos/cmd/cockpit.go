@@ -35,12 +35,49 @@ var cockpitCmd = &cobra.Command{
 	RunE:  runCockpitCmd,
 }
 
-// runCockpitCmd executes the server lifecycle for the nomos cockpit command.
 func runCockpitCmd(cmd *cobra.Command, args []string) error {
 	wd, _ := os.Getwd()
 	repoRoot := nomosexec.FindRepoRoot(wd)
-	synapse.Info("🚀 Delegating to daemon supervisor: nomos env start cockpit...")
-	return executeNomosEnvStart(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "cockpit")
+	
+	var serviceName string
+	if cockpitSovereignFlag {
+		if cockpitDevFlag {
+			serviceName = "cockpit-sovereign-dev"
+		} else {
+			serviceName = "cockpit-sovereign"
+		}
+	} else {
+		if cockpitDevFlag {
+			serviceName = "cockpit-dev"
+		} else {
+			serviceName = "cockpit"
+		}
+	}
+	
+	if cockpitDevFlag {
+		synapse.Info("🚀 Delegating to daemon supervisor: nomos dev %s...", serviceName)
+		return executeNomosDev(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), serviceName)
+	}
+	synapse.Info("🚀 Delegating to daemon supervisor: nomos env start %s...", serviceName)
+	return executeNomosEnvStart(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), serviceName)
+}
+
+func executeNomosDev(ctx *workspace.WorkspaceContext, service string) error {
+	repoRoot := ctx.RepoRoot
+	nomosBin := "bin/nomos"
+	if _, err := os.Stat(filepath.Join(repoRoot, "bin/nomos")); err != nil {
+		if exe, errExe := os.Executable(); errExe == nil {
+			nomosBin = exe
+		} else {
+			nomosBin = "nomos"
+		}
+	}
+	// Note: We use executeNomosDev to bypass pm2 so that hot-reload logs directly to stdout
+	execCmd := exec.Command(nomosBin, "dev", service)
+	execCmd.Dir = ctx.PrimaryWorktree
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+	return execCmd.Run()
 }
 
 func executeNomosEnvStart(ctx *workspace.WorkspaceContext, service string) error {
@@ -54,7 +91,7 @@ func executeNomosEnvStart(ctx *workspace.WorkspaceContext, service string) error
 		}
 	}
 	execCmd := exec.Command(nomosBin, "env", "start", service)
-	execCmd.Dir = repoRoot
+	execCmd.Dir = ctx.PrimaryWorktree
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	return execCmd.Run()
