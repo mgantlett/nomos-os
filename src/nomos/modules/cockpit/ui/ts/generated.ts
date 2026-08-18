@@ -41,7 +41,7 @@ export interface SlotsInfo {
     total: number;
     slotStates: SlotState[];
 }
-export interface PhaseState {
+export interface IPhaseState {
     agent: string;
     agent_tier: string;
     agent_type: string;
@@ -61,8 +61,8 @@ export interface PhaseState {
 }
 export interface StatusPayload {
     repoRoot: string;
-    phaseState: PhaseState;
-    idePhaseState: PhaseState;
+    phaseState: IPhaseState;
+    idePhaseState: IPhaseState;
     slots: SlotsInfo;
     inferenceStats: InferenceStat[];
     gpu: GPUStats;

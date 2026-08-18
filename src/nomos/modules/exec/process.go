@@ -34,14 +34,3 @@ func DeregisterActiveProcess(dbPath string, pid int) error {
 	return err
 }
 
-// GetActiveSwarmWorkerCount returns the count of active aider swarm worker processes.
-func GetActiveSwarmWorkerCount(dbPath string) (int, error) {
-	dbConn, err := db.Open(dbPath)
-	if err != nil {
-		return 0, err
-	}
-
-	var count int
-	err = dbConn.QueryRow("SELECT COUNT(*) FROM active_processes WHERE command LIKE '%aider%';").Scan(&count)
-	return count, err
-}

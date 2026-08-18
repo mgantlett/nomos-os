@@ -17,7 +17,6 @@ pkgs.mkShell {
     liberation_ttf
     python3
     google-cloud-sdk
-    aider-chat
     typescript
     pm2
     psmisc
@@ -30,7 +29,7 @@ pkgs.mkShell {
   shellHook = ''
     export TYPST_FONT_PATHS="${pkgs.liberation_ttf}/share/fonts/truetype"
     echo "⚡ Welcome to the Nomos development shell! ⚡"
-    echo "Loaded dependencies: shellcheck, sqlite, jq, git, curl, nodejs, bc, parallel, google-cloud-sdk, aider-chat, datasette, pm2, psmisc, opencode"
+    echo "Loaded dependencies: shellcheck, sqlite, jq, git, curl, nodejs, bc, parallel, google-cloud-sdk, datasette, pm2, psmisc"
 
     # Dynamically compile the local nomos engine if it's missing or stale, provided we are in a fully hydrated worktree
     if [ -f src/nomos/main.go ]; then

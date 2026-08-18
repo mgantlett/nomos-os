@@ -59,7 +59,7 @@ func VerifyDoR(root string) error {
 // verifyAgentDeepReview ensures that AI agents have completed their
 // mandatory deep review workflow before advancing.
 func verifyAgentDeepReview(root string, state task.PhaseState) error {
-	if state.Agent != "antigravity" && state.Agent != "aider" && !strings.HasPrefix(state.Agent, "swarm:") {
+	if state.Agent != "antigravity" && !strings.HasPrefix(state.Agent, "swarm:") {
 		return nil
 	}
 	taskMdPath := filepath.Join(workspace.MustNewContext(root).DataDir(), "tmp", "task.md")

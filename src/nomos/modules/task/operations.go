@@ -36,7 +36,7 @@ func writePhaseState(ctx *workspace.WorkspaceContext, key, assignee, agentFlag s
 	repoRoot := ctx.RepoRoot
 	phaseStatePath := workspace.MustNewContext(repoRoot).NomosStatePath(".phase_state.json")
 	agentType := "ide"
-	if agentFlag == "aider" || assignee == "aider" {
+	if strings.HasPrefix(agentFlag, "swarm") || strings.HasPrefix(assignee, "swarm:") {
 		agentType = "swarm"
 	}
 
