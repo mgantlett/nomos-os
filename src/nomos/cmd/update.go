@@ -31,25 +31,11 @@ var ecosystemTools = map[string]toolConfig{
 		BinaryName:  "nomos",
 		Branch:      "main",
 	},
-	"gitbrain": {
-		RepoURL:     "git@github.com:mgantlett/nomos-gitbrain.git",
-		RepoDirName: "nomos-gitbrain",
-		BuildSubDir: "src/cmd/nomos-gitbrain",
-		BinaryName:  "nomos-plugin-gitbrain",
-		Branch:      "master",
-	},
-	"swarm": {
-		RepoURL:     "git@github.com:mgantlett/nomos-swarm.git",
-		RepoDirName: "nomos-swarm",
-		BuildSubDir: "src/cmd/nomos-swarm",
-		BinaryName:  "nomos-swarm",
-		Branch:      "master",
-	},
-	"cockpit": {
-		RepoURL:     "git@github.com:mgantlett/nomos-cockpit.git",
-		RepoDirName: "nomos-cockpit",
-		BuildSubDir: "src/cmd/cockpitd",
-		BinaryName:  "nomos-cockpit",
+	"nomos-sovereign": {
+		RepoURL:     "git@github.com:mgantlett/nomos-sovereign.git",
+		RepoDirName: "nomos-sovereign",
+		BuildSubDir: ".",
+		BinaryName:  "nomos-sovereign",
 		Branch:      "master",
 	},
 }
@@ -59,7 +45,7 @@ var globalInstall bool
 
 func init() {
 	// Add CLI flags to control update targets and scoping
-	updateCmd.Flags().BoolVar(&updateAll, "all", false, "Update all ecosystem tools (nomos, gitbrain, swarm, cockpit)")
+	updateCmd.Flags().BoolVar(&updateAll, "all", false, "Update core Nomos and the Sovereign submodule")
 	updateCmd.Flags().BoolVarP(&globalInstall, "install", "i", false, "Compile and install global binaries from pristine remote source")
 }
 
@@ -146,7 +132,7 @@ var updateCmd = &cobra.Command{
 
 		var targets []string
 		if updateAll {
-			targets = []string{"nomos", "gitbrain", "swarm", "cockpit"}
+			targets = []string{"nomos", "nomos-sovereign"}
 		} else if len(args) > 0 {
 			targets = args
 		} else {

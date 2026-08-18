@@ -180,9 +180,18 @@ var taskStartCmd = &cobra.Command{
 				_ = scaffoldTaskWorktree(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key)
 				
 				// Explicitly link the 3 core repositories instead of scanning everything blindly
-				discoveredRepos := []string{
+				allCoreRepos := []string{
+					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "open", "nomos-os"),
 					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "open", "nomos-commons"),
 					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "private", "nomos-sovereign"),
+				}
+
+				var discoveredRepos []string
+				cleanRepoRoot := filepath.Clean(repoRoot)
+				for _, r := range allCoreRepos {
+					if filepath.Clean(r) != cleanRepoRoot {
+						discoveredRepos = append(discoveredRepos, r)
+					}
 				}
 
 				if len(discoveredRepos) > 0 {

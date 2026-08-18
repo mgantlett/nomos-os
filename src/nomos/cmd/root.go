@@ -18,7 +18,9 @@ import (
 	"github.com/spf13/cobra"
 	_ "modernc.org/sqlite"
 
+	"encoding/json"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/db"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
 )
 
 var (
@@ -126,6 +128,40 @@ func init() {
 // Execute prints the error to Stderr and exits with code 1.
 func Execute() {
 	start := time.Now()
+
+	// Dynamically mount discovered plugins as top-level CLI commands
+	cwd, getWdErr := os.Getwd()
+	if getWdErr == nil {
+		plugins, _ := plugin.DiscoverPlugins(cwd)
+		for _, p := range plugins {
+			pluginPath := p
+			basename := filepath.Base(p)
+			name := strings.TrimPrefix(basename, "nomos-plugin-")
+
+			dynamicCmd := &cobra.Command{
+				Use:   name,
+				Short: fmt.Sprintf("Plugin extension (%s)", name),
+				DisableFlagParsing: true,
+				RunE: func(cmd *cobra.Command, args []string) error {
+					result, err := plugin.CallPlugin(pluginPath, "execute", args)
+					if err != nil {
+						return err
+					}
+					if len(result) > 0 {
+						var outStr string
+						if unmarshalErr := json.Unmarshal(result, &outStr); unmarshalErr == nil {
+							fmt.Print(outStr)
+						} else {
+							fmt.Print(string(result))
+						}
+					}
+					return nil
+				},
+			}
+			RootCmd.AddCommand(dynamicCmd)
+		}
+	}
+
 	err := RootCmd.Execute()
 
 	trackCLIInvocation(start, err)

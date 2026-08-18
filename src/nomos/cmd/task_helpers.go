@@ -273,8 +273,9 @@ func FilterTasksByProject(tasks []task.Task, ctx *workspace.WorkspaceContext) []
 	currentProject := filepath.Base(repoRoot)
 	var projectFiltered []task.Task
 	isLocalMode := os.Getenv("NOMOS_TASKS_DIR") == ""
+	isNomosEcosystem := strings.HasPrefix(currentProject, "nomos-")
 	for _, t := range tasks {
-		if t.Project == currentProject || (isLocalMode && t.Project == "") {
+		if t.Project == currentProject || (isNomosEcosystem && t.Project == "nomos") || (isLocalMode && t.Project == "") {
 			projectFiltered = append(projectFiltered, t)
 		}
 	}
