@@ -51,6 +51,9 @@ var taskGroomCmd = &cobra.Command{
 		projectFilter := taskGroomProjectFlag
 		if projectFilter == "" {
 			projectFilter = filepath.Base(repoRoot) // default to current directory project
+			if projSettings != nil && projSettings.DefaultProject != "" {
+				projectFilter = projSettings.DefaultProject
+			}
 		} else if projectFilter == "all" {
 			projectFilter = ""
 		}

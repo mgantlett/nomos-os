@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/schema"
@@ -187,6 +188,9 @@ var taskCreateCmd = &cobra.Command{
 			if filepath.Base(cwd) != project {
 				project = filepath.Base(cwd)
 			}
+		}
+		if projSettings, err := config.LoadProjectSettings(repoRoot); err == nil && projSettings != nil && projSettings.DefaultProject != "" {
+			project = projSettings.DefaultProject
 		}
 		if projectVal != "" {
 			project = projectVal
