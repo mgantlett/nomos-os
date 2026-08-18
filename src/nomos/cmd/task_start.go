@@ -185,32 +185,33 @@ var taskStartCmd = &cobra.Command{
 			if isOrchestratorRoot(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) {
 				_ = scaffoldTaskWorktree(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key)
 				
-				// Auto-discover sibling Nomos repositories if none were explicitly provided
-				if len(crossReposFlag) == 0 {
-					parentDir := filepath.Dir(repoRoot)
-					if entries, err := os.ReadDir(parentDir); err == nil {
-						for _, entry := range entries {
-							if entry.IsDir() {
-								siblingPath := filepath.Join(parentDir, entry.Name())
-								if siblingPath == repoRoot {
-									continue
-								}
-								// Simple heuristic: if it has go.mod and is part of mgantlett
-								if content, err := os.ReadFile(filepath.Join(siblingPath, "go.mod")); err == nil {
-									if strings.Contains(string(content), "module github.com/mgantlett/") {
-										crossReposFlag = append(crossReposFlag, siblingPath)
-									}
-								}
-							}
+				// Auto-discover sibling Nomos repositories across the workspace namespace
+				var discoveredRepos []string
+				namespaceRoot := filepath.Dir(filepath.Dir(repoRoot))
+				_ = filepath.WalkDir(namespaceRoot, func(path string, d os.DirEntry, err error) error {
+					if err != nil || !d.IsDir() {
+						return nil
+					}
+					// Skip hidden directories and worktree folders
+					if d.Name() == ".git" || d.Name() == "worktrees" || d.Name() == ".nomos" {
+						return filepath.SkipDir
+					}
+					if path == repoRoot {
+						return nil
+					}
+					// Simple heuristic: if it has go.mod and is part of mgantlett
+					if content, err := os.ReadFile(filepath.Join(path, "go.mod")); err == nil {
+						if strings.Contains(string(content), "module github.com/mgantlett/") {
+							discoveredRepos = append(discoveredRepos, path)
+							return filepath.SkipDir
 						}
 					}
-					if len(crossReposFlag) > 0 {
-						fmt.Printf("🔄 Auto-discovered %d sibling repositories for cross-repo workspace orchestration.\n", len(crossReposFlag))
-					}
-				}
+					return nil
+				})
 
-				if len(crossReposFlag) > 0 {
-					scaffoldCrossRepoWorktrees(repoRoot, key, crossReposFlag)
+				if len(discoveredRepos) > 0 {
+					fmt.Printf("🔄 Auto-discovered %d sibling repositories for cross-repo workspace orchestration.\n", len(discoveredRepos))
+					scaffoldCrossRepoWorktrees(repoRoot, key, discoveredRepos)
 				}
 			}
 		}
@@ -218,13 +219,9 @@ var taskStartCmd = &cobra.Command{
 	},
 }
 
-var crossReposFlag []string
-
 // init registers the taskStartCmd with the parent taskCmd.
-// It also defines the necessary CLI flags for starting a task,
-// including the force flag and the cross-repo orchestration flag.
+// It also defines the necessary CLI flags for starting a task.
 func init() {
 	taskStartCmd.Flags().BoolVarP(&forceStartFlag, "force", "f", false, "Force starting task even if working directory has uncommitted changes")
-	taskStartCmd.Flags().StringSliceVar(&crossReposFlag, "cross-repo", []string{}, "Paths to sibling repositories to orchestrate transient worktrees for")
 	taskCmd.AddCommand(taskStartCmd)
 }
