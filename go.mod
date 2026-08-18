@@ -46,4 +46,3 @@ require (
 )
 
 
-replace github.com/mgantlett/nomos-commons => ../../../nomos-commons

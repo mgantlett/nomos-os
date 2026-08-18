@@ -8,10 +8,11 @@ import "strings"
 
 // WalkthroughSchema represents the structural schema of a Task Walkthrough
 type WalkthroughSchema struct {
-	ChangesMade       string
+	ChangesMade          string
 	ArchitecturalContext string
 	ImpactList           string
 	ResolutionDetails    string
+	ValidationResults    string
 }
 
 func (s *WalkthroughSchema) GenerateMarkdown() string {
@@ -42,9 +43,16 @@ func (s *WalkthroughSchema) GenerateMarkdown() string {
 
 	sb.WriteString("## **Resolution Details:**\n")
 	if s.ResolutionDetails != "" {
-		sb.WriteString("- " + s.ResolutionDetails + "\n")
+		sb.WriteString("- " + s.ResolutionDetails + "\n\n")
 	} else {
-		sb.WriteString("- <Describe exactly how the issue was resolved>\n")
+		sb.WriteString("- <Describe exactly how the issue was resolved>\n\n")
+	}
+
+	sb.WriteString("## **Validation Results:**\n")
+	if s.ValidationResults != "" {
+		sb.WriteString("- " + s.ValidationResults + "\n")
+	} else {
+		sb.WriteString("- <List tests run and validations performed>\n")
 	}
 
 	return sb.String()

@@ -179,29 +179,11 @@ var taskStartCmd = &cobra.Command{
 			if isOrchestratorRoot(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) {
 				_ = scaffoldTaskWorktree(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key)
 				
-				// Auto-discover sibling Nomos repositories across the workspace namespace
-				var discoveredRepos []string
-				namespaceRoot := filepath.Dir(filepath.Dir(repoRoot))
-				_ = filepath.WalkDir(namespaceRoot, func(path string, d os.DirEntry, err error) error {
-					if err != nil || !d.IsDir() {
-						return nil
-					}
-					// Skip hidden directories and worktree folders
-					if d.Name() == ".git" || d.Name() == "worktrees" || d.Name() == ".nomos" {
-						return filepath.SkipDir
-					}
-					if path == repoRoot {
-						return nil
-					}
-					// Simple heuristic: if it has go.mod and is part of mgantlett
-					if content, err := os.ReadFile(filepath.Join(path, "go.mod")); err == nil {
-						if strings.Contains(string(content), "module github.com/mgantlett/") {
-							discoveredRepos = append(discoveredRepos, path)
-							return filepath.SkipDir
-						}
-					}
-					return nil
-				})
+				// Explicitly link the 3 core repositories instead of scanning everything blindly
+				discoveredRepos := []string{
+					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "open", "nomos-commons"),
+					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "private", "nomos-sovereign"),
+				}
 
 				if len(discoveredRepos) > 0 {
 					fmt.Printf("🔄 Auto-discovered %d sibling repositories for cross-repo workspace orchestration.\n", len(discoveredRepos))
