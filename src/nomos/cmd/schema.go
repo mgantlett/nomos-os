@@ -22,9 +22,17 @@ var schemaCmd = &cobra.Command{
 var schemaShowCmd = &cobra.Command{
 	Use:   "show [type]",
 	Short: "Print the default markdown template for a given schema type (task, plan, walkthrough, commit, triage)",
-	Args:  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
+	Args:  cobra.MatchAll(cobra.MaximumNArgs(1), cobra.OnlyValidArgs),
 	ValidArgs: []string{"task", "operations", "plan", "walkthrough", "commit", "triage"},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			fmt.Println("Available schemas:")
+			for _, arg := range cmd.ValidArgs {
+				fmt.Printf("  - %s\n", arg)
+			}
+			return nil
+		}
+
 		schemaType := args[0]
 		switch schemaType {
 		case "task":
