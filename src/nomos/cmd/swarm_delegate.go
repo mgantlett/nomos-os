@@ -8,10 +8,14 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"strings"
+
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
+
+var delegatePhase string
 
 var delegateCmd = &cobra.Command{
 	Use:   "delegate [ncode] [task-key]",
@@ -60,6 +64,30 @@ var delegateCmd = &cobra.Command{
 
 		repoName := filepath.Base(repoRoot)
 		worktreeDir := filepath.Join(workspaceCtx.WorktreesDir(), fmt.Sprintf("%s-%s", repoName, taskKey))
+
+		// Restrict Tier 2 Swarm Worker from accessing root AGENTS.md to prevent hallucination
+		sparseCmd := exec.Command("git", "sparse-checkout", "set", "--no-cone", "/*", "!/.agents/")
+		sparseCmd.Dir = worktreeDir
+		sparseCmd.Run()
+
+		if delegatePhase != "" {
+			var instructions string
+			switch strings.ToUpper(delegatePhase) {
+			case "PLAN":
+				instructions = "Your explicit constraint is to operate in the PLAN phase.\nYou must NOT modify any source code.\nYou must only read the codebase and generate an `implementation_plan.md` artifact.\n"
+			case "EDIT":
+				instructions = "Your explicit constraint is to operate in the EDIT phase.\nYou must implement the code modifications detailed in the implementation plan and ensure they pass the `nomos verify` gate.\n"
+			case "REVIEW":
+				instructions = "Your explicit constraint is to operate in the REVIEW phase.\nYou must not modify logic. You must only verify tests, write the `walkthrough.md`, and prepare the task for sync.\n"
+			default:
+				instructions = "You are operating as a Swarm worker. Follow standard execution constraints."
+			}
+			
+			promptPath := filepath.Join(worktreeDir, ".nomos", "data", "tmp", ".context-prompt.md")
+			os.MkdirAll(filepath.Dir(promptPath), 0755)
+			os.WriteFile(promptPath, []byte(instructions), 0644)
+			fmt.Printf("✅ Injected holy-ghost constraints for %s phase into swarm worktree.\n", strings.ToUpper(delegatePhase))
+		}
 
 		// Generate .nomos-swarm-escrow.json containing the task details
 		escrowPath := filepath.Join(worktreeDir, ".nomos-swarm-escrow.json")
@@ -110,5 +138,6 @@ var delegateCmd = &cobra.Command{
 }
 
 func init() {
+	delegateCmd.Flags().StringVar(&delegatePhase, "phase", "", "The specific DDP phase to constrain the delegated Swarm worker to (e.g. PLAN, EDIT, REVIEW)")
 	swarmCmd.AddCommand(delegateCmd)
 }
