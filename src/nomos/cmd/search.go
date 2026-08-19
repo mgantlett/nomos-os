@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/plugin"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/gitbrain"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
 )
@@ -26,40 +27,41 @@ var (
 			wd, _ := os.Getwd()
 			repoRoot := nomosexec.FindRepoRoot(wd)
 
-			// Try to use enterprise GitBrain for semantic search via Plugin architecture
-			plugins, err := plugin.DiscoverPlugins(repoRoot)
-			if err == nil {
-				for _, p := range plugins {
-					if filepath.Base(p) == "nomos-plugin-gitbrain" {
-						synapse.Info("Running semantic search via GitBrain...\n")
-						out, err := plugin.CallPlugin(p, "search", map[string]string{
-							"query": query,
-						})
-						if err == nil {
-							os.Stdout.Write(out)
-							return
-						}
-						break
-					}
+			ctx := workspace.MustNewContext(repoRoot)
+			dbPath := ctx.DbPath("gitbrain.db")
+
+			results := []map[string]interface{}{}
+
+			// 1. Open Source Native GitBrain Semantic Search
+			synapse.Info("Running native semantic search via GitBrain...\n")
+			matches, err := gitbrain.SemanticSearch(dbPath, repoRoot, query, searchLimit)
+			if err == nil && len(matches) > 0 {
+				synapse.Info("Found %d semantic memories:\n", len(matches))
+				for _, match := range matches {
+					fmt.Printf("[Memory] (Score: %.2f) %s\n", match.Score, match.Content)
+					results = append(results, map[string]interface{}{"match": match.Content, "type": "memory", "score": match.Score})
 				}
+			} else {
+				synapse.Info("No semantic memories found. Falling back to codebase grep...\n")
 			}
 
-			// Fallback to git grep
+			// 2. Fallback to git grep
 			grepCmd := exec.Command("git", "grep", "-i", "-I", "--line-number", query)
 			grepCmd.Dir = repoRoot
 			out, _ := grepCmd.Output()
 
 			lines := strings.Split(string(out), "\n")
-			if len(lines) > searchLimit && searchLimit > 0 {
-				lines = lines[:searchLimit]
-			}
-
-			results := []map[string]interface{}{}
+			grepCount := 0
 			for _, line := range lines {
 				if line == "" {
 					continue
 				}
-				results = append(results, map[string]interface{}{"match": line})
+				if grepCount >= searchLimit && searchLimit > 0 {
+					break
+				}
+				fmt.Printf("[Code] %s\n", line)
+				results = append(results, map[string]interface{}{"match": line, "type": "code"})
+				grepCount++
 			}
 
 			synapse.Emit("SearchResults", map[string]interface{}{
