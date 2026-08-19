@@ -109,6 +109,7 @@ func installHooks(root string) error {
 		"templates/hooks/pre-push",
 		"templates/hooks/commit-msg",
 		"templates/hooks/post-merge",
+		"templates/hooks/post-commit",
 		"templates/hooks/phase/on_phase_change.sh",
 	}
 
