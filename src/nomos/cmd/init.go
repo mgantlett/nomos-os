@@ -241,8 +241,8 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    # Add nomos-os to path
-    export PATH="` + nomosBinPath + `:$PATH"
+    # Add nomos-os and nomos-sovereign to path
+    export PATH="` + nomosBinPath + `:/home/markg/Projects/sophialabs/private/nomos-sovereign/bin:$PATH"
   '';
 }
 `
@@ -417,6 +417,8 @@ bin/
 # Standard Exclusions
 tmp/
 /worktrees/
+.envrc
+.direnv/
 `
 		os.WriteFile(gitIgnorePath, []byte(defaultGitIgnore), 0644)
 	}

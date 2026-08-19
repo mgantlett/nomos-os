@@ -8,7 +8,7 @@ import (
 )
 
 // Driver controls the Deterministic Substrate Harness loop.
-// It manages the execution of OpenCode and the dynamic feedback loop.
+// It manages the execution of NCode and the dynamic feedback loop.
 type Driver struct {
 	WorktreeDir string
 }

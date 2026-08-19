@@ -9,19 +9,20 @@ import (
 	"path/filepath"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
 )
 
 var delegateCmd = &cobra.Command{
-	Use:   "delegate [opencode/ncode] [task-key]",
+	Use:   "delegate [ncode] [task-key]",
 	Short: "Mode 1: Delegate bounded tasks to local sub-agents in active workspace",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		agentName := args[0]
 		taskKey := args[1]
 
-		if agentName != "ncode" && agentName != "opencode" {
-			return fmt.Errorf("unsupported agent: %s. Expected 'ncode' or 'opencode'", agentName)
+		if agentName != "ncode" {
+			return fmt.Errorf("unsupported agent: %s. Expected 'ncode'", agentName)
 		}
 
 		// Ensure ncode is installed (Sovereign feature enforcement)
@@ -47,6 +48,11 @@ var delegateCmd = &cobra.Command{
 
 		fmt.Printf("🚀 Delegating task %s to Native NCode Swarm Agent...\n", taskKey)
 		
+		// Mimic nomos task start
+		if err := tracker.Transition(ctx, taskKey, task.StatusInProgress); err != nil {
+			return fmt.Errorf("failed to transition task to IN_PROGRESS: %w", err)
+		}
+
 		// Spawn transient, isolated worktree per delegated task
 		if err := scaffoldTaskWorktree(workspaceCtx, taskKey); err != nil {
 			return fmt.Errorf("failed to scaffold worktree: %w", err)
@@ -87,6 +93,12 @@ var delegateCmd = &cobra.Command{
 
 			if errVerify == nil {
 				fmt.Printf("✅ Swarm worker successfully passed Definition of Done on iteration %d!\n", i)
+				
+				// Mark task as complete natively
+				if err := tracker.Transition(ctx, taskKey, task.StatusDone); err != nil {
+					return fmt.Errorf("failed to transition task to DONE: %w", err)
+				}
+				fmt.Printf("✅ Task %s transitioned to DONE state.\n", taskKey)
 				return nil
 			}
 

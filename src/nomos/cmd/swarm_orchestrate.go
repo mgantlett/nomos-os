@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	swarmRunLimit int
-	swarmRunAgent string
+	swarmOrchestrateLimit int
+	swarmOrchestrateAgent string
 )
 
 func parsePriorityScore(labels []string) int {
@@ -49,9 +49,9 @@ func getActiveSwarmWorkerCount(repoRoot string) (int, error) {
 	return count, nil
 }
 
-var swarmRunCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Level 2 Autonomous Pool: Auto-claim top backlog tasks and spawn Swarm workers",
+var swarmOrchestrateCmd = &cobra.Command{
+	Use:   "orchestrate",
+	Short: "Tier 1 Autonomous Pool: Auto-claim top backlog tasks and spawn Swarm workers",
 	Long:  "Scans global tasks folder for tasks in BACKLOG status, sorts by priority, and claims up to --limit tasks.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		tracker, repoRoot, err := loadTrackerAndRoot()
@@ -62,7 +62,7 @@ var swarmRunCmd = &cobra.Command{
 		ctx := context.Background()
 		tasks, err := tracker.List(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to list tasks for swarm run: %w", err)
+			return fmt.Errorf("failed to list tasks for swarm orchestrate: %w", err)
 		}
 
 		var backlogTasks []*task.Task
@@ -99,8 +99,8 @@ var swarmRunCmd = &cobra.Command{
 			return backlogTasks[i].CreatedAt.Before(backlogTasks[j].CreatedAt)
 		})
 
-		if swarmRunLimit <= 0 {
-			swarmRunLimit = 2
+		if swarmOrchestrateLimit <= 0 {
+			swarmOrchestrateLimit = 2
 		}
 
 		activeCount, err := getActiveSwarmWorkerCount(repoRoot)
@@ -109,9 +109,9 @@ var swarmRunCmd = &cobra.Command{
 			activeCount = 0
 		}
 
-		availableSlots := swarmRunLimit - activeCount
+		availableSlots := swarmOrchestrateLimit - activeCount
 		if availableSlots <= 0 {
-			fmt.Printf("⚠️  Swarm worker pool is full (%d active workers, limit %d). Waiting for active workers to complete.\n", activeCount, swarmRunLimit)
+			fmt.Printf("⚠️  Swarm worker pool is full (%d active workers, limit %d). Waiting for active workers to complete.\n", activeCount, swarmOrchestrateLimit)
 			return nil
 		}
 
@@ -120,11 +120,11 @@ var swarmRunCmd = &cobra.Command{
 			toSpawn = availableSlots
 		}
 
-		fmt.Printf("🚀 [Level 2 Autonomous Swarm Pool] Claiming %d backlog task(s) (limit: %d, active: %d)...\n", toSpawn, swarmRunLimit, activeCount)
+		fmt.Printf("🚀 [Tier 1 Autonomous Swarm Pool] Claiming %d backlog task(s) (limit: %d, active: %d)...\n", toSpawn, swarmOrchestrateLimit, activeCount)
 
 		for i := 0; i < toSpawn; i++ {
 			t := backlogTasks[i]
-			assignee := "swarm:" + swarmRunAgent
+			assignee := "swarm:" + swarmOrchestrateAgent
 			fmt.Printf("  ▶ Starting Task %s (%s)...\n", t.Key, t.Title)
 
 			_, errStart := task.StartTrackerOnly(ctx, workspace.MustNewContext(repoRoot), tracker, t.Key, assignee)
@@ -134,7 +134,7 @@ var swarmRunCmd = &cobra.Command{
 			}
 
 			// Shell out to nomos swarm delegate asynchronously
-			delegateCmd := exec.Command("nomos", "swarm", "delegate", swarmRunAgent, t.Key)
+			delegateCmd := exec.Command("nomos", "swarm", "delegate", swarmOrchestrateAgent, t.Key)
 			delegateCmd.Stdout = os.Stdout
 			delegateCmd.Stderr = os.Stderr
 			
@@ -155,7 +155,7 @@ var swarmRunCmd = &cobra.Command{
 }
 
 func init() {
-	swarmRunCmd.Flags().IntVarP(&swarmRunLimit, "limit", "l", 2, "Maximum concurrent swarm workers")
-	swarmRunCmd.Flags().StringVarP(&swarmRunAgent, "agent", "a", "ncode", "Swarm agent implementation to dispatch")
-	swarmCmd.AddCommand(swarmRunCmd)
+	swarmOrchestrateCmd.Flags().IntVarP(&swarmOrchestrateLimit, "limit", "l", 2, "Maximum concurrent swarm workers")
+	swarmOrchestrateCmd.Flags().StringVarP(&swarmOrchestrateAgent, "agent", "a", "ncode", "Swarm agent implementation to dispatch")
+	swarmCmd.AddCommand(swarmOrchestrateCmd)
 }

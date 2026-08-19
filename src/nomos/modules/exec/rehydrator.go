@@ -58,6 +58,8 @@ func ensureGitignoreExclusions(ctx *workspace.WorkspaceContext) error {
 		"bin/",
 		"tmp/",
 		".nomos_parent_task",
+		".envrc",
+		".direnv/",
 	}
 
 	modified := false
