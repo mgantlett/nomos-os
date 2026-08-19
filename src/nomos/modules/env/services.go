@@ -61,14 +61,6 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 	logFile := filepath.Join(workspace.MustNewContext(repoRoot).LogsDir(), "nomos.jsonl")
 
 	switch service {
-	case "nomos":
-		// The nomos engine itself (CLI). Not a daemon, but buildable.
-		// Returns ServiceConfig targeting CLI build step
-		return &ServiceConfig{
-			Name:         "nomos",
-			BuildCommand: "nix-shell --run \"go build -o bin/nomos ./src/nomos/main.go\"",
-		}, nil
-
 	case "llama-coder":
 		temp := getEnvOrDefault("NOMOS_LLM_TEMP", "0.6")
 		topP := getEnvOrDefault("NOMOS_LLM_TOP_P", "0.95")
@@ -165,7 +157,7 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 			return nil, fmt.Errorf("nomos-sovereign workspace not found")
 		}
 		cmdStr := "go run github.com/mgantlett/nomos-sovereign/src/nomos-cockpit/src/cmd/cockpitd --port 8090"
-		buildCmd := fmt.Sprintf("go build -o %s/bin/cockpitd github.com/mgantlett/nomos-sovereign/src/nomos-cockpit/src/cmd/cockpitd", sovereignRoot)
+		buildCmd := "echo 'Cockpit-sovereign is built centrally with nomos'"
 
 		var cwdRoot string = ctx.PrimaryWorktree
 		if b, err := os.ReadFile(ctx.StateTaskIdPath()); err == nil {
