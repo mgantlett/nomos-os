@@ -48,6 +48,13 @@ func getLlamaBinPath() string {
 	return llamaBin
 }
 
+func getEnvOrDefault(key, fallback string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return fallback
+}
+
 func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceConfig, error) {
 	repoRoot := ctx.RepoRoot
 	// Construct absolute log file path destination inside active workspace logs directory
@@ -63,11 +70,14 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 		}, nil
 
 	case "llama-coder":
+		temp := getEnvOrDefault("NOMOS_LLM_TEMP", "0.6")
+		topP := getEnvOrDefault("NOMOS_LLM_TOP_P", "0.95")
+		minP := getEnvOrDefault("NOMOS_LLM_MIN_P", "0.05")
+		dry := getEnvOrDefault("NOMOS_LLM_DRY_MULTIPLIER", "0.8")
+
 		// Execute local llama.cpp LLM server bound to CUDA library path on port 8082
 		// Binds DeepSeek-R1-Distill-Qwen-14B model instance for code completion and instruction following with full GPU offload (-ngl 99)
-		// Reasoning-tuned sampling: temp 0.6 / top-p 0.95 per DeepSeek R1 guidance, min-p 0.05 to cut low-probability
-		// token tails, DRY 0.8 to break thinking loops, q8_0 KV cache to fit 32k context in VRAM, flash-attention for memory efficiency.
-		cmdStr := fmt.Sprintf("env LD_LIBRARY_PATH=\"%s\" %s -ngl 99 -m /home/markg/models/DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf --alias deepseek-r1-distill-qwen-14b-q4_k_m.gguf --host 0.0.0.0 --port 8082 -c 32768 -b 8192 -ub 8192 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --temp 0.6 --top-p 0.95 --min-p 0.05 --dry-multiplier 0.8", resolveCudaLibPath(), getLlamaBinPath())
+		cmdStr := fmt.Sprintf("env LD_LIBRARY_PATH=\"%s\" %s -ngl 99 -m /home/markg/models/DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf --alias deepseek-r1-distill-qwen-14b-q4_k_m.gguf --host 0.0.0.0 --port 8082 -c 32768 -b 8192 -ub 8192 --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --temp %s --top-p %s --min-p %s --dry-multiplier %s", resolveCudaLibPath(), getLlamaBinPath(), temp, topP, minP, dry)
 		return &ServiceConfig{
 			Name:         "llama-coder",
 			Command:      cmdStr,
