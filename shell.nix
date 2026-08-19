@@ -28,6 +28,7 @@ pkgs.mkShell {
 
   shellHook = ''
     export TYPST_FONT_PATHS="${pkgs.liberation_ttf}/share/fonts/truetype"
+    export PATH="$PWD/bin:/home/markg/Projects/sophialabs/private/nomos-sovereign/bin:$PATH"
     echo "⚡ Welcome to the Nomos development shell! ⚡"
     echo "Loaded dependencies: shellcheck, sqlite, jq, git, curl, nodejs, bc, parallel, google-cloud-sdk, datasette, pm2, psmisc"
 
