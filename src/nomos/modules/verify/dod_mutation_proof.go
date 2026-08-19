@@ -36,9 +36,27 @@ func runMutationProofGate(ctx *workspace.WorkspaceContext) (StageResult, error) 
 		return res, nil
 	}
 
-	if strings.TrimSpace(out) == "" {
+	var actualMutations int
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		
+		// Filter out automatically generated swarm/escrow and state files
+		if strings.Contains(line, "go.work") || 
+		   strings.Contains(line, ".nomos-swarm-escrow.json") || 
+		   strings.Contains(line, ".nomos/") ||
+		   strings.Contains(line, "go.work.sum") {
+			continue
+		}
+		
+		actualMutations++
+	}
+
+	if actualMutations == 0 {
 		res.Passed = false
-		res.Error = fmt.Errorf("mutation proof failed: workspace is in EDIT phase but git working tree is completely clean. You must make code changes before verification")
+		res.Error = fmt.Errorf("mutation proof failed: workspace is in EDIT phase but git working tree has no source code mutations. You must make code changes before verification")
 		return res, nil
 	}
 
