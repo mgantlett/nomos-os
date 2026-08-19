@@ -65,6 +65,9 @@ func PushWorktreeBranch(wt string) (string, error) {
 func mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile string, noMerge bool) (string, error) {
 	synapse.Info("🔄 AI-AI DDP Merge: Processing transient worktree %s...\n", wt)
 
+	// NOM-72: Promote binary BEFORE commitDirectChanges so the go.mod replace directives are intact
+	promoteBinary(wt, repoRoot, taskID)
+
 	if err := commitDirectChanges(wt, taskID, mergeFile); err != nil {
 		return "", err
 	}
@@ -80,7 +83,6 @@ func mergeSingleWorktree(wt, repoRoot, targetEnv, taskID, mergeFile string, noMe
 		}
 	}
 
-	promoteBinary(wt, repoRoot, taskID)
 	return branch, nil
 }
 

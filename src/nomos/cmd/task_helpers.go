@@ -442,7 +442,8 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 		cmdGoInit.Dir = orchestratorWtDir
 		_ = cmdGoInit.Run()
 
-		replaceArg := fmt.Sprintf("github.com/mgantlett/%s@v0.0.0=.", filepath.Base(repoRoot))
+		// NOM-72: Omit @v0.0.0 so the go.work universally replaces any module pseudo-version
+		replaceArg := fmt.Sprintf("github.com/mgantlett/%s=.", filepath.Base(repoRoot))
 		cmdGoReplace := exec.Command("go", "work", "edit", "-replace", replaceArg)
 		cmdGoReplace.Dir = orchestratorWtDir
 		_ = cmdGoReplace.Run()
@@ -477,7 +478,8 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 		cmdGoUse.Dir = orchestratorWtDir
 		_ = cmdGoUse.Run()
 
-		replaceArg := fmt.Sprintf("github.com/mgantlett/%s@v0.0.0=%s", repoName, crossWorktreeDir)
+		// NOM-72: Omit @v0.0.0 so the go.work universally replaces any module pseudo-version
+		replaceArg := fmt.Sprintf("github.com/mgantlett/%s=%s", repoName, crossWorktreeDir)
 		cmdGoReplace := exec.Command("go", "work", "edit", "-replace", replaceArg)
 		cmdGoReplace.Dir = orchestratorWtDir
 		_ = cmdGoReplace.Run()
