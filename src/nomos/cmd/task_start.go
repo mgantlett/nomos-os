@@ -32,8 +32,6 @@ var taskStartCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		assignee := "antigravity"
 
-
-
 		// Load the configured task tracker and locate the repository root.
 		tracker, repoRoot, err := loadTrackerAndRoot()
 		if err != nil {
@@ -182,7 +180,7 @@ var taskStartCmd = &cobra.Command{
 
 			if isOrchestratorRoot(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) {
 				_ = scaffoldTaskWorktree(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key)
-				
+
 				// Explicitly link the 3 core repositories instead of scanning everything blindly
 				allCoreRepos := []string{
 					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "open", "nomos-os"),

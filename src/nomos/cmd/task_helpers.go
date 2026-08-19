@@ -70,7 +70,7 @@ func loadTrackerForRoot(root string) (*task.LocalTracker, error) {
 	if strings.Contains(root, "/worktrees/") {
 		parts := strings.Split(root, "/worktrees/")
 		parentRepo := parts[0]
-		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).DbPath("graph.db")); statErr == nil {
+		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).GraphDbPath()); statErr == nil {
 			primaryRoot = parentRepo
 		}
 	}
@@ -428,8 +428,6 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 	cmdGoUse.Dir = worktreeDir
 	_ = cmdGoUse.Run()
 
-
-
 	fmt.Printf("\n🔨 Scaffolded transient worktree at: %s\n", worktreeDir)
 	return nil
 }
@@ -483,6 +481,12 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 		cmdGoReplace := exec.Command("go", "work", "edit", "-replace", replaceArg)
 		cmdGoReplace.Dir = orchestratorWtDir
 		_ = cmdGoReplace.Run()
+
+		// NOM-59: Auto-inject IDE-friendly replace directive directly into downstream go.mod
+		modReplaceArg := fmt.Sprintf("github.com/mgantlett/%s=%s", filepath.Base(repoRoot), orchestratorWtDir)
+		cmdGoModReplace := exec.Command("go", "mod", "edit", "-replace", modReplaceArg)
+		cmdGoModReplace.Dir = crossWorktreeDir
+		_ = cmdGoModReplace.Run()
 
 		// Write .nomos_parent_task to allow siblings to know the orchestrator task
 		os.WriteFile(filepath.Join(crossWorktreeDir, ".nomos_parent_task"), []byte(taskKey), 0644)

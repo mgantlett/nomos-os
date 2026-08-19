@@ -26,6 +26,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-sqlite3 v1.14.50 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -45,4 +46,4 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-replace github.com/mgantlett/nomos-commons => ../nomos-commons-NOM-67
+replace github.com/mgantlett/nomos-commons => ../nomos-commons-NOM-59

@@ -50,12 +50,12 @@ var taskCloseCmd = &cobra.Command{
 		// Transition back to IDLE if the active task was closed
 		if state, _ := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); state != nil && state.TaskId == key {
 			_ = task.TransitionPhase(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), statepkg.PhaseIdle)
-			
+
 			// Teardown orphaned transient worktrees for the closed task
 			wtPath := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), filepath.Base(filepath.Clean(repoRoot))+"-"+key)
 			branch := "feature/" + key
 			gitops.TeardownWorktree(wtPath, branch, "develop", repoRoot, key, false)
-			
+
 			fmt.Printf("✅ Active task %s closed. Workspace reset to %s phase.\n", key, statepkg.PhaseIdle)
 		}
 

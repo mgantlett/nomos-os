@@ -355,6 +355,13 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 			return fmt.Errorf("DoD failed in worktree %s: %w", wt, err)
 		}
 
+		// NOM-59: Auto-strip IDE-friendly replace directives from go.mod prior to committing
+		for _, repo := range []string{"nomos-commons", "nomos-os", "nomos-sovereign"} {
+			cmdDropReplace := exec.Command("go", "mod", "edit", "-dropreplace", "github.com/mgantlett/"+repo)
+			cmdDropReplace.Dir = wt
+			_ = cmdDropReplace.Run()
+		}
+
 		addCmd := exec.Command("git", "add", ".")
 		addCmd.Dir = wt
 		if addOut, err := addCmd.CombinedOutput(); err != nil {

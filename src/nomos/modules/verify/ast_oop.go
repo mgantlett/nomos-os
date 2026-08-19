@@ -133,10 +133,10 @@ func analyzeASTInterfaces(root string, stagedOnly bool) ([]OOPFinding, error) {
 			// If there's exactly 1 implementation, and it's a mock, it fails because there's no real implementation.
 			// If there's exactly 1 implementation, and it's NOT a mock, it's a single-implementation interface.
 			// If there are 2 implementations (1 real, 1 mock), it passes!
-			
-			// So if implementationCount < 2, it is always a violation, because even if the 1 is a mock, 
+
+			// So if implementationCount < 2, it is always a violation, because even if the 1 is a mock,
 			// it means there's no actual implementation!
-			
+
 			// Wait, what if the interface is exported for OTHERS to implement, but we don't implement it?
 			// The rule says "No Single-Implementation Interfaces".
 			// Let's just flag it.
@@ -144,7 +144,7 @@ func analyzeASTInterfaces(root string, stagedOnly bool) ([]OOPFinding, error) {
 			if len(implNames) > 0 {
 				implStr = implNames[0]
 			}
-			
+
 			findings = append(findings, OOPFinding{
 				File:    loc.file,
 				Line:    loc.line,

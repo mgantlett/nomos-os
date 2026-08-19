@@ -8,7 +8,7 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/gitbrain"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
 )
@@ -27,8 +27,7 @@ var (
 			wd, _ := os.Getwd()
 			repoRoot := nomosexec.FindRepoRoot(wd)
 
-			ctx := workspace.MustNewContext(repoRoot)
-			dbPath := ctx.DbPath("gitbrain.db")
+			dbPath := config.ResolveGitBrainDbPath(repoRoot)
 
 			results := []map[string]interface{}{}
 
@@ -46,7 +45,8 @@ var (
 			}
 
 			// 2. Fallback to git grep
-			grepCmd := exec.Command("git", "grep", "-i", "-I", "--line-number", query)
+			// NOM-59: Use --cached to support searching through sparse checkouts
+			grepCmd := exec.Command("git", "grep", "--cached", "-i", "-I", "--line-number", query)
 			grepCmd.Dir = repoRoot
 			out, _ := grepCmd.Output()
 

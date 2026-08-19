@@ -125,7 +125,7 @@ func resolvePrimaryTracker(root string, wCtx *workspace.WorkspaceContext) *task.
 		parentRepo := parts[0]
 
 		// Check if the graph.db exists in the parent repository.
-		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).DbPath("graph.db")); statErr == nil {
+		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).GraphDbPath()); statErr == nil {
 			primaryRoot = parentRepo
 		}
 	}

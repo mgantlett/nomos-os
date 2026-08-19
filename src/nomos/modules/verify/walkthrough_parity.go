@@ -265,7 +265,7 @@ func fetchTaskDetails(root string, id string) (*task.Task, error) {
 	if strings.Contains(root, "/worktrees/") {
 		parts := strings.Split(root, "/worktrees/")
 		parentRepo := parts[0]
-		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).DbPath("graph.db")); statErr == nil {
+		if _, statErr := os.Stat(workspace.MustNewContext(parentRepo).GraphDbPath()); statErr == nil {
 			primaryRoot = parentRepo
 		}
 	}

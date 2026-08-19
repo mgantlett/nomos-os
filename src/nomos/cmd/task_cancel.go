@@ -38,7 +38,7 @@ var taskCancelCmd = &cobra.Command{
 		if state, _ := task.GetPhaseState(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); state != nil && state.TaskId == key {
 			wCtx := workspace.MustNewContext(repoRoot)
 			_ = task.TransitionPhase(wCtx, statepkg.PhaseIdle)
-			
+
 			// Teardown orphaned transient worktrees for the cancelled task
 			wtDir := wCtx.WorktreesDir()
 			if entries, err := os.ReadDir(wtDir); err == nil {
@@ -53,7 +53,7 @@ var taskCancelCmd = &cobra.Command{
 					}
 				}
 			}
-			
+
 			fmt.Printf("✅ Active task %s cancelled. Workspace reset to %s phase.\n", key, statepkg.PhaseIdle)
 		}
 

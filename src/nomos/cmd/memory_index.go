@@ -6,7 +6,7 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/gitbrain"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
 )
@@ -23,8 +23,7 @@ var memoryIndexCmd = &cobra.Command{
 			repoRoot = wd
 		}
 
-		ctx := workspace.MustNewContext(repoRoot)
-		dbPath := ctx.DbPath("gitbrain.db")
+		dbPath := config.ResolveGitBrainDbPath(repoRoot)
 
 		// 1. One-Time aggressive migration from SQLite fallback to Git Notes
 		err := gitbrain.MigrateMemoriesToGitNotes(dbPath, repoRoot)

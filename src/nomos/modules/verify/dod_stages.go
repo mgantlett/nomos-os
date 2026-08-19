@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/gitbrain"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
 // StageResult stores the outcome of a DoD verification stage.
@@ -363,7 +364,7 @@ func runMagicStringDetectorCheck(ctx *workspace.WorkspaceContext) (StageResult, 
 // runGitBrainIndexStage ensures the GitBrain vector cache is in sync with notes and codebase.
 func runGitBrainIndexStage(ctx *workspace.WorkspaceContext) (StageResult, error) {
 	root := ctx.RepoRoot
-	dbPath := ctx.DbPath("gitbrain.db")
+	dbPath := config.ResolveGitBrainDbPath(root)
 
 	if err := gitbrain.IndexNotes(root, dbPath); err != nil {
 		return StageResult{Passed: false, Message: "Failed to index git notes"}, err

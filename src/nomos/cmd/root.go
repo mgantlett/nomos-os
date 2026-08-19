@@ -139,8 +139,8 @@ func Execute() {
 			name := strings.TrimPrefix(basename, "nomos-plugin-")
 
 			dynamicCmd := &cobra.Command{
-				Use:   name,
-				Short: fmt.Sprintf("Plugin extension (%s)", name),
+				Use:                name,
+				Short:              fmt.Sprintf("Plugin extension (%s)", name),
 				DisableFlagParsing: true,
 				RunE: func(cmd *cobra.Command, args []string) error {
 					result, err := plugin.CallPlugin(pluginPath, "execute", args)

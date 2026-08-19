@@ -7,7 +7,7 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/gitbrain"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
 )
@@ -26,8 +26,7 @@ var memorySaveCmd = &cobra.Command{
 			repoRoot = wd
 		}
 
-		ctx := workspace.MustNewContext(repoRoot)
-		dbPath := ctx.DbPath("gitbrain.db")
+		dbPath := config.ResolveGitBrainDbPath(repoRoot)
 
 		// Save the insight natively into local Git Notes attached to HEAD
 		err := gitbrain.WriteNote(dbPath, repoRoot, "HEAD", insight)

@@ -38,7 +38,7 @@ var cockpitCmd = &cobra.Command{
 func runCockpitCmd(cmd *cobra.Command, args []string) error {
 	wd, _ := os.Getwd()
 	repoRoot := nomosexec.FindRepoRoot(wd)
-	
+
 	var serviceName string
 	if cockpitSovereignFlag {
 		if cockpitDevFlag {
@@ -53,7 +53,7 @@ func runCockpitCmd(cmd *cobra.Command, args []string) error {
 			serviceName = "cockpit"
 		}
 	}
-	
+
 	if cockpitDevFlag {
 		synapse.Info("🚀 Delegating to daemon supervisor: nomos dev %s...", serviceName)
 		return executeNomosDev(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), serviceName)
