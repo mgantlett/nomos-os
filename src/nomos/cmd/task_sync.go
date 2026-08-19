@@ -17,7 +17,6 @@ import (
 )
 
 var syncFile string
-var noMerge bool
 
 var taskSyncCmd = &cobra.Command{
 	Use:   "sync [targetEnv]",
@@ -51,7 +50,7 @@ var taskSyncCmd = &cobra.Command{
 		}
 
 		fmt.Printf("🚀 Natively executing direct sync from worktree %s into %s...\n", wtPath, targetEnv)
-		if err := gitops.DirectMerge(wtPath, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv, syncFile, noMerge); err != nil {
+		if err := gitops.DirectMerge(wtPath, func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), targetEnv, syncFile); err != nil {
 			return fmt.Errorf("direct sync failed: %w", err)
 		}
 
@@ -83,6 +82,5 @@ var taskSyncCmd = &cobra.Command{
 
 func init() {
 	taskSyncCmd.Flags().StringVarP(&syncFile, "file", "F", "", "Path to walkthrough markdown file to use as commit message")
-	taskSyncCmd.Flags().BoolVar(&noMerge, "no-merge", false, "Skip the final target branch merge and teardown, pushing feature branch for PR review instead")
 	taskCmd.AddCommand(taskSyncCmd)
 }

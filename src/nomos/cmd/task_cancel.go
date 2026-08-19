@@ -48,7 +48,7 @@ var taskCancelCmd = &cobra.Command{
 						siblingRoot := gitops.ParseParentRepoFromGitFile(wtPath)
 						if siblingRoot != "" {
 							branch := "feature/" + key
-							gitops.TeardownWorktree(wtPath, branch, "develop", siblingRoot, key, false)
+							gitops.TeardownWorktree(wtPath, branch, "develop", siblingRoot, key)
 						}
 					}
 				}
