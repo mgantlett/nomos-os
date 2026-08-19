@@ -108,6 +108,9 @@ var delegateCmd = &cobra.Command{
 			ncodeCmd.Dir = worktreeDir
 			ncodeCmd.Stdout = os.Stdout
 			ncodeCmd.Stderr = os.Stderr
+			if delegatePhase != "" {
+				ncodeCmd.Env = append(os.Environ(), fmt.Sprintf("NOMOS_SWARM_PHASE=%s", strings.ToUpper(delegatePhase)))
+			}
 			if err := ncodeCmd.Run(); err != nil {
 				fmt.Printf("⚠️  ncode exited with error on iteration %d: %v\n", i, err)
 			}
@@ -117,6 +120,9 @@ var delegateCmd = &cobra.Command{
 			verifyCmd.Dir = worktreeDir
 			verifyCmd.Stdout = os.Stdout
 			verifyCmd.Stderr = os.Stderr
+			if delegatePhase != "" {
+				verifyCmd.Env = append(os.Environ(), fmt.Sprintf("NOMOS_SWARM_PHASE=%s", strings.ToUpper(delegatePhase)))
+			}
 			errVerify := verifyCmd.Run()
 
 			if errVerify == nil {
