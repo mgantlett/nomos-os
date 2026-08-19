@@ -133,6 +133,7 @@ func getActiveStages(root string) []VerificationStage {
 				switch s.Name {
 				case "System Health Doctor",
 					"Phase Discipline Check",
+					"Mutation Proof Gate",
 					"Task ID Validation Gate",
 					"Data Integrity Gate",
 					"CrossRepoWorktreeGate",

@@ -57,6 +57,11 @@ var DoDStages = []VerificationStage{
 		Guidance: "Run 'bin/nomos task transition REVIEW' before staging/committing code.",
 		Run:      runPhaseDisciplineCheck,
 	},
+	{
+		Name:     "Mutation Proof Gate",
+		Guidance: "Code modifications are mandatory in the EDIT phase to pass verification. If this was a research task, it must be resolved in PLAN.",
+		Run:      runMutationProofGate,
+	},
 	// The Task ID Validation Gate verifies that every commit is tagged to a valid Task ID registered in the Nomos SQLite database.
 	{
 		Name:     "Task ID Validation Gate",
