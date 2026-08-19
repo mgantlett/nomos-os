@@ -22,7 +22,8 @@ var schemaCmd = &cobra.Command{
 var schemaShowCmd = &cobra.Command{
 	Use:   "show [type]",
 	Short: "Print the default markdown template for a given schema type (task, plan, walkthrough, commit, triage)",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
+	ValidArgs: []string{"task", "operations", "plan", "walkthrough", "commit", "triage"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		schemaType := args[0]
 		switch schemaType {
