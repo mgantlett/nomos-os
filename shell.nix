@@ -36,7 +36,20 @@ pkgs.mkShell {
     if [ -f worktrees/.explorer/src/nomos/main.go ]; then
       if [ ! -f bin/nomos ] || [ worktrees/.explorer/src/nomos/main.go -nt bin/nomos ]; then
         echo "🔨 Compiling contextual nomos binary..."
-        (cd worktrees/.explorer && mkdir -p ../../bin && go build -o ../../bin/nomos ./src/nomos/main.go) || true
+        (
+          cd worktrees/.explorer
+          mkdir -p ../../bin
+          cp ../../go.mod ../../go.sum .
+          cp ../../../nomos-commons/go.mod ../../../nomos-commons/go.sum ../../../nomos-commons/worktrees/.explorer/ 2>/dev/null || true
+          cat << 'EOF' > go.work
+go 1.26.5
+use .
+replace github.com/mgantlett/nomos-commons => ../../../nomos-commons/worktrees/.explorer
+EOF
+          go build -o ../../bin/nomos ./src/nomos/main.go || true
+          rm -f go.mod go.sum go.work go.work.sum
+          rm -f ../../../nomos-commons/worktrees/.explorer/go.mod ../../../nomos-commons/worktrees/.explorer/go.sum
+        ) || true
       fi
     else
       echo "🐚 Running in Hollow Shell mode (.explorer missing). Binary compilation skipped."
