@@ -36,7 +36,7 @@ pkgs.mkShell {
     if [ -f worktrees/.explorer/src/nomos/main.go ]; then
       if [ ! -f bin/nomos ] || [ worktrees/.explorer/src/nomos/main.go -nt bin/nomos ]; then
         echo "🔨 Compiling contextual nomos binary..."
-        cd worktrees/.explorer && go build -o ../../bin/nomos ./src/nomos/main.go && cd ../.. || true
+        (cd worktrees/.explorer && go build -o ../../bin/nomos ./src/nomos/main.go) || true
       fi
     else
       echo "🐚 Running in Hollow Shell mode (.explorer missing). Binary compilation skipped."
