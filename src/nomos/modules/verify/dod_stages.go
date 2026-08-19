@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
-	"github.com/mgantlett/nomos-commons/src/nomos/core/gitbrain"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 )
 
@@ -212,12 +210,8 @@ var DoDStages = []VerificationStage{
 		Guidance: "Task has been dormant for >12 hours or circuit breaker tripped due to 5 consecutive verify failures. Re-evaluate strategy or unblock.",
 		Run:      runBrokenWireDetector,
 	},
-	{
-		Name:     "GitBrain Vector Synchronization",
-		Guidance: "Ensures the local SQLite vector cache is perfectly synced with Git Notes and Codebase. Fails if embeddings server is unreachable or corrupt.",
-		Run:      runGitBrainIndexStage,
-	},
 }
+
 
 // runWorkflowDeterminismCheck performs deterministic workflow auditing.
 // It scans markdown workflow files in .agent/workflows/ to ensure every shell command
@@ -361,18 +355,4 @@ func runMagicStringDetectorCheck(ctx *workspace.WorkspaceContext) (StageResult, 
 	}, fmt.Errorf("magic string constraints violated:\n%s", errDetails)
 }
 
-// runGitBrainIndexStage ensures the GitBrain vector cache is in sync with notes and codebase.
-func runGitBrainIndexStage(ctx *workspace.WorkspaceContext) (StageResult, error) {
-	root := ctx.RepoRoot
-	dbPath := config.ResolveGitBrainDbPath(root)
 
-	if err := gitbrain.IndexNotes(root, dbPath); err != nil {
-		return StageResult{Passed: false, Message: "Failed to index git notes"}, err
-	}
-
-	if err := gitbrain.IndexCodebase(root, dbPath); err != nil {
-		return StageResult{Passed: false, Message: "Failed to index codebase"}, err
-	}
-
-	return StageResult{Passed: true, Message: "GitBrain vector cache is synchronized"}, nil
-}

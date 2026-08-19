@@ -42,26 +42,26 @@ var (
 				}
 			} else {
 				synapse.Info("No semantic memories found. Falling back to codebase grep...\n")
-			}
 
-			// 2. Fallback to git grep
-			// NOM-59: Use --cached to support searching through sparse checkouts
-			grepCmd := exec.Command("git", "grep", "--cached", "-i", "-I", "--line-number", query)
-			grepCmd.Dir = repoRoot
-			out, _ := grepCmd.Output()
+				// 2. Fallback to git grep
+				// NOM-59: Use --cached to support searching through sparse checkouts
+				grepCmd := exec.Command("git", "grep", "--cached", "-i", "-I", "--line-number", query)
+				grepCmd.Dir = repoRoot
+				out, _ := grepCmd.Output()
 
-			lines := strings.Split(string(out), "\n")
-			grepCount := 0
-			for _, line := range lines {
-				if line == "" {
-					continue
+				lines := strings.Split(string(out), "\n")
+				grepCount := 0
+				for _, line := range lines {
+					if line == "" {
+						continue
+					}
+					if grepCount >= searchLimit && searchLimit > 0 {
+						break
+					}
+					fmt.Printf("[Code] %s\n", line)
+					results = append(results, map[string]interface{}{"match": line, "type": "code"})
+					grepCount++
 				}
-				if grepCount >= searchLimit && searchLimit > 0 {
-					break
-				}
-				fmt.Printf("[Code] %s\n", line)
-				results = append(results, map[string]interface{}{"match": line, "type": "code"})
-				grepCount++
 			}
 
 			synapse.Emit("SearchResults", map[string]interface{}{

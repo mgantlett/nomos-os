@@ -6,6 +6,7 @@ import (
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/gitbrain"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
+	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 	"github.com/spf13/cobra"
@@ -23,10 +24,18 @@ var memoryIndexCmd = &cobra.Command{
 			repoRoot = wd
 		}
 
+		ctx, err := workspace.NewContext(wd)
+		if err != nil {
+			return err
+		}
+		if err := enforceRootZone(ctx, "memory index"); err != nil {
+			return err
+		}
+
 		dbPath := config.ResolveGitBrainDbPath(repoRoot)
 
 		// 1. One-Time aggressive migration from SQLite fallback to Git Notes
-		err := gitbrain.MigrateMemoriesToGitNotes(dbPath, repoRoot)
+		err = gitbrain.MigrateMemoriesToGitNotes(dbPath, repoRoot)
 		if err != nil {
 			return fmt.Errorf("failed to migrate memories to git notes: %w", err)
 		}
