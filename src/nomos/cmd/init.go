@@ -77,6 +77,9 @@ func runInitSync(ctx *workspace.WorkspaceContext) error {
 	// Scaffold Nix workspace resolution configurations for downstream repositories
 	scaffoldNixEnvironment(repoRoot)
 
+	// Scaffold virgin repository isolation configuration
+	scaffoldVirginRepo(repoRoot)
+
 	// Ensure the base clone is a hollow shell so stale files don't break verification gates
 	autoConfigureHollowShell(repoRoot)
 
@@ -231,6 +234,10 @@ pkgs.mkShell {
     go
     git
     jq
+    sqlite
+    curl
+    nodejs
+    pm2
   ];
 
   shellHook = ''
@@ -378,5 +385,63 @@ func autoConfigureExplorerWorktree(repoRoot string) {
 		synapse.Info("    ⚠️  Failed to configure explorer sparse checkout: %v", err)
 	} else {
 		synapse.Info("    ✅ Successfully configured .explorer worktree with reverse sparse checkout.")
+	}
+}
+
+// scaffoldVirginRepo ensures that a new repository is configured with
+// project-level isolated SQLite databases and proper gitignore rules.
+func scaffoldVirginRepo(repoRoot string) {
+	synapse.Info(" 🌱 Scaffolding virgin repository isolation...")
+
+	// 1. Scaffold .gitignore
+	gitIgnorePath := filepath.Join(repoRoot, ".gitignore")
+	if _, err := os.Stat(gitIgnorePath); os.IsNotExist(err) {
+		synapse.Info("    📝 Generating default .gitignore...")
+		defaultGitIgnore := `# Nomos Exclusions
+.nomos/*
+!.nomos/data/config.yaml
+.nomos_backup/*
+bin/
+
+# Agent Exclusions
+.agent/tmp/
+.agent/state/
+.agent/locks/
+.agent/logs/
+.agent/.*
+.agent/*.db
+.agent/*.pid
+.gitbrain*.db
+.phase_state.json
+
+# Standard Exclusions
+tmp/
+/worktrees/
+`
+		os.WriteFile(gitIgnorePath, []byte(defaultGitIgnore), 0644)
+	}
+
+	// 2. Ensure .nomos/data/db exists
+	dbDir := filepath.Join(repoRoot, ".nomos", "data", "db")
+	os.MkdirAll(dbDir, 0755)
+
+	// 3. Scaffold config.yaml
+	configPath := filepath.Join(repoRoot, ".nomos", "data", "config.yaml")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		synapse.Info("    ⚙️  Generating localized config.yaml for database isolation...")
+		projectName := filepath.Base(filepath.Clean(repoRoot))
+		
+		defaultConfig := fmt.Sprintf(`env: development
+db_path: cache.db
+agent_dir: .agents
+sparse_exclude:
+  - "src"
+  - "docs"
+task_tracker_db_path: "%s/.nomos/data/db/graph.db"
+gitbrain_db_path: "%s/.nomos/data/db/gitbrain.db"
+default_project: "%s"
+embedding_url: "http://localhost:8081/v1/embeddings"
+`, repoRoot, repoRoot, projectName)
+		os.WriteFile(configPath, []byte(defaultConfig), 0644)
 	}
 }

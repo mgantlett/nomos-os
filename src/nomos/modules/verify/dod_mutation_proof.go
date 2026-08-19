@@ -14,7 +14,7 @@ import (
 // This explicitly blocks stochastic LLM agent hallucinations where they
 // call run_verify without calling code modification tools.
 func runMutationProofGate(ctx *workspace.WorkspaceContext) (StageResult, error) {
-	root := ctx.RepoRoot
+	root := ctx.PrimaryWorktree
 	res := StageResult{Name: "Mutation Proof Gate", Passed: true}
 
 	state, err := task.GetPhaseState(ctx)

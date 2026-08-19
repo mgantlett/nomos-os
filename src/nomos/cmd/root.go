@@ -57,12 +57,14 @@ func persistentPostRun(cmd *cobra.Command, args []string) {
 // This resolves the config path, loads viper configurations, and boots SQL caches.
 func persistentPreRun(cmd *cobra.Command, args []string) error {
 	path := cfgFile
+	var repoRoot string
+	cwd, err := os.Getwd()
+	repoRoot = exec.FindRepoRoot(cwd)
+
 	if path == "" {
-		cwd, err := os.Getwd()
 		if err != nil {
 			return fmt.Errorf("failed to get working directory: %w", err)
 		}
-		repoRoot := exec.FindRepoRoot(cwd)
 		path = filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "config.yaml")
 	}
 
@@ -72,17 +74,24 @@ func persistentPreRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		defaultConfig := []byte(`
-env: development
+		projectName := filepath.Base(filepath.Clean(repoRoot))
+		defaultConfig := []byte(fmt.Sprintf(`env: development
 db_path: cache.db
 agent_dir: .agents
-`)
+sparse_exclude:
+  - "src"
+  - "docs"
+task_tracker_db_path: "%s/.nomos/data/db/graph.db"
+gitbrain_db_path: "%s/.nomos/data/db/gitbrain.db"
+default_project: "%s"
+embedding_url: "http://localhost:8081/v1/embeddings"
+`, repoRoot, repoRoot, projectName))
 		if err := os.WriteFile(path, defaultConfig, 0644); err != nil {
 			return fmt.Errorf("failed to write default config: %w", err)
 		}
 	}
 
-	_, err := config.LoadConfig(path)
+	_, err = config.LoadConfig(path)
 	if err != nil {
 		return err
 	}
