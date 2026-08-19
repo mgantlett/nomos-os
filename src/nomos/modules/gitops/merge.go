@@ -370,6 +370,13 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 			return fmt.Errorf("failed to stage changes: %v (%s)", err, string(addOut))
 		}
 
+		statusCmd2 := exec.Command("git", "status", "--porcelain")
+		statusCmd2.Dir = wt
+		if out2, err := statusCmd2.CombinedOutput(); err == nil && len(strings.TrimSpace(string(out2))) == 0 {
+			synapse.Info("No staged changes to commit after preprocessing. Skipping commit.\n")
+			return nil
+		}
+
 		commitMsg := fmt.Sprintf("[Task %s] feat(ai): AI-AI DDP Direct Merge\n\n**Impact List:**\n- Autonomous code convergence achieved\n\n**Resolution Details:**\n- Mechanically committed and verified by Nomos Substrate", taskID)
 		var commitCmd *exec.Cmd
 		if mergeFile != "" {
