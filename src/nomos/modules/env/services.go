@@ -156,7 +156,7 @@ func ResolveService(ctx *workspace.WorkspaceContext, service string) (*ServiceCo
 		if sovereignRoot == "" {
 			return nil, fmt.Errorf("nomos-sovereign workspace not found")
 		}
-		cmdStr := "go run github.com/mgantlett/nomos-sovereign/src/nomos-cockpit/src/cmd/cockpitd --port 8090"
+		cmdStr := filepath.Join(sovereignRoot, "bin", "cockpit-sovereign") + " --port 8090"
 		buildCmd := "echo 'Cockpit-sovereign is built centrally with nomos'"
 
 		var cwdRoot string = ctx.PrimaryWorktree

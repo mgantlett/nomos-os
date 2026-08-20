@@ -45,6 +45,12 @@ type VerificationStage struct {
 // All stages must pass sequentially for the task to be successfully staged.
 var DoDStages = []VerificationStage{
 
+	// The Explorer Sandbox Guard ensures no code mutations happen outside a formal task worktree.
+	{
+		Name:     "Explorer Sandbox Guard",
+		Guidance: "You MUST run 'nomos task start' to scaffold a transient task worktree before editing code. Edits in .explorer or the naked root are strictly forbidden.",
+		Run:      runExplorerSandboxGuard,
+	},
 	// The System Health Doctor ensures SQLite databases and local configuration files are pristine.
 	{
 		Name:     "System Health Doctor",

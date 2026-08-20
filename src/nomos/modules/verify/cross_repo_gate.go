@@ -59,14 +59,14 @@ func checkWorktreeStatus(path, taskID, primaryWorktree string) error {
 
 			commitCmd := exec.Command("git", "commit", "-F", tmpCommitFile)
 			commitCmd.Dir = path
-			commitCmd.Env = append(env, fmt.Sprintf("NOMOS_ACTIVE_WORKTREE=%s", primaryWorktree))
+			commitCmd.Env = append(env, fmt.Sprintf("NOMOS_ACTIVE_WORKTREE=%s", primaryWorktree), "NOMOS_INTERNAL_GITOPS=1")
 			if err := commitCmd.Run(); err != nil {
 				return fmt.Errorf("auto-commit of go.mod failed in upstream worktree %s: %w", path, err)
 			}
 
 			pushCmd := exec.Command("git", "push", "-u", "origin", "HEAD")
 			pushCmd.Dir = path
-			pushCmd.Env = append(env, fmt.Sprintf("NOMOS_ACTIVE_WORKTREE=%s", primaryWorktree))
+			pushCmd.Env = append(env, fmt.Sprintf("NOMOS_ACTIVE_WORKTREE=%s", primaryWorktree), "NOMOS_INTERNAL_GITOPS=1")
 			if err := pushCmd.Run(); err != nil {
 				return fmt.Errorf("auto-push of go.mod failed in upstream worktree %s: %w", path, err)
 			}
