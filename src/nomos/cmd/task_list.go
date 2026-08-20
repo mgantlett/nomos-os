@@ -49,45 +49,20 @@ var taskListCmd = &cobra.Command{
 			tasks = activeTasks
 		}
 
-		// Helper to get CLI score and label for a task
-		// This heuristic analyzes the explicit labels first.
-		// If explicit CLI labels are not found, it performs a fallback
-		// pattern matching against the task's raw description.
-		// It returns the string representation (e.g. "LOW") and a numeric score
-		// for comparative sorting purposes.
 		getCliInfo := func(t task.Task) (string, int) {
-			// Phase 1: Search for explicit labels in the task metadata.
-			for _, l := range t.Labels {
-				lower := strings.ToLower(l)
-				if lower == "cli:low" {
-					return "LOW", 1
-				}
-				if lower == "cli:medium" || lower == "cli:med" {
-					return "MED", 2
-				}
-				if lower == "cli:high" {
-					return "HIGH", 3
-				}
+			score := t.CognitiveLoadIndex()
+			if score >= 5 {
+				return "HIGH", score
 			}
-			descLower := strings.ToLower(t.Description)
-			if strings.Contains(descLower, "cli:high") || strings.Contains(descLower, "high") {
-				return "HIGH", 3
+			if score >= 3 {
+				return "MED", score
 			}
-			if strings.Contains(descLower, "cli:medium") || strings.Contains(descLower, "medium") {
-				return "MED", 2
-			}
-			if strings.Contains(descLower, "cli:low") || strings.Contains(descLower, "low") {
-				return "LOW", 1
-			}
-			return "LOW", 1
+			return "LOW", score
 		}
 
 		// getTierStr maps a task to its minimum required intelligence Tier.
-		// Tasks with high cognitive load index (3+) require Tier 1 (Antigravity/IDE) intervention.
-		// All other tasks can be delegated safely to Tier 2 (Swarm) agents.
 		getTierStr := func(t task.Task) string {
-			_, score := getCliInfo(t)
-			if score >= 3 {
+			if t.GetIntelligenceTier() == 1 {
 				return "T1"
 			}
 			return "T2"

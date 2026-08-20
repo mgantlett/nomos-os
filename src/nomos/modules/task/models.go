@@ -2,6 +2,7 @@ package task
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -148,4 +149,35 @@ func (t *Task) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+// CognitiveLoadIndex returns a numeric value representing the total cognitive burden and logic depth.
+// If the task has not been formally estimated (score == 0), it falls back to parsing legacy labels.
+func (t *Task) CognitiveLoadIndex() int {
+	score := t.ContextBurden + t.LogicDepth
+	if score > 0 {
+		return score
+	}
+
+	for _, l := range t.Labels {
+		lower := strings.ToLower(l)
+		if lower == "cli:high" {
+			return 5 // Equivalent to HIGH
+		}
+		if lower == "cli:medium" || lower == "cli:med" {
+			return 3 // Equivalent to MED
+		}
+		if lower == "cli:low" {
+			return 1 // Equivalent to LOW
+		}
+	}
+	return 1 // Default to LOW
+}
+
+// GetIntelligenceTier evaluates the cognitive load to determine if the task requires a Tier 1 (Human-in-the-Loop AI Orchestrator) or can be delegated to Tier 2 (Autonomous Swarm).
+func (t *Task) GetIntelligenceTier() int {
+	if t.CognitiveLoadIndex() >= 5 {
+		return 1 // High cognitive load mandates Tier 1
+	}
+	return 2 // Low/Med cognitive load can be delegated to Swarm (ncode)
 }

@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
@@ -12,6 +13,7 @@ import (
 func TestLocalTracker(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "nomos_local_tracker_test")
 	require.NoError(t, err)
+	os.MkdirAll(filepath.Join(tmpDir, ".nomos", "data", "db"), 0755)
 	defer os.RemoveAll(tmpDir)
 
 	tracker := NewLocalTracker(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(tmpDir); return c }())

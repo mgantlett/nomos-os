@@ -68,18 +68,8 @@ var swarmOrchestrateCmd = &cobra.Command{
 		var backlogTasks []*task.Task
 		for i := range tasks {
 			if tasks[i].Status == task.StatusBacklog || tasks[i].Status == task.StatusInProgress {
-				hasLowCLI := false
-				hasLowBlast := false
-				for _, l := range tasks[i].Labels {
-					if strings.ToLower(l) == "cli:low" {
-						hasLowCLI = true
-					}
-					if strings.ToLower(l) == "blast:low" {
-						hasLowBlast = true
-					}
-				}
-
-				if hasLowCLI && hasLowBlast {
+				// Multiplex: Only route Tier 2 tasks to the autonomous open swarm pool
+				if tasks[i].GetIntelligenceTier() == 2 {
 					backlogTasks = append(backlogTasks, &tasks[i])
 				}
 			}
