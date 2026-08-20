@@ -87,7 +87,18 @@ func (lt *LocalTracker) listFromPaths(ctx context.Context, dbPaths []string) ([]
 		}(dbPath)
 	}
 
-	wg.Wait()
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-c:
+	}
+
 	close(errCh)
 	if len(errCh) > 0 {
 		return nil, <-errCh
