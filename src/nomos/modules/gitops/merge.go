@@ -50,7 +50,7 @@ func PushWorktreeBranch(wt string) (string, error) {
 	branch := strings.TrimSpace(string(branchOut))
 
 	synapse.Info("🔄 GitOps Sync: Pushing '%s' in worktree %s...\n", branch, wt)
-	pushCmd := exec.Command("git", "push", "origin", "HEAD", "--no-verify", "--force")
+	pushCmd := exec.Command("git", "push", "origin", "HEAD", "--force")
 	pushCmd.Dir = wt
 	if pushOut, err := pushCmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("failed to push worktree %s: %v (%s)", wt, err, string(pushOut))
@@ -223,7 +223,7 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 		branchDelCmd.Dir = repoRoot
 		branchDelCmd.Run()
 
-		remoteDelCmd := exec.Command("git", "push", "origin", "--delete", branch, "--no-verify")
+		remoteDelCmd := exec.Command("git", "push", "origin", "--delete", branch)
 		remoteDelCmd.Dir = repoRoot
 		remoteDelCmd.Run()
 
@@ -256,7 +256,7 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 								siblingBranchDel.Dir = siblingRoot
 								siblingBranchDel.Run()
 
-								siblingRemoteDel := exec.Command("git", "push", "origin", "--delete", siblingBranch, "--no-verify")
+								siblingRemoteDel := exec.Command("git", "push", "origin", "--delete", siblingBranch)
 								siblingRemoteDel.Dir = siblingRoot
 								siblingRemoteDel.Run()
 							}
@@ -426,12 +426,12 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		}
 
 		var commitCmd *exec.Cmd
-		if tmpCommitFile != "" {
-			commitCmd = exec.Command("git", "commit", "--no-verify", "-F", tmpCommitFile)
-		} else if mergeFile != "" {
-			commitCmd = exec.Command("git", "commit", "--no-verify", "-F", mergeFile)
+		if _, err := os.Stat(tmpCommitFile); err == nil {
+			commitCmd = exec.Command("git", "commit", "-F", tmpCommitFile)
+		} else if _, err := os.Stat(mergeFile); err == nil {
+			commitCmd = exec.Command("git", "commit", "-F", mergeFile)
 		} else {
-			commitCmd = exec.Command("git", "commit", "--no-verify", "-m", commitMsg)
+			commitCmd = exec.Command("git", "commit", "-m", commitMsg)
 		}
 		
 		commitCmd.Dir = wt
@@ -443,12 +443,12 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		
 		// Ensure the previous commit is amended with the correct message
 		var commitCmd *exec.Cmd
-		if tmpCommitFile != "" {
-			commitCmd = exec.Command("git", "commit", "--amend", "--no-verify", "-F", tmpCommitFile)
-		} else if mergeFile != "" {
-			commitCmd = exec.Command("git", "commit", "--amend", "--no-verify", "-F", mergeFile)
+		if _, err := os.Stat(tmpCommitFile); err == nil {
+			commitCmd = exec.Command("git", "commit", "--amend", "-F", tmpCommitFile)
+		} else if _, err := os.Stat(mergeFile); err == nil {
+			commitCmd = exec.Command("git", "commit", "--amend", "-F", mergeFile)
 		} else {
-			commitCmd = exec.Command("git", "commit", "--amend", "--no-verify", "-m", commitMsg)
+			commitCmd = exec.Command("git", "commit", "--amend", "-m", commitMsg)
 		}
 		
 		commitCmd.Dir = wt

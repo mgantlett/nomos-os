@@ -16,7 +16,7 @@ import (
 // It runs git status --porcelain to check for uncommitted modifications,
 // and uses git log @{u}..HEAD to ensure there are no unpushed commits.
 // It returns an error if any checks fail, detailing the failure mode.
-func checkWorktreeStatus(path, taskID string) error {
+func checkWorktreeStatus(path, taskID, primaryWorktree string) error {
 	// 1. Check if the worktree is clean
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = path
@@ -57,16 +57,16 @@ func checkWorktreeStatus(path, taskID string) error {
 			os.WriteFile(tmpCommitFile, []byte(commitMsg), 0644)
 			defer os.Remove(tmpCommitFile)
 
-			commitCmd := exec.Command("git", "commit", "--no-verify", "-F", tmpCommitFile)
+			commitCmd := exec.Command("git", "commit", "-F", tmpCommitFile)
 			commitCmd.Dir = path
-			commitCmd.Env = env
+			commitCmd.Env = append(env, fmt.Sprintf("NOMOS_ACTIVE_WORKTREE=%s", primaryWorktree))
 			if err := commitCmd.Run(); err != nil {
 				return fmt.Errorf("auto-commit of go.mod failed in upstream worktree %s: %w", path, err)
 			}
 
-			pushCmd := exec.Command("git", "push", "-u", "origin", "HEAD", "--no-verify")
+			pushCmd := exec.Command("git", "push", "-u", "origin", "HEAD")
 			pushCmd.Dir = path
-			pushCmd.Env = env
+			pushCmd.Env = append(env, fmt.Sprintf("NOMOS_ACTIVE_WORKTREE=%s", primaryWorktree))
 			if err := pushCmd.Run(); err != nil {
 				return fmt.Errorf("auto-push of go.mod failed in upstream worktree %s: %w", path, err)
 			}
@@ -163,7 +163,7 @@ func processWorktree(usePath, root, primaryWorktree string, errCh chan<- error, 
 	wg.Add(1)
 	go func(path string) {
 		defer wg.Done()
-		if err := checkWorktreeStatus(path, taskID); err != nil {
+		if err := checkWorktreeStatus(path, taskID, primaryWorktree); err != nil {
 			errCh <- err
 		}
 	}(absUsePath)
