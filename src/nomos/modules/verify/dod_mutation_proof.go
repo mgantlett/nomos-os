@@ -43,11 +43,11 @@ func runMutationProofGate(ctx *workspace.WorkspaceContext) (StageResult, error) 
 			continue
 		}
 		
-		// Filter out automatically generated swarm/escrow and state files
 		if strings.Contains(line, "go.work") || 
 		   strings.Contains(line, ".nomos-swarm-escrow.json") || 
 		   strings.Contains(line, ".nomos/") ||
-		   strings.Contains(line, "go.work.sum") {
+		   strings.Contains(line, "go.work.sum") ||
+		   strings.HasSuffix(strings.TrimSpace(line), ".md") {
 			continue
 		}
 		
