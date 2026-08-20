@@ -69,3 +69,4 @@ tmp/
 /nomos
 .nomos_parent_task
 /worktrees/
+.direnv/
