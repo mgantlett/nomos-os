@@ -132,21 +132,9 @@ func getRepoColor(root string) string {
 		return strings.TrimSpace(string(data))
 	}
 
-	// If no manual override is found, fall back to the deterministic mapping based on the repository directory name.
-	// We extract just the base folder name (e.g., 'nomos-commons') to determine the color.
-	baseName := filepath.Base(root)
-	switch baseName {
-	case "nomos-commons":
-		return "#238636" // GitHub Green for the OS backbone
-	case "nomos-cockpit":
-		return "#8b5cf6" // Vibrant Violet for the control plane dashboard
-	case "sophialabs":
-		return "#3b82f6" // Brand Blue for the primary ecosystem root
-	}
-
 	// For all other dynamically generated or unmapped repositories, generate a deterministic fallback color
 	// by hashing the base name string. This ensures the same repository always gets the same color.
-
+	baseName := filepath.Base(root)
 	h := crc32.ChecksumIEEE([]byte(baseName))
 	r := (h & 0xFF0000) >> 16
 	g := (h & 0x00FF00) >> 8

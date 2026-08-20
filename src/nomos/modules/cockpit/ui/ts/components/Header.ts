@@ -25,7 +25,7 @@ function renderHeader(state: CockpitState): void {
   const projectSelector = document.getElementById('project-selector') as HTMLSelectElement | null;
   if (projectSelector) {
     if (status && status.edition === 'community') {
-      const repoName = status.repoRoot ? status.repoRoot.split('/').filter(Boolean).pop() || 'nomos-commons' : 'nomos-commons';
+      const repoName = status.repoRoot ? status.repoRoot.split('/').filter(Boolean).pop() || 'nomos' : 'nomos';
       projectSelector.innerHTML = `<option value="${repoName}">${repoName.toUpperCase()}</option>`;
       projectSelector.disabled = true;
       projectSelector.style.opacity = '0.85';

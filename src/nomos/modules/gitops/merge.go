@@ -352,7 +352,17 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		}
 
 		// NOM-59: Auto-strip IDE-friendly replace directives from go.mod prior to committing
-		for _, repo := range []string{"nomos-commons", "nomos-os", "nomos-sovereign"} {
+		var crossRepos []string
+		if projSettings, err := config.LoadProjectSettings(wt); err == nil {
+			for _, r := range projSettings.CrossRepos {
+				crossRepos = append(crossRepos, filepath.Base(r))
+			}
+		} else {
+			// Fallback to basename of current root
+			crossRepos = append(crossRepos, filepath.Base(workspace.MustNewContext(wt).RepoRoot))
+		}
+		
+		for _, repo := range crossRepos {
 			cmdDropReplace := exec.Command("go", "mod", "edit", "-dropreplace", "github.com/mgantlett/"+repo)
 			cmdDropReplace.Dir = wt
 			_ = cmdDropReplace.Run()

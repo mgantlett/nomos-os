@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
@@ -181,18 +182,19 @@ var taskStartCmd = &cobra.Command{
 			if isOrchestratorRoot(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) {
 				_ = scaffoldTaskWorktree(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), key)
 
-				// Explicitly link the 3 core repositories instead of scanning everything blindly
-				allCoreRepos := []string{
-					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "open", "nomos-os"),
-					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "open", "nomos-commons"),
-					filepath.Join(filepath.Dir(filepath.Dir(repoRoot)), "private", "nomos-sovereign"),
-				}
-
 				var discoveredRepos []string
 				cleanRepoRoot := filepath.Clean(repoRoot)
-				for _, r := range allCoreRepos {
-					if filepath.Clean(r) != cleanRepoRoot {
-						discoveredRepos = append(discoveredRepos, r)
+
+				projSettings, err := config.LoadProjectSettings(repoRoot)
+				if err == nil && len(projSettings.CrossRepos) > 0 {
+					for _, r := range projSettings.CrossRepos {
+						absPath := r
+						if !filepath.IsAbs(absPath) {
+							absPath = filepath.Clean(filepath.Join(repoRoot, r))
+						}
+						if filepath.Clean(absPath) != cleanRepoRoot {
+							discoveredRepos = append(discoveredRepos, absPath)
+						}
 					}
 				}
 

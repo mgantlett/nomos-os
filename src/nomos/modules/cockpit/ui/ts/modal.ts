@@ -448,7 +448,7 @@ function buildTaskDetailsPaneHtml(task: any): string {
         </div>
         <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--text-main); line-height: 1.3;">${task.title || ''}</h3>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
-          <span><strong>Project:</strong> ${task.project || 'nomos-commons'}</span>
+          <span><strong>Project:</strong> ${task.project || 'nomos'}</span>
           <span>•</span>
           <span><strong>Parent Epic:</strong> ${parentLinkHtml}</span>
           <span>•</span>
@@ -515,8 +515,8 @@ function buildAgentDetailsPaneHtml(task: any): string {
   const executionMode = isSwarm ? 'Autonomous Swarm Pool (Tier 2 Sub-Agent)' : 'Direct Human-in-the-Loop Pair (Tier 1 Orchestrator)';
   
   const worktreePath = isSwarm
-    ? `~/.nomos/data/${task.project || 'nomos-commons'}/worktrees/task-${task.key || task.id}`
-    : `~/Projects/sophialabs/open/${task.project || 'nomos-commons'}`;
+    ? `~/.nomos/data/${task.project || 'nomos'}/worktrees/task-${task.key || task.id}`
+    : `~/Projects/sophialabs/open/${task.project || 'nomos'}`;
   
   const estimatedCost = task.cost || '--';
   

@@ -976,7 +976,7 @@ function updateWorktreesUI(worktrees: any[]): void {
   }
 
   worktrees.forEach((wt: any) => {
-    if (wt.name === 'nomos-commons' || !wt.name.startsWith('task-')) {
+    if (!wt.name.startsWith('task-')) {
       return;
     }
 
