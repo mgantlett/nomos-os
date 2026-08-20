@@ -28,6 +28,7 @@
 // - Clean Architecture: clear boundaries between telemetry processing and visual components.
 // ============================================================================
 import { renderArchitectureTopology, triggerArchitecturePulse } from './architecture.js';
+import { CreativeWizard } from './components/CreativeWizard.js';
 async function handlePlanApprove(btn) {
     btn.disabled = true;
     btn.textContent = 'Approving...';
@@ -1427,3 +1428,5 @@ if (sidebarCollapsed === 'true') {
         container.classList.add('sidebar-collapsed');
     }
 }
+
+new CreativeWizard();

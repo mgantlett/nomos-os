@@ -101,6 +101,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux.HandleFunc("/api/drift", s.handleDriftDisabled)
 	mux.HandleFunc("/api/analytics", s.handleAnalyticsDisabled)
 
+	mux.HandleFunc("/api/creative/discovery", s.handleCreativeDiscovery)
+	mux.HandleFunc("/api/creative/architect", s.handleCreativeArchitect)
+	mux.HandleFunc("/api/creative/commit", s.handleCreativeCommit)
+
 	mux.HandleFunc("/api/plugin/register", s.handleRegisterPlugin)
 
 	s.registerWorkspaceRoutes(mux)
@@ -212,6 +216,10 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/drift", s.handleDriftDisabled)
 	// Register Analytics & Velocity feature switch fallback handler
 	mux.HandleFunc("/api/analytics", s.handleAnalyticsDisabled)
+
+	mux.HandleFunc("/api/creative/discovery", s.handleCreativeDiscovery)
+	mux.HandleFunc("/api/creative/architect", s.handleCreativeArchitect)
+	mux.HandleFunc("/api/creative/commit", s.handleCreativeCommit)
 
 	// Register enterprise plugin middleware registration endpoint handler
 	mux.HandleFunc("/api/plugin/register", s.handleRegisterPlugin)
