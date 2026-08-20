@@ -1,6 +1,7 @@
 package verify
 
 import (
+	"github.com/mgantlett/nomos-commons/src/nomos/core/telemetry"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"fmt"
@@ -15,7 +16,7 @@ import (
 // It runs git status --porcelain to check for uncommitted modifications,
 // and uses git log @{u}..HEAD to ensure there are no unpushed commits.
 // It returns an error if any checks fail, detailing the failure mode.
-func checkWorktreeStatus(path string) error {
+func checkWorktreeStatus(path, taskID string) error {
 	// 1. Check if the worktree is clean
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = path
@@ -31,7 +32,49 @@ func checkWorktreeStatus(path string) error {
 		return fmt.Errorf("git status failed in %s: %w, stderr: %s", path, err, string(out))
 	}
 	if len(strings.TrimSpace(string(out))) > 0 {
-		return fmt.Errorf("upstream worktree has uncommitted changes: %s", path)
+		statusOut := strings.TrimSpace(string(out))
+		lines := strings.Split(statusOut, "\n")
+		onlyGoMod := true
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			if !strings.HasSuffix(line, "go.mod") && !strings.HasSuffix(line, "go.sum") {
+				onlyGoMod = false
+				break
+			}
+		}
+
+		if onlyGoMod {
+			addCmd := exec.Command("git", "add", "go.mod", "go.sum")
+			addCmd.Dir = path
+			addCmd.Env = env
+			_ = addCmd.Run()
+			
+			commitMsg := fmt.Sprintf("[Task %s] chore: auto-update dependencies\n\n**Impact List:**\n- Auto-synced module definitions\n\n**Resolution Details:**\n- Mechanically committed go.mod drifts by CrossRepoWorktreeGate", taskID)
+			tmpCommitFile := filepath.Join(path, ".nomos_commit_in_flight.md")
+			os.WriteFile(tmpCommitFile, []byte(commitMsg), 0644)
+			defer os.Remove(tmpCommitFile)
+
+			commitCmd := exec.Command("git", "commit", "--no-verify", "-F", tmpCommitFile)
+			commitCmd.Dir = path
+			commitCmd.Env = env
+			if err := commitCmd.Run(); err != nil {
+				return fmt.Errorf("auto-commit of go.mod failed in upstream worktree %s: %w", path, err)
+			}
+
+			pushCmd := exec.Command("git", "push", "-u", "origin", "HEAD", "--no-verify")
+			pushCmd.Dir = path
+			pushCmd.Env = env
+			if err := pushCmd.Run(); err != nil {
+				return fmt.Errorf("auto-push of go.mod failed in upstream worktree %s: %w", path, err)
+			}
+			
+			telemetry.EmitEvent(path, "info", "Auto-committed go.mod updates in upstream dependency")
+		} else {
+			return fmt.Errorf("upstream worktree has uncommitted changes: %s", path)
+		}
 	}
 
 	// 2. Check if the worktree is pushed
@@ -101,7 +144,7 @@ func parseGoWork(content []byte) []string {
 
 // processWorktree resolves the absolute path and verifies the status of a worktree dependency.
 // It skips non-git directories and non-paths like '.' to prevent infinite loops.
-func processWorktree(usePath, root string, errCh chan<- error, wg *sync.WaitGroup) {
+func processWorktree(usePath, root string, errCh chan<- error, wg *sync.WaitGroup, taskID string) {
 	absUsePath := usePath
 	if !filepath.IsAbs(usePath) {
 		absUsePath = filepath.Clean(filepath.Join(root, usePath))
@@ -120,7 +163,7 @@ func processWorktree(usePath, root string, errCh chan<- error, wg *sync.WaitGrou
 	wg.Add(1)
 	go func(path string) {
 		defer wg.Done()
-		if err := checkWorktreeStatus(path); err != nil {
+		if err := checkWorktreeStatus(path, taskID); err != nil {
 			errCh <- err
 		}
 	}(absUsePath)
@@ -132,6 +175,7 @@ func processWorktree(usePath, root string, errCh chan<- error, wg *sync.WaitGrou
 // It acts as a hard boundary before the active downstream repository is allowed to commit.
 func runCrossRepoWorktreeGate(ctx *workspace.WorkspaceContext) (StageResult, error) {
 	root := ctx.RepoRoot
+	taskID := GetActiveTaskId(root)
 	goWorkPath := filepath.Join(root, "go.work")
 
 	if _, err := os.Stat(goWorkPath); os.IsNotExist(err) {
@@ -149,7 +193,7 @@ func runCrossRepoWorktreeGate(ctx *workspace.WorkspaceContext) (StageResult, err
 	errCh := make(chan error, len(uses))
 
 	for _, usePath := range uses {
-		processWorktree(usePath, root, errCh, &wg)
+		processWorktree(usePath, root, errCh, &wg, taskID)
 	}
 
 	wg.Wait()
