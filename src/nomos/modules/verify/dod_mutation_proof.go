@@ -31,7 +31,7 @@ func runMutationProofGate(ctx *workspace.WorkspaceContext) (StageResult, error) 
 		return res, nil
 	}
 
-	if os.Getenv("NOMOS_BYPASS_MUTATION_PROOF") == "1" {
+	if os.Getenv("NOMOS_INTERNAL_GITOPS") == "1" {
 		res.Message = "Skipped (Bypassed natively by Nomos GitOps)"
 		return res, nil
 	}
