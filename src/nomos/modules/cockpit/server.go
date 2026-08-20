@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -108,7 +107,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux.HandleFunc("/api/plugin/register", s.handleRegisterPlugin)
 
 	s.registerWorkspaceRoutes(mux)
-	_ = s.registerStaticRoutes(mux)
 
 	mux.ServeHTTP(w, r)
 }
@@ -134,54 +132,7 @@ func (s *Server) registerWorkspaceRoutes(mux *http.ServeMux) {
 	})
 }
 
-// registerStaticRoutes mounts the embedded web assets handler to the root URL.
-func (s *Server) registerStaticRoutes(mux *http.ServeMux) error {
-	// Create virtual sub-filesystem for embedded UI web assets
-	uiFS, err := fs.Sub(Assets, "ui")
-	if err != nil {
-		return err
-	}
 
-	// Mount dynamic disk-first static file handler with embedded filesystem fallback
-	// This ensures hot-reloading development assets on disk are immediately served without re-compilation.
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Clean and normalize incoming HTTP request URL path
-		p := r.URL.Path
-		if p == "/" {
-			// Default root path request to index.html
-			p = "/index.html"
-		}
-		if p == "/favicon.ico" {
-			// Route default browser favicon requests to mascot asset
-			p = "/public/assets/nomos_mascot_clean.png"
-		}
-		// Strip leading slash for relative filepath joining
-		p = strings.TrimPrefix(p, "/")
-		// Clean path string to prevent path traversal
-		cleanPath := filepath.Clean(p)
-
-		// Check disk candidates for dev hot-reloading and live updates
-		candidates := []string{
-			filepath.Join(s.repoRoot, "src", "nomos", "modules", "cockpit", "ui"),
-		}
-		for _, cand := range candidates {
-			// Formulate absolute target filepath on host disk
-			target := filepath.Join(cand, cleanPath)
-			// Inspect if target file exists and is not a directory
-			if info, err := os.Stat(target); err == nil && !info.IsDir() {
-				// Serve file contents directly from disk
-				http.ServeFile(w, r, target)
-				// Return response successfully
-				return
-			}
-		}
-
-		// Fallback to embedded filesystem assets
-		http.FileServer(http.FS(uiFS)).ServeHTTP(w, r)
-	})
-
-	return nil
-}
 
 // Start launches the HTTP listener on the configured port.
 func (s *Server) Start() error {
@@ -225,10 +176,6 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/plugin/register", s.handleRegisterPlugin)
 
 	s.registerWorkspaceRoutes(mux)
-
-	if err := s.registerStaticRoutes(mux); err != nil {
-		return err
-	}
 
 	// Wrap request handler with logging middleware and no-cache headers for terminal activity feedback
 	loggingHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
