@@ -12,6 +12,7 @@ import (
 // runMutationProofGate ensures that if the workspace is in the EDIT phase,
 // there must be a dirty working directory (code mutations exist).
 // This explicitly blocks stochastic LLM agent hallucinations where they
+// This gate validates that the workspace has active source code mutations.
 // call run_verify without calling code modification tools.
 func runMutationProofGate(ctx *workspace.WorkspaceContext) (StageResult, error) {
 	root := ctx.PrimaryWorktree
