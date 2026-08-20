@@ -50,7 +50,7 @@ func PushWorktreeBranch(wt string) (string, error) {
 	branch := strings.TrimSpace(string(branchOut))
 
 	synapse.Info("🔄 GitOps Sync: Pushing '%s' in worktree %s...\n", branch, wt)
-	pushCmd := exec.Command("git", "push", "origin", "HEAD", "--no-verify")
+	pushCmd := exec.Command("git", "push", "origin", "HEAD", "--no-verify", "--force")
 	pushCmd.Dir = wt
 	if pushOut, err := pushCmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("failed to push worktree %s: %v (%s)", wt, err, string(pushOut))
@@ -207,6 +207,9 @@ func ParseParentRepoFromGitFile(wtPath string) string {
 func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 	synapse.Info("🧹 Tearing down transient worktree %s...\n", wt)
 	if repoRoot != "" {
+		os.Remove(filepath.Join(repoRoot, "go.work"))
+		os.Remove(filepath.Join(repoRoot, "go.work.sum"))
+
 		removeCmd := exec.Command("git", "worktree", "remove", "--force", wt)
 		removeCmd.Dir = repoRoot
 		removeCmd.Run()
@@ -456,33 +459,31 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 	return nil
 }
 
-// PerformGitFlowMerge executes a native git merge of the feature branch into the target environment.
+// PerformGitFlowMerge executes a native git rebase of the feature branch onto the target environment.
 func PerformGitFlowMerge(wt, branch, targetEnv, taskID string) error {
-	synapse.Info("🔀 GitFlow: Merging feature branch '%s' into '%s' natively...\n", branch, targetEnv)
+	synapse.Info("🔀 GitFlow: Rebasing feature branch '%s' onto '%s' natively...\n", branch, targetEnv)
 
 	// Fetch the latest target environment from remote origin.
-	// This ensures our local clone knows about the remote HEAD before merging.
+	// This ensures our local clone knows about the remote HEAD before rebasing.
 	fetchCmd := exec.Command("git", "fetch", "origin", targetEnv)
 	fetchCmd.Dir = wt
 	if fetchOut, err := fetchCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to fetch origin %s: %v (%s)", targetEnv, err, string(fetchOut))
 	}
 
-	// Merge remote target environment into the current feature branch.
-	// We inject a Dual-Layer AI-to-AI compliant commit message to satisfy
-	// the mandatory commit-msg git hooks on the repository.
-	commitMsg := fmt.Sprintf("[Task %s] Merge origin/%s into %s\n\n**Impact List:**\n- Synced branch with %s\n\n**Resolution Details:**\n- Auto-merged remote changes natively", taskID, targetEnv, branch, targetEnv)
-	mergeCmd := exec.Command("git", "merge", "origin/"+targetEnv, "-m", commitMsg)
-	mergeCmd.Dir = wt
-	if mergeOut, err := mergeCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("merge conflict in worktree %s: %v (%s)", wt, err, string(mergeOut))
+	// Rebase current feature branch onto the remote target environment.
+	// This ensures a linear commit history on develop instead of chaotic merge commits.
+	rebaseCmd := exec.Command("git", "rebase", "origin/"+targetEnv)
+	rebaseCmd.Dir = wt
+	if rebaseOut, err := rebaseCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("rebase conflict in worktree %s: %v (%s)", wt, err, string(rebaseOut))
 	}
 
-	// Push the fully merged feature branch directly to the remote target environment
+	// Push the fully rebased feature branch directly to the remote target environment
 	pushTargetCmd := exec.Command("git", "push", "origin", "HEAD:refs/heads/"+targetEnv, "--no-verify")
 	pushTargetCmd.Dir = wt
 	if pushOut, err := pushTargetCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to push merged target: %v (%s)", err, string(pushOut))
+		return fmt.Errorf("failed to push rebased target: %v (%s)", err, string(pushOut))
 	}
 
 	// Update the local target pointer to match our new HEAD, keeping local references clean

@@ -437,15 +437,20 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 	orchestratorWtDir := filepath.Join(workspace.MustNewContext(repoRoot).WorktreesDir(), fmt.Sprintf("%s-%s", filepath.Base(repoRoot), taskKey))
 
-	// Initialize isolated go.work if missing to prevent polluting the global one
-	if _, err := os.Stat(filepath.Join(orchestratorWtDir, "go.work")); os.IsNotExist(err) {
-		cmdGoInit := exec.Command("go", "work", "init", ".")
-		cmdGoInit.Dir = orchestratorWtDir
+	// Initialize isolated go.work in the root repository to natively support gopls IDE integration
+	rootGoWork := filepath.Join(repoRoot, "go.work")
+	if _, err := os.Stat(rootGoWork); os.IsNotExist(err) {
+		cmdGoInit := exec.Command("go", "work", "init")
+		cmdGoInit.Dir = repoRoot
 		_ = cmdGoInit.Run()
 
-		replaceArg := fmt.Sprintf("github.com/mgantlett/%s@v0.0.0=.", filepath.Base(repoRoot))
+		cmdGoUse := exec.Command("go", "work", "use", orchestratorWtDir)
+		cmdGoUse.Dir = repoRoot
+		_ = cmdGoUse.Run()
+
+		replaceArg := fmt.Sprintf("github.com/mgantlett/%s@v0.0.0=%s", filepath.Base(repoRoot), orchestratorWtDir)
 		cmdGoReplace := exec.Command("go", "work", "edit", "-replace", replaceArg)
-		cmdGoReplace.Dir = orchestratorWtDir
+		cmdGoReplace.Dir = repoRoot
 		_ = cmdGoReplace.Run()
 	}
 
@@ -473,14 +478,14 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 			continue
 		}
 
-		// go work use in the orchestrator worktree to seamlessly link them
+		// go work use in the root repository to seamlessly link them
 		cmdGoUse := exec.Command("go", "work", "use", crossWorktreeDir)
-		cmdGoUse.Dir = orchestratorWtDir
+		cmdGoUse.Dir = repoRoot
 		_ = cmdGoUse.Run()
 
 		replaceArg := fmt.Sprintf("github.com/mgantlett/%s@v0.0.0=%s", repoName, crossWorktreeDir)
 		cmdGoReplace := exec.Command("go", "work", "edit", "-replace", replaceArg)
-		cmdGoReplace.Dir = orchestratorWtDir
+		cmdGoReplace.Dir = repoRoot
 		_ = cmdGoReplace.Run()
 
 		// NOM-59: Auto-inject IDE-friendly replace directive directly into downstream go.mod
@@ -500,6 +505,9 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 // worktrees bound to the specified task key, and orchestrates a safe gitops teardown
 // to delete the worktrees and prune the associated git feature branches.
 func teardownTaskWorktrees(repoRoot, key string) {
+	os.Remove(filepath.Join(repoRoot, "go.work"))
+	os.Remove(filepath.Join(repoRoot, "go.work.sum"))
+
 	wCtx := workspace.MustNewContext(repoRoot)
 	wtDir := wCtx.WorktreesDir()
 	if entries, err := os.ReadDir(wtDir); err == nil {
