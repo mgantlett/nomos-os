@@ -11,6 +11,7 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
+	"github.com/mgantlett/nomos-os/src/nomos/modules/gitops"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 )
 
@@ -492,5 +493,25 @@ func scaffoldCrossRepoWorktrees(repoRoot, taskKey string, crossRepos []string) {
 		os.WriteFile(filepath.Join(crossWorktreeDir, ".nomos_parent_task"), []byte(taskKey), 0644)
 
 		fmt.Printf("🔗 Linked cross-repo worktree at: %s\n", crossWorktreeDir)
+	}
+}
+
+// teardownTaskWorktrees searches the global worktrees directory for any active transient
+// worktrees bound to the specified task key, and orchestrates a safe gitops teardown
+// to delete the worktrees and prune the associated git feature branches.
+func teardownTaskWorktrees(repoRoot, key string) {
+	wCtx := workspace.MustNewContext(repoRoot)
+	wtDir := wCtx.WorktreesDir()
+	if entries, err := os.ReadDir(wtDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() && strings.HasSuffix(entry.Name(), "-"+key) {
+				wtPath := filepath.Join(wtDir, entry.Name())
+				siblingRoot := gitops.ParseParentRepoFromGitFile(wtPath)
+				if siblingRoot != "" {
+					branch := "feature/" + key
+					gitops.TeardownWorktree(wtPath, branch, "develop", siblingRoot, key)
+				}
+			}
+		}
 	}
 }

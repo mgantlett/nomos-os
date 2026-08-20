@@ -345,7 +345,11 @@ func autoConfigureExplorerWorktree(repoRoot string) {
 
 	// 1. Create the explorer-sync branch if it doesn't exist
 	cmdBranch := exec.Command("git", "-C", repoRoot, "branch", "explorer-sync", "origin/develop")
-	_ = cmdBranch.Run()
+	if err := cmdBranch.Run(); err != nil {
+		// Fallback to local develop if origin/develop doesn't exist (e.g., local sandbox repositories)
+		cmdBranchLocal := exec.Command("git", "-C", repoRoot, "branch", "explorer-sync", "develop")
+		_ = cmdBranchLocal.Run()
+	}
 
 	// 2. Create the worktree if it doesn't exist
 	if _, err := os.Stat(explorerDir); os.IsNotExist(err) {
@@ -357,7 +361,11 @@ func autoConfigureExplorerWorktree(repoRoot string) {
 	} else {
 		// Fast-forward existing worktree
 		cmdPull := exec.Command("git", "-C", explorerDir, "pull", "origin", "develop")
-		_ = cmdPull.Run()
+		if err := cmdPull.Run(); err != nil {
+			// Fallback to merge local develop if origin doesn't exist
+			cmdMerge := exec.Command("git", "-C", explorerDir, "merge", "develop")
+			_ = cmdMerge.Run()
+		}
 	}
 
 	// 3. Isolate worktree config
@@ -366,14 +374,14 @@ func autoConfigureExplorerWorktree(repoRoot string) {
 
 	// 4. Configure reverse sparse checkout patterns based on config.yaml
 	settings, err := config.LoadProjectSettings(repoRoot)
-	sparseLines := []string{}
+	sparseLines := []string{"/*", "!/*/"}
 	if err == nil && len(settings.SparseExclude) > 0 {
 		for _, exclude := range settings.SparseExclude {
 			sparseLines = append(sparseLines, fmt.Sprintf("/%s/", strings.Trim(exclude, "/")))
 		}
 	} else {
 		// Fallback
-		sparseLines = []string{"/src/", "/docs/"}
+		sparseLines = append(sparseLines, "/src/", "/docs/")
 	}
 
 	initCmd := exec.Command("git", "-C", explorerDir, "sparse-checkout", "init", "--no-cone")

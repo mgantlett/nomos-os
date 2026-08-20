@@ -40,7 +40,7 @@ var taskResetCmd = &cobra.Command{
 			return err
 		}
 
-		key, _, tracker, _, err := parseTaskArgsAndLoadTracker(args, "")
+		key, _, tracker, repoRoot, err := parseTaskArgsAndLoadTracker(args, "")
 		if err != nil {
 			return err
 		}
@@ -50,6 +50,10 @@ var taskResetCmd = &cobra.Command{
 		if err := tracker.ResetBackend(ctx, key); err != nil {
 			return err
 		}
+		
+		// Unconditionally teardown orphaned transient worktrees for the reset task
+		teardownTaskWorktrees(repoRoot, key)
+		
 		fmt.Println("✅ Task reset to BACKLOG successfully.")
 		return nil
 	},
