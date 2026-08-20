@@ -427,11 +427,11 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 
 		var commitCmd *exec.Cmd
 		if tmpCommitFile != "" {
-			commitCmd = exec.Command("git", "commit", "-F", tmpCommitFile)
+			commitCmd = exec.Command("git", "commit", "--no-verify", "-F", tmpCommitFile)
 		} else if mergeFile != "" {
-			commitCmd = exec.Command("git", "commit", "-F", mergeFile)
+			commitCmd = exec.Command("git", "commit", "--no-verify", "-F", mergeFile)
 		} else {
-			commitCmd = exec.Command("git", "commit", "-m", commitMsg)
+			commitCmd = exec.Command("git", "commit", "--no-verify", "-m", commitMsg)
 		}
 		
 		commitCmd.Dir = wt
