@@ -324,6 +324,9 @@ func syncLocalTarget(repoRoot, targetEnv string) {
 }
 
 func commitDirectChanges(wt, taskID, mergeFile string) error {
+	var commitMsg string
+	var tmpCommitFile string
+
 	if mergeFile != "" {
 		data, err := os.ReadFile(mergeFile)
 		if err == nil {
@@ -331,11 +334,49 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 			synapse.Info("Writing mergeFile to %s\n", tmpFile)
 			os.WriteFile(tmpFile, data, 0644)
 			defer os.Remove(tmpFile)
+
+			commitMsg = string(data)
+
+			// Strip YAML frontmatter
+			if strings.HasPrefix(commitMsg, "---") {
+				endIdx := strings.Index(commitMsg[3:], "---")
+				if endIdx != -1 {
+					commitMsg = commitMsg[3+endIdx+3:]
+					commitMsg = strings.TrimLeft(commitMsg, " \r\n")
+				}
+			}
+
+			lines := strings.Split(commitMsg, "\n")
+			if len(lines) > 0 {
+				title := strings.TrimSpace(lines[0])
+				if strings.HasPrefix(title, "# ") {
+					title = strings.TrimPrefix(title, "# ")
+					lines = lines[1:]
+				} else if title != "" {
+					if !strings.HasPrefix(title, "**") {
+						lines = lines[1:]
+					} else {
+						title = "Automated AI Sync"
+					}
+				}
+
+				re := regexp.MustCompile(fmt.Sprintf(`(?i)^(\[Task\s+%s\]\s*)?(Task\s+%s\b[^:]*:\s*)?`, taskID, taskID))
+				cleanTitle := re.ReplaceAllString(title, "")
+				cleanTitle = strings.TrimSpace(cleanTitle)
+
+				newTitle := fmt.Sprintf("[Task %s] (nomos://task/%s) %s", taskID, taskID, cleanTitle)
+				commitMsg = newTitle + "\n\n" + strings.TrimSpace(strings.Join(lines, "\n"))
+			}
+
+			tmpCommitFile = filepath.Join(workspace.MustNewContext(wt).TmpDir(), "nomos_commit_in_flight_formatted.md")
+			os.WriteFile(tmpCommitFile, []byte(commitMsg), 0644)
+			defer os.Remove(tmpCommitFile)
 		} else {
 			synapse.Info("Failed to read mergeFile: %v\n", err)
 		}
 	} else {
 		synapse.Info("mergeFile is EMPTY\n")
+		commitMsg = fmt.Sprintf("[Task %s] feat(ai): AI-AI DDP Direct Merge\n\n**Impact List:**\n- Autonomous code convergence achieved\n\n**Resolution Details:**\n- Mechanically committed and verified by Nomos Substrate", taskID)
 	}
 
 	statusCmd := exec.Command("git", "status", "--porcelain")
@@ -381,56 +422,35 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 			return nil
 		}
 
-		commitMsg := fmt.Sprintf("[Task %s] feat(ai): AI-AI DDP Direct Merge\n\n**Impact List:**\n- Autonomous code convergence achieved\n\n**Resolution Details:**\n- Mechanically committed and verified by Nomos Substrate", taskID)
 		var commitCmd *exec.Cmd
-		if mergeFile != "" {
-			if data, err := os.ReadFile(mergeFile); err == nil {
-				commitMsg = string(data)
-
-				// Strip YAML frontmatter
-				if strings.HasPrefix(commitMsg, "---") {
-					endIdx := strings.Index(commitMsg[3:], "---")
-					if endIdx != -1 {
-						commitMsg = commitMsg[3+endIdx+3:]
-						commitMsg = strings.TrimLeft(commitMsg, " \r\n")
-					}
-				}
-
-				lines := strings.Split(commitMsg, "\n")
-				if len(lines) > 0 {
-					title := strings.TrimSpace(lines[0])
-					if strings.HasPrefix(title, "# ") {
-						title = strings.TrimPrefix(title, "# ")
-						lines = lines[1:]
-					} else if title != "" {
-						if !strings.HasPrefix(title, "**") {
-							lines = lines[1:]
-						} else {
-							title = "Automated AI Sync"
-						}
-					}
-
-					re := regexp.MustCompile(fmt.Sprintf(`(?i)^(\[Task\s+%s\]\s*)?(Task\s+%s\b[^:]*:\s*)?`, taskID, taskID))
-					cleanTitle := re.ReplaceAllString(title, "")
-					cleanTitle = strings.TrimSpace(cleanTitle)
-
-					newTitle := fmt.Sprintf("[Task %s] (nomos://task/%s) %s", taskID, taskID, cleanTitle)
-					commitMsg = newTitle + "\n\n" + strings.TrimSpace(strings.Join(lines, "\n"))
-				}
-
-				tmpCommitFile := filepath.Join(workspace.MustNewContext(wt).TmpDir(), "nomos_commit_in_flight.md")
-				os.WriteFile(tmpCommitFile, []byte(commitMsg), 0644)
-				defer os.Remove(tmpCommitFile)
-				commitCmd = exec.Command("git", "commit", "-F", tmpCommitFile)
-			} else {
-				commitCmd = exec.Command("git", "commit", "-F", mergeFile)
-			}
+		if tmpCommitFile != "" {
+			commitCmd = exec.Command("git", "commit", "-F", tmpCommitFile)
+		} else if mergeFile != "" {
+			commitCmd = exec.Command("git", "commit", "-F", mergeFile)
 		} else {
 			commitCmd = exec.Command("git", "commit", "-m", commitMsg)
 		}
+		
 		commitCmd.Dir = wt
 		if commitOut, err := commitCmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("git commit failed: %v (%s)", err, string(commitOut))
+		}
+	} else {
+		synapse.Info("No uncommitted changes detected. Ensuring latest commit complies with Nomos standards...\n")
+		
+		// Ensure the previous commit is amended with the correct message
+		var commitCmd *exec.Cmd
+		if tmpCommitFile != "" {
+			commitCmd = exec.Command("git", "commit", "--amend", "-F", tmpCommitFile)
+		} else if mergeFile != "" {
+			commitCmd = exec.Command("git", "commit", "--amend", "-F", mergeFile)
+		} else {
+			commitCmd = exec.Command("git", "commit", "--amend", "-m", commitMsg)
+		}
+		
+		commitCmd.Dir = wt
+		if commitOut, err := commitCmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("git commit --amend failed: %v (%s)", err, string(commitOut))
 		}
 	}
 	return nil
