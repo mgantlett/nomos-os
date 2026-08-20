@@ -178,6 +178,10 @@ func runCrossRepoWorktreeGate(ctx *workspace.WorkspaceContext) (StageResult, err
 	taskID := GetActiveTaskId(root)
 	goWorkPath := filepath.Join(root, "go.work")
 
+	if os.Getenv("NOMOS_INTERNAL_GITOPS") == "1" {
+		return StageResult{Passed: true, Message: "Skipped (Bypassed natively by Nomos GitOps)"}, nil
+	}
+
 	if _, err := os.Stat(goWorkPath); os.IsNotExist(err) {
 		return StageResult{Passed: true, Message: "No go.work found (Local Workspace inactive)."}, nil
 	}

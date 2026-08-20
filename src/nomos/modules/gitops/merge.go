@@ -56,7 +56,7 @@ func PushWorktreeBranch(wt string) (string, error) {
 	for _, e := range os.Environ() {
 		env = append(env, e)
 	}
-	pushCmd.Env = append(env, "NOMOS_BYPASS_MUTATION_PROOF=1")
+	pushCmd.Env = append(env, "NOMOS_INTERNAL_GITOPS=1")
 	if pushOut, err := pushCmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("failed to push worktree %s: %v (%s)", wt, err, string(pushOut))
 	}
@@ -234,7 +234,7 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 		for _, e := range os.Environ() {
 			env2 = append(env2, e)
 		}
-		remoteDelCmd.Env = append(env2, "NOMOS_BYPASS_MUTATION_PROOF=1")
+		remoteDelCmd.Env = append(env2, "NOMOS_INTERNAL_GITOPS=1")
 		remoteDelCmd.Run()
 
 		if taskID != "" && taskID != "UNKNOWN" {
@@ -272,7 +272,7 @@ func TeardownWorktree(wt, branch, targetEnv, repoRoot, taskID string) {
 								for _, e := range os.Environ() {
 									env3 = append(env3, e)
 								}
-								siblingRemoteDel.Env = append(env3, "NOMOS_BYPASS_MUTATION_PROOF=1")
+								siblingRemoteDel.Env = append(env3, "NOMOS_INTERNAL_GITOPS=1")
 								siblingRemoteDel.Run()
 							}
 
@@ -450,6 +450,11 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		}
 		
 		commitCmd.Dir = wt
+		var env []string
+		for _, e := range os.Environ() {
+			env = append(env, e)
+		}
+		commitCmd.Env = append(env, "NOMOS_INTERNAL_GITOPS=1")
 		if commitOut, err := commitCmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("git commit failed: %v (%s)", err, string(commitOut))
 		}
@@ -467,6 +472,11 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		}
 		
 		commitCmd.Dir = wt
+		var env2 []string
+		for _, e := range os.Environ() {
+			env2 = append(env2, e)
+		}
+		commitCmd.Env = append(env2, "NOMOS_INTERNAL_GITOPS=1")
 		if commitOut, err := commitCmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("git commit --amend failed: %v (%s)", err, string(commitOut))
 		}
@@ -501,7 +511,7 @@ func PerformGitFlowMerge(wt, branch, targetEnv, taskID string) error {
 	for _, e := range os.Environ() {
 		env4 = append(env4, e)
 	}
-	pushTargetCmd.Env = append(env4, "NOMOS_BYPASS_MUTATION_PROOF=1")
+	pushTargetCmd.Env = append(env4, "NOMOS_INTERNAL_GITOPS=1")
 	if pushOut, err := pushTargetCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to push rebased target: %v (%s)", err, string(pushOut))
 	}
