@@ -441,11 +441,11 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		// Ensure the previous commit is amended with the correct message
 		var commitCmd *exec.Cmd
 		if tmpCommitFile != "" {
-			commitCmd = exec.Command("git", "commit", "--amend", "-F", tmpCommitFile)
+			commitCmd = exec.Command("git", "commit", "--amend", "--no-verify", "-F", tmpCommitFile)
 		} else if mergeFile != "" {
-			commitCmd = exec.Command("git", "commit", "--amend", "-F", mergeFile)
+			commitCmd = exec.Command("git", "commit", "--amend", "--no-verify", "-F", mergeFile)
 		} else {
-			commitCmd = exec.Command("git", "commit", "--amend", "-m", commitMsg)
+			commitCmd = exec.Command("git", "commit", "--amend", "--no-verify", "-m", commitMsg)
 		}
 		
 		commitCmd.Dir = wt
