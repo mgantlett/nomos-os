@@ -10,6 +10,7 @@ import (
 
 	"strings"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/spf13/cobra"
@@ -72,6 +73,29 @@ var delegateCmd = &cobra.Command{
 		// Spawn transient, isolated worktree per delegated task
 		if err := scaffoldTaskWorktree(workspaceCtx, taskKey); err != nil {
 			return fmt.Errorf("failed to scaffold worktree: %w", err)
+		}
+
+		if isOrchestratorRoot(workspaceCtx) {
+			var discoveredRepos []string
+			cleanRepoRoot := filepath.Clean(repoRoot)
+
+			projSettings, err := config.LoadProjectSettings(repoRoot)
+			if err == nil && len(projSettings.CrossRepos) > 0 {
+				for _, r := range projSettings.CrossRepos {
+					absPath := r
+					if !filepath.IsAbs(absPath) {
+						absPath = filepath.Clean(filepath.Join(repoRoot, r))
+					}
+					if filepath.Clean(absPath) != cleanRepoRoot {
+						discoveredRepos = append(discoveredRepos, absPath)
+					}
+				}
+			}
+
+			if len(discoveredRepos) > 0 {
+				fmt.Printf("🔄 Auto-discovered %d sibling repositories for Swarm cross-repo workspace orchestration.\n", len(discoveredRepos))
+				scaffoldCrossRepoWorktrees(repoRoot, taskKey, discoveredRepos)
+			}
 		}
 
 		repoName := filepath.Base(repoRoot)

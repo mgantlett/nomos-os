@@ -65,12 +65,26 @@ var swarmOrchestrateCmd = &cobra.Command{
 			return fmt.Errorf("failed to list tasks for swarm orchestrate: %w", err)
 		}
 
+		taskStatusMap := make(map[string]bool)
+		for _, t := range tasks {
+			taskStatusMap[t.Key] = t.IsClosed()
+		}
+
 		var backlogTasks []*task.Task
 		for i := range tasks {
 			if tasks[i].Status == task.StatusBacklog || tasks[i].Status == task.StatusInProgress {
 				// Multiplex: Only route Tier 2 tasks to the autonomous open swarm pool
 				if tasks[i].GetIntelligenceTier() == 2 {
-					backlogTasks = append(backlogTasks, &tasks[i])
+					blocked := false
+					for _, depKey := range tasks[i].BlockedBy {
+						if isClosed, exists := taskStatusMap[depKey]; !exists || !isClosed {
+							blocked = true
+							break
+						}
+					}
+					if !blocked {
+						backlogTasks = append(backlogTasks, &tasks[i])
+					}
 				}
 			}
 		}
