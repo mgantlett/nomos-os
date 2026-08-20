@@ -48,6 +48,18 @@ var delegateCmd = &cobra.Command{
 			return fmt.Errorf("failed to load task %s: %w", taskKey, errView)
 		}
 
+		// Enforce Upfront Cognitive Routing Boundaries
+		if tObj.GetIntelligenceTier() == 1 {
+			fmt.Printf("⚠️  Cognitive Routing Boundary: Task %s has high cognitive load (Tier 1). Refusing local Swarm Tier 2 dispatch.\n", taskKey)
+			fmt.Println("➡️  Auto-escalating to Tier-1 Cloud LLM Architect (antigravity)...")
+			
+			// Assign to Tier 1 Architect immediately and abort local swarm worker
+			if err := tracker.Start(ctx, taskKey, "antigravity"); err != nil {
+				return fmt.Errorf("failed to escalate task to Tier 1: %w", err)
+			}
+			return fmt.Errorf("swarm delegation aborted: task cognitively escalates to Tier 1")
+		}
+
 		workspaceCtx := workspace.MustNewContext(repoRoot)
 
 		fmt.Printf("🚀 Delegating task %s to Native NCode Swarm Agent...\n", taskKey)
