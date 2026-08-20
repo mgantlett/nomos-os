@@ -33,24 +33,6 @@ import (
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
 )
 
-// migrateLegacyDirectories ensures that any legacy agent directories
-// are gracefully moved to their new locations under the .nomos state directory.
-func migrateLegacyDirectories(repoRoot string) {
-	globalDir := workspace.MustNewContext(repoRoot).DataDir()
-	_ = os.MkdirAll(globalDir, 0755)
-
-	dirsToMove := []string{"state", "tmp", "walkthroughs", "tasks", "locks"}
-	for _, dir := range dirsToMove {
-		legacyPath := filepath.Join(repoRoot, ".nomos", dir)
-		newPath := filepath.Join(globalDir, dir)
-		if _, err := os.Stat(legacyPath); err == nil {
-			_ = os.Rename(legacyPath, newPath)
-		}
-	}
-
-	// Remove the legacy .nomos directory completely if it exists
-	_ = os.RemoveAll(filepath.Join(repoRoot, ".nomos"))
-}
 
 // getBranch retrieves the current active git branch using the git CLI.
 // It returns 'unknown' if the command fails.

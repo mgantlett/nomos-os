@@ -123,13 +123,6 @@ var updateCmd = &cobra.Command{
 			return fmt.Errorf("must run update from within a Nomos workspace")
 		}
 
-		home, _ := os.UserHomeDir()
-		legacyDir := filepath.Join(home, ".nomos")
-		if _, err := os.Stat(legacyDir); err == nil {
-			synapse.Info("🗑️  Deleting legacy global data directory: %s", legacyDir)
-			os.RemoveAll(legacyDir)
-		}
-
 		var targets []string
 		if updateAll {
 			targets = []string{"nomos", "nomos-sovereign"}

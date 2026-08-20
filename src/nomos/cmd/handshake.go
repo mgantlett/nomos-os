@@ -64,8 +64,6 @@ It writes baseline state, ensures the Git hook verification boundary is in place
 			return err
 		}
 
-		// Clean up any legacy .agent directories from older versions of the Nomos engine.
-		migrateLegacyDirectories(repoRoot)
 
 		// Initialize the telemetry and context payload.
 		payload := createHandshakePayload(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
