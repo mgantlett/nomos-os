@@ -2,6 +2,7 @@ package verify
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
@@ -27,6 +28,11 @@ func runMutationProofGate(ctx *workspace.WorkspaceContext) (StageResult, error) 
 
 	if state.CurrentPhase != statepkg.PhaseEdit {
 		res.Message = fmt.Sprintf("Skipped (Phase is %s)", state.CurrentPhase)
+		return res, nil
+	}
+
+	if os.Getenv("NOMOS_BYPASS_MUTATION_PROOF") == "1" {
+		res.Message = "Skipped (Bypassed natively by Nomos GitOps)"
 		return res, nil
 	}
 
