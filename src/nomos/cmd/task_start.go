@@ -129,8 +129,9 @@ var taskStartCmd = &cobra.Command{
 			}
 		}
 
-		if !isGitTreeClean(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) && !forceStartFlag {
-			return fmt.Errorf("workspace contains uncommitted changes. Please stash or commit your dirty files before starting a new task, or pass --force (-f) to bind task to current uncommitted work.")
+		// CrossRepoGate strictly requires a pristine source root to orchestrate stable environments
+		if !isGitTreeClean(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()) {
+			return fmt.Errorf("workspace root is dirty. A pristine root checkout is strictly enforced to prevent cross-repo synchronization failures. Please stash or commit changes in the root before orchestrating a new task")
 		}
 
 		// Rotate telemetry logs for the new task session

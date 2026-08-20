@@ -480,7 +480,7 @@ func PerformGitFlowMerge(wt, branch, targetEnv, taskID string) error {
 	}
 
 	// Push the fully rebased feature branch directly to the remote target environment
-	pushTargetCmd := exec.Command("git", "push", "origin", "HEAD:refs/heads/"+targetEnv, "--no-verify")
+	pushTargetCmd := exec.Command("git", "push", "origin", "HEAD:refs/heads/"+targetEnv)
 	pushTargetCmd.Dir = wt
 	if pushOut, err := pushTargetCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to push rebased target: %v (%s)", err, string(pushOut))

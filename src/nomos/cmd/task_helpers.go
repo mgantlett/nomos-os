@@ -420,14 +420,7 @@ func scaffoldTaskWorktree(ctx *workspace.WorkspaceContext, taskKey string) error
 	envrcContent := fmt.Sprintf("use nix\nPATH_add bin\nPATH_add %s\n", nomosBinPath)
 	os.WriteFile(filepath.Join(worktreeDir, ".envrc"), []byte(envrcContent), 0644)
 
-	// go work init
-	cmdGoInit := exec.Command("go", "work", "init")
-	cmdGoInit.Dir = worktreeDir
-	_ = cmdGoInit.Run()
 
-	cmdGoUse := exec.Command("go", "work", "use", ".")
-	cmdGoUse.Dir = worktreeDir
-	_ = cmdGoUse.Run()
 
 	fmt.Printf("\n🔨 Scaffolded transient worktree at: %s\n", worktreeDir)
 	return nil
