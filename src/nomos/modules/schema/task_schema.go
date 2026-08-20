@@ -1,7 +1,7 @@
 // Package schema manages structured representations of the workspace state.
 // The TaskSchema dictates the markdown format for all backlog tasks.
 // By centralizing this template, we eliminate fragile regex and manual string formatting,
-// ensuring strict, deterministic serialization of user stories.
+// ensuring strict, deterministic serialization of tasks.
 // Note: The TaskSchema separates the Definition of Done into discrete, testable components.
 // The Acceptance Criteria must be mapped 1:1 with Walkthrough validation steps.
 // The Rigor & Verification Boundary explicitly forbids skipping quality gates.

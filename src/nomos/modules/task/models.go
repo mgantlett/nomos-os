@@ -53,7 +53,7 @@ type Task struct {
 	// Identity
 	Key       string     `json:"key"`
 	Project   string     `json:"project,omitempty"`    // Owning project (e.g. nomos-commons)
-	ParentKey string     `json:"parent_key,omitempty"` // Hierarchical parent link (e.g. Epic or Story key)
+	ParentKey string     `json:"parent_key,omitempty"` // Hierarchical parent link (e.g. Cycle or Parent Task key)
 	Type      TaskType   `json:"type,omitempty"`       // Task type (Batch, Task, Bug, Debt)
 	Title     string     `json:"title"`                // Renamed from Summary
 	Status    TaskStatus `json:"status"`               // TRIAGE, BACKLOG, PLAN, EDIT, REVIEW, DONE, CANCELLED
