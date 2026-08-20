@@ -102,13 +102,15 @@ func parseGoWork(content []byte) []string {
 // processWorktree resolves the absolute path and verifies the status of a worktree dependency.
 // It skips non-git directories and non-paths like '.' to prevent infinite loops.
 func processWorktree(usePath, root string, errCh chan<- error, wg *sync.WaitGroup) {
-	if usePath == "." || usePath == "./" {
-		return // Skip the current root
-	}
-
 	absUsePath := usePath
 	if !filepath.IsAbs(usePath) {
 		absUsePath = filepath.Clean(filepath.Join(root, usePath))
+	}
+
+	// Exempt the active root from cross-repo verification.
+	// The local worktree is validated independently by the Phase Discipline and Mutation Proof gates.
+	if absUsePath == root {
+		return // Skip the active root
 	}
 
 	if _, err := os.Stat(filepath.Join(absUsePath, ".git")); os.IsNotExist(err) {
