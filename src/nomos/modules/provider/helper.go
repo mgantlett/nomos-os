@@ -5,11 +5,10 @@ package provider
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/mgantlett/nomos-commons/src/nomos/core/config"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 
 	"github.com/spf13/viper"
@@ -35,38 +34,6 @@ type ModelsYAML struct {
 	Providers map[string]ProviderConfig `mapstructure:"providers"`
 }
 
-// parseEnvLine parses a single key=value line from a .env file into the target map.
-func parseEnvLine(line string, res map[string]string) {
-	line = strings.TrimSpace(line)
-	if line == "" || strings.HasPrefix(line, "#") {
-		return
-	}
-	parts := strings.SplitN(line, "=", 2)
-	if len(parts) != 2 {
-		return
-	}
-	k := strings.TrimSpace(parts[0])
-	v := strings.TrimSpace(parts[1])
-	if strings.HasPrefix(v, "\"") && strings.HasSuffix(v, "\"") {
-		v = v[1 : len(v)-1]
-	}
-	res[k] = v
-}
-
-// ParseEnvFileToMap reads a simple .env file and extracts its key-value pairs into a map.
-// It skips lines that are empty or begin with a '#' character, keeping only valid assignments.
-// The resulting map is used to apply environmental overrides onto the agent and model configurations.
-func ParseEnvFileToMap(path string) map[string]string {
-	res := make(map[string]string)
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return res
-	}
-	for _, line := range strings.Split(string(data), "\n") {
-		parseEnvLine(line, res)
-	}
-	return res
-}
 
 // SetupModelProviderTunnel starts the VM and SSH tunnel if the models.yaml config resolves to a provider
 // for the given phase. It returns the resolved modelName, llmURL, a cleanup function to close the tunnel, and any error.
@@ -125,19 +92,19 @@ func resolveFromModelsYAML(myaml *ModelsYAML, phase string, modelName *string, l
 }
 
 // resolveProviderAndModel resolves LLM provider configuration and model name.
-// It extracts environmental values from config.env in the global data directory, falls back to models.yaml default
-// configurations, applies task phase overrides, and handles openai model prefixes.
-func resolveProviderAndModel(ctx *workspace.WorkspaceContext, phase string) (string, string, string, ProviderConfig, bool) {
+func resolveProviderAndModel(ctx *workspace.WorkspaceContext, phase string) (string, string, string, string, ProviderConfig, bool) {
 	repoRoot := ctx.RepoRoot
 	llmURL := "http://localhost:8082/v1"
 	modelName := "model"
+	apiKey := ""
 
-	envMap := ParseEnvFileToMap(filepath.Join(workspace.MustNewContext(repoRoot).DataDir(), "config.env"))
-	if u := envMap["NOMOS_SWARM_LLM_URL"]; u != "" {
-		llmURL = u
-	}
-	if m := envMap["NOMOS_SWARM_LLM_MODEL"]; m != "" {
-		modelName = m
+	projCfg, err := config.LoadProjectSettings(repoRoot)
+	if err == nil && projCfg.ActiveSwarmProvider != "" {
+		if cp, ok := projCfg.CloudProviders[projCfg.ActiveSwarmProvider]; ok {
+			llmURL = cp.URL
+			modelName = cp.DefaultModel
+			apiKey = cp.APIKey
+		}
 	}
 
 	var providerName string
@@ -152,7 +119,7 @@ func resolveProviderAndModel(ctx *workspace.WorkspaceContext, phase string) (str
 		modelName = strings.TrimPrefix(modelName, "openai/")
 	}
 
-	return modelName, llmURL, providerName, selectedProvider, providerFound
+	return modelName, llmURL, apiKey, providerName, selectedProvider, providerFound
 }
 
 // waitForTunnelPort polls CheckLocalPort until the port becomes reachable or times out.
@@ -216,20 +183,20 @@ func establishSshTunnel(dbPath string, providerName string, selectedProvider Pro
 }
 
 // SetupModelProviderTunnel starts the VM and SSH tunnel if the models.yaml config resolves to a provider
-// for the given phase. It returns the resolved modelName, llmURL, a cleanup function to close the tunnel, and any error.
-func SetupModelProviderTunnel(ctx *workspace.WorkspaceContext, dbPath string, phase string) (string, string, func(), error) {
-	modelName, llmURL, providerName, selectedProvider, providerFound := resolveProviderAndModel(ctx, phase)
+// for the given phase. It returns the resolved modelName, llmURL, apiKey, a cleanup function to close the tunnel, and any error.
+func SetupModelProviderTunnel(ctx *workspace.WorkspaceContext, dbPath string, phase string) (string, string, string, func(), error) {
+	modelName, llmURL, apiKey, providerName, selectedProvider, providerFound := resolveProviderAndModel(ctx, phase)
 
 	var cleanup func() = func() {}
 	if providerFound {
 		var err error
 		llmURL, cleanup, err = establishSshTunnel(dbPath, providerName, selectedProvider)
 		if err != nil {
-			return "", "", nil, err
+			return "", "", "", nil, err
 		}
 	}
 
-	return modelName, llmURL, cleanup, nil
+	return modelName, llmURL, apiKey, cleanup, nil
 }
 
 // ResolveInitialRoot parses parent workspace path from worktree directory structures.
