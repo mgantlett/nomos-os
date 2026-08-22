@@ -50,7 +50,7 @@ func PushWorktreeBranch(wt string) (string, error) {
 	branch := strings.TrimSpace(string(branchOut))
 
 	synapse.Info("🔄 GitOps Sync: Pushing '%s' in worktree %s...\n", branch, wt)
-	pushCmd := exec.Command("git", "push", "origin", "HEAD", "--force")
+	pushCmd := exec.Command("git", "push", "-u", "origin", branch, "--force")
 	pushCmd.Dir = wt
 	var env []string
 	for _, e := range os.Environ() {
