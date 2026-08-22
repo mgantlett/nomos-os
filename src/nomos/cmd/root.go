@@ -107,7 +107,6 @@ embedding_url: "http://localhost:8081/v1/embeddings"
 
 func init() {
 	// Register subcommands
-	RootCmd.AddCommand(initCmd)
 	RootCmd.AddCommand(doctorCmd)
 	RootCmd.AddCommand(devCmd)
 	RootCmd.AddCommand(handshakeCmd)
@@ -120,7 +119,6 @@ func init() {
 	RootCmd.AddCommand(graphCmd)
 	RootCmd.AddCommand(searchCmd)
 
-	RootCmd.AddCommand(updateCmd)
 	RootCmd.AddCommand(browserCmd)
 	RootCmd.AddCommand(refactorCmd)
 	RootCmd.AddCommand(auditCmd)

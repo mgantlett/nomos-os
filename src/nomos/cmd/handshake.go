@@ -114,6 +114,11 @@ It writes baseline state, ensures the Git hook verification boundary is in place
 		payload.Memories = memories
 		payload.Errors = append(payload.Errors, errs...)
 
+		// Run ecosystem synchronization during handshake
+		if err := runHandshakeSync(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }()); err != nil {
+			synapse.Info("⚠️  Failed to synchronize ecosystem during handshake: %v", err)
+		}
+
 		synapse.Emit("Handshake", payload)
 		return nil
 	},

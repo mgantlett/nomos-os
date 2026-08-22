@@ -15,45 +15,11 @@ import (
 	"github.com/mgantlett/nomos-commons/src/nomos/core/assets"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/synapse"
 	nomosexec "github.com/mgantlett/nomos-os/src/nomos/modules/exec"
-	"github.com/spf13/cobra"
 )
 
-// initCmd represents the init command which initializes a new workspace
-// or updates an existing workspace's configuration and git hooks.
-// It uses embedded files from the assets package to ensure the user always gets
-// the latest canonical versions of the hooks without needing external template directories.
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize Nomos dependencies and configurations in the current workspace",
-}
-
-// initSyncCmd defines the Cobra subcommand responsible for rehydrating embedded
-// system templates, workflow definitions, and AGENTS.md instructions directly
-// into the current project workspace directory structure.
-var initSyncCmd = &cobra.Command{
-	Use:        "sync",
-	Short:      "Synchronize embedded workflows and protocols into the local workspace",
-	Deprecated: "use 'nomos update -w' instead",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Discover working directory and resolve top-level git repository root
-		wd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		repoRoot := findRepoRoot(wd)
-
-		if err := enforceRootZone(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }(), "init"); err != nil {
-			return err
-		}
-
-		return runInitSync(func() *workspace.WorkspaceContext { c, _ := workspace.NewContext(repoRoot); return c }())
-	},
-}
-
-// runInitSync executes the synchronization of embedded workflows and protocols
-// into the specified repository root. It is used by both the init sync command
-// and during the handshake boot sequence.
-func runInitSync(ctx *workspace.WorkspaceContext) error {
+// runHandshakeSync executes the synchronization of embedded workflows and protocols
+// into the specified repository root. It is used during the handshake boot sequence.
+func runHandshakeSync(ctx *workspace.WorkspaceContext) error {
 	repoRoot := ctx.RepoRoot
 	// Rehydrate the workspace protocol and workflows from the Go substrate
 	synapse.Info("Syncing embedded workflows and protocols into %s...", repoRoot)
@@ -149,30 +115,6 @@ func installHooks(root string) error {
 	return nil
 }
 
-// initHooksCmd provides backward compatibility for the deprecated `nomos init hooks` command.
-var initHooksCmd = &cobra.Command{
-	Use:        "hooks",
-	Short:      "Install the embedded Nomos Git hooks into .git/hooks",
-	Deprecated: "use 'nomos init sync' instead",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var root string
-		// Query git executable directly to identify repository root path
-		out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
-		if err == nil {
-			root = strings.TrimSpace(string(out))
-		} else {
-			root = "."
-		}
-		return installHooks(root)
-	},
-}
-
-// init registers subcommands onto the parent Cobra `initCmd` during package initialization.
-func init() {
-	initCmd.AddCommand(initHooksCmd)
-	initCmd.AddCommand(initSyncCmd)
-}
-
 // autoConfigureIDEs detects known AI coding agents and automatically symlinks the global customizations.
 func autoConfigureIDEs() {
 	homeDir, err := os.UserHomeDir()
@@ -247,6 +189,20 @@ pkgs.mkShell {
 }
 `
 		os.WriteFile(shellNixPath, []byte(defaultShellNix), 0644)
+	} else {
+		// Ensure the active shell.nix injects the proper nomos bin paths
+		contentBytes, _ := os.ReadFile(shellNixPath)
+		content := string(contentBytes)
+		if !strings.Contains(content, nomosBinPath) {
+			synapse.Info(" 🔗 Injecting Nomos OS path into existing shell.nix...")
+			if strings.Contains(content, "shellHook = ''\n") {
+				injection := fmt.Sprintf("    export PATH=\"%s:/home/markg/Projects/sophialabs/private/nomos-sovereign/bin:$PATH\"\n", nomosBinPath)
+				content = strings.Replace(content, "shellHook = ''\n", "shellHook = ''\n"+injection, 1)
+				os.WriteFile(shellNixPath, []byte(content), 0644)
+			} else {
+				synapse.Info("    ⚠️  Could not find shellHook in shell.nix. Please manually add: export PATH=\"%s:$PATH\"", nomosBinPath)
+			}
+		}
 	}
 
 	// 2. Scaffold or Update .envrc
