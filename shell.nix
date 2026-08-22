@@ -29,8 +29,8 @@ pkgs.mkShell {
   shellHook = ''
     export TYPST_FONT_PATHS="${pkgs.liberation_ttf}/share/fonts/truetype"
     export PATH="$PWD/bin:/home/markg/Projects/sophialabs/private/nomos-sovereign/bin:$PATH"
-    echo "⚡ Welcome to the Nomos development shell! ⚡"
-    echo "Loaded dependencies: shellcheck, sqlite, jq, git, curl, nodejs, bc, parallel, google-cloud-sdk, datasette, pm2, psmisc"
+    echo "⚡ Welcome to the Nomos development shell! ⚡" >&2
+    echo "Loaded dependencies: shellcheck, sqlite, jq, git, curl, nodejs, bc, parallel, google-cloud-sdk, datasette, pm2, psmisc" >&2
 
     # Dynamically compile the local nomos engine if it's missing or stale, provided we are in a fully hydrated worktree
     if [ -f worktrees/.explorer/src/nomos/main.go ]; then
