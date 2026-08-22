@@ -523,5 +523,13 @@ func PerformGitFlowMerge(wt, branch, targetEnv, taskID string) error {
 	updateBranchCmd.Dir = wt
 	updateBranchCmd.Run() // Ignore errors, it's just a local reference update
 
+	// Push the rebased feature branch to its origin tracking branch so CrossRepoWorktreeGate passes for siblings
+	pushFeatureCmd := exec.Command("git", "push", "-u", "origin", "HEAD:refs/heads/"+branch, "--force")
+	pushFeatureCmd.Dir = wt
+	pushFeatureCmd.Env = append(env4, "NOMOS_INTERNAL_GITOPS=1")
+	if pushFeatureOut, err := pushFeatureCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to push rebased feature branch: %v (%s)", err, string(pushFeatureOut))
+	}
+
 	return nil
 }
