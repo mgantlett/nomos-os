@@ -344,11 +344,13 @@ func autoConfigureExplorerWorktree(repoRoot string) {
 	synapse.Info(" 🔭 Scaffolding Deterministic Explorer Worktree...")
 
 	// 1. Create the explorer-sync branch if it doesn't exist
-	cmdBranch := exec.Command("git", "-C", repoRoot, "branch", "explorer-sync", "origin/develop")
+	// Using --no-track explicitly prevents VSCode from displaying 'Sync Changes' prompts
+	cmdBranch := exec.Command("git", "-C", repoRoot, "branch", "--no-track", "explorer-sync", "develop")
 	if err := cmdBranch.Run(); err != nil {
-		// Fallback to local develop if origin/develop doesn't exist (e.g., local sandbox repositories)
-		cmdBranchLocal := exec.Command("git", "-C", repoRoot, "branch", "explorer-sync", "develop")
-		_ = cmdBranchLocal.Run()
+		// If the branch already exists, explicitly disconnect it from any remote tracking
+		// to ensure the VSCode Git Graph stops showing "Outgoing Changes".
+		cmdUnset := exec.Command("git", "-C", repoRoot, "branch", "--unset-upstream", "explorer-sync")
+		_ = cmdUnset.Run()
 	}
 
 	// 2. Create the worktree if it doesn't exist
