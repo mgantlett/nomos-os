@@ -397,6 +397,23 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		commitMsg = fmt.Sprintf("[Task %s] feat(ai): AI-AI DDP Direct Merge\n\n**Impact List:**\n- Autonomous code convergence achieved\n\n**Resolution Details:**\n- Mechanically committed and verified by Nomos Substrate", taskID)
 	}
 
+	// NOM-59: Auto-strip IDE-friendly replace directives from go.mod prior to committing
+	var crossRepos []string
+	if projSettings, err := config.LoadProjectSettings(wt); err == nil {
+		for _, r := range projSettings.CrossRepos {
+			crossRepos = append(crossRepos, filepath.Base(r))
+		}
+	} else {
+		// Fallback to basename of current root
+		crossRepos = append(crossRepos, filepath.Base(workspace.MustNewContext(wt).RepoRoot))
+	}
+	
+	for _, repo := range crossRepos {
+		cmdDropReplace := exec.Command("go", "mod", "edit", "-dropreplace", "github.com/mgantlett/"+repo)
+		cmdDropReplace.Dir = wt
+		_ = cmdDropReplace.Run()
+	}
+
 	statusCmd := exec.Command("git", "status", "--porcelain")
 	statusCmd.Dir = wt
 	out, err := statusCmd.CombinedOutput()
@@ -410,22 +427,7 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 			return fmt.Errorf("DoD failed in worktree %s: %w", wt, err)
 		}
 
-		// NOM-59: Auto-strip IDE-friendly replace directives from go.mod prior to committing
-		var crossRepos []string
-		if projSettings, err := config.LoadProjectSettings(wt); err == nil {
-			for _, r := range projSettings.CrossRepos {
-				crossRepos = append(crossRepos, filepath.Base(r))
-			}
-		} else {
-			// Fallback to basename of current root
-			crossRepos = append(crossRepos, filepath.Base(workspace.MustNewContext(wt).RepoRoot))
-		}
-		
-		for _, repo := range crossRepos {
-			cmdDropReplace := exec.Command("go", "mod", "edit", "-dropreplace", "github.com/mgantlett/"+repo)
-			cmdDropReplace.Dir = wt
-			_ = cmdDropReplace.Run()
-		}
+
 
 		addCmd := exec.Command("git", "add", ".")
 		addCmd.Dir = wt
