@@ -107,6 +107,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	s.registerWorkspaceRoutes(mux)
 
+	if uiFS, err := getUIFS(); err == nil {
+		mux.Handle("/", http.FileServer(uiFS))
+	}
+
 	mux.ServeHTTP(w, r)
 }
 
@@ -175,6 +179,10 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/plugin/register", s.handleRegisterPlugin)
 
 	s.registerWorkspaceRoutes(mux)
+
+	if uiFS, err := getUIFS(); err == nil {
+		mux.Handle("/", http.FileServer(uiFS))
+	}
 
 	// Wrap request handler with logging middleware and no-cache headers for terminal activity feedback
 	loggingHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
