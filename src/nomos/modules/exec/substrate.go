@@ -266,12 +266,27 @@ func UpdateVSCodeTheme(root string, locked bool) error {
 	// Write title strictly to target workspace directory
 	writeVSCodeTitleFile(root, baseName, taskId, emoji, phaseName, ver)
 
-	if strings.Contains(root, "worktrees") {
-		projectName := filepath.Base(workspace.MustNewContext(root).DataDir())
-		parentRoot := workspace.MustNewContext(root).RepoRoot
-		if parentRoot != root {
-			writeVSCodeTitleFile(parentRoot, projectName, taskId, emoji, phaseName, ver)
+	parentRoot := workspace.MustNewContext(root).RepoRoot
+
+	// Sync all sibling worktrees associated with this active task
+	if taskId != "" {
+		wtDir := filepath.Join(parentRoot, "worktrees")
+		if entries, err := os.ReadDir(wtDir); err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() && strings.HasSuffix(entry.Name(), "-"+taskId) {
+					wtPath := filepath.Join(wtDir, entry.Name())
+					if wtPath != root {
+						wtBaseName := filepath.Base(wtPath)
+						writeVSCodeTitleFile(wtPath, wtBaseName, taskId, emoji, phaseName, ver)
+					}
+				}
+			}
 		}
+	}
+
+	if parentRoot != root {
+		projectName := filepath.Base(workspace.MustNewContext(root).DataDir())
+		writeVSCodeTitleFile(parentRoot, projectName, taskId, emoji, phaseName, ver)
 	}
 
 	return nil

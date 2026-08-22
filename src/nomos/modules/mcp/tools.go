@@ -1,14 +1,17 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/mgantlett/nomos-commons/src/nomos/core/ast"
+	statepkg "github.com/mgantlett/nomos-commons/src/nomos/core/state"
 	"github.com/mgantlett/nomos-commons/src/nomos/core/workspace"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/gitops"
+	"github.com/mgantlett/nomos-os/src/nomos/modules/task"
 	"github.com/mgantlett/nomos-os/src/nomos/modules/verify"
 )
 
@@ -133,6 +136,19 @@ func (t *TaskSyncTool) Handle(ctx *workspace.WorkspaceContext, args json.RawMess
 	err := gitops.DirectMerge(wtPath, ctx, p.TargetEnv, tmpFile)
 	if err != nil {
 		return "", fmt.Errorf("direct sync failed: %w", err)
+	}
+
+	cfg, err := task.LoadConfig(ctx)
+	if err == nil {
+		tracker, err := task.NewTracker(cfg)
+		if err == nil {
+			bgCtx := context.Background()
+			_ = tracker.Close(bgCtx, taskID, "Synced natively via nomos_task_sync MCP")
+			
+			if s, _ := task.GetPhaseState(ctx); s != nil && s.TaskId == taskID {
+				_ = task.TransitionPhase(ctx, statepkg.PhaseIdle)
+			}
+		}
 	}
 
 	return fmt.Sprintf("✅ Active task %s successfully synced to %s", taskID, p.TargetEnv), nil
