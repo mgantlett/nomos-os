@@ -464,11 +464,11 @@ func commitDirectChanges(wt, taskID, mergeFile string) error {
 		// Ensure the previous commit is amended with the correct message
 		var commitCmd *exec.Cmd
 		if _, err := os.Stat(tmpCommitFile); err == nil {
-			commitCmd = exec.Command("git", "commit", "--amend", "-F", tmpCommitFile)
+			commitCmd = exec.Command("git", "commit", "--amend", "--allow-empty", "-F", tmpCommitFile)
 		} else if _, err := os.Stat(mergeFile); err == nil {
-			commitCmd = exec.Command("git", "commit", "--amend", "-F", mergeFile)
+			commitCmd = exec.Command("git", "commit", "--amend", "--allow-empty", "-F", mergeFile)
 		} else {
-			commitCmd = exec.Command("git", "commit", "--amend", "-m", commitMsg)
+			commitCmd = exec.Command("git", "commit", "--amend", "--allow-empty", "-m", commitMsg)
 		}
 		
 		commitCmd.Dir = wt
